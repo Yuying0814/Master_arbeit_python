@@ -4,7 +4,7 @@ from typing import Any, Literal
 from mistralai.client import Mistral
 
 
-class MyMistral:
+class MistralClient:
     mistral_client: Mistral
 
     def __init__(self,api_key:str) -> None:
