@@ -1,0 +1,52 @@
+Master_arbeit_matlab/
+├── .gitignore
+├── main.m
+├── prompts/
+│   ├── prompt_addPageDescription.txt
+│   ├── prompt_classifyPages.txt
+│   ├── prompt_extractRegIndex.txt
+│   ├── prompt_extractRegMap.txt
+│   ├── prompt_verifyRegPages.txt
+│   └── prompt_verifyRegSumPages.txt
+├── src/
+│   ├── Config.m
+│   ├── +openai/
+│   │   ├── BatchJob.m
+│   │   ├── OpenaiBatch.m
+│   │   ├── OpenaiTaskAgent.m
+│   │   └── mustBeValidResponseFormat.m
+│   ├── +preprocessing/
+│   │   ├── Preprocessor.m
+│   │   ├── +mistral/
+│   │   │   └── Mistral.m
+│   │   ├── +page/
+│   │   │   ├── PageBatchTask.m
+│   │   │   ├── buildPageRequest.m
+│   │   │   ├── getClassificationFormat.m
+│   │   │   ├── getDescriptionFormat.m
+│   │   │   ├── parseClassificationContent.m
+│   │   │   ├── parseDescriptionContent.m
+│   │   │   └── parseVerificationContent.m
+│   │   ├── +register/
+│   │   │   ├── getRegIndexDefaultFormat.m
+│   │   │   └── getRegMapDefaultFormat.m
+│   │   ├── +retrieval/
+│   │   │   └── findRelevantPageRange.m
+│   │   ├── +toc/
+│   │   │   ├── detectTocEntry.m
+│   │   │   ├── detectTocTitle.m
+│   │   │   ├── extractTocEntry.m
+│   │   │   ├── findTocPages.m
+│   │   │   └── resolveTocEntries.m
+│   │   └── +utils/
+│   │       ├── extractTextFrom.m
+│   │       ├── matchPattern.m
+│   │       ├── removeHeaderFooter.m
+│   │       └── text2lines.m
+│   └── +utils/
+│       └── buildJSONSchema.m
+├── data/
+│   ├── input/
+│   └── output/
+├── llms-with-matlab-main/
+└── tests/
