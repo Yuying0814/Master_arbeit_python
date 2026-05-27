@@ -14,4 +14,6 @@ ocr_result = client.run_ocr(pdf)
 pages = ocr_result["pages"]
 
 outpages = find_toc_pages(pages)
-pass
+for page_index, page in enumerate(outpages):
+    print(page_index, page["result_toc"])
+
