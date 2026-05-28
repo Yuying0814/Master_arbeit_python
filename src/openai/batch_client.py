@@ -231,9 +231,14 @@ class OpenAIBatchClient:
         contents,outputs,records = self.parse_batch_output(raw_output)
         return contents,outputs,records
 
-    def clean_up(self,batch_job:BatchJob) -> None:
-        if batch_job.is_completed():
-            self.delete_uploaded_file(batch_job.input_file_id)
+    def clean_up_batch_job(self,batch_job:BatchJob) -> None:
+        if batch_job.input_file_id:
+            self.delete_uploaded_file(input_file_id=batch_job.input_file_id)
+
+    def cancel_batch_job(self,batch_job:BatchJob) -> None:
+        batch_job.update_batch_info(batch_info=self.get_batch_info(batch_job.batch_id))
+        if batch_job.status in {"validating","submitted","in_progress"}:
+            self.cancel(batch_id=batch_job.batch_id)
 
 
 

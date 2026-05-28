@@ -5,8 +5,6 @@ import warnings
 from pathlib import Path
 from typing import Any,TypeVar
 from collections.abc import Callable
-
-from openai import batch_job
 from preprocessing.page.build_page_request import build_page_requests
 from src.openai.batch_client import OpenAIBatchClient
 from src.openai.valid_format import ValidTextFormat
@@ -183,12 +181,12 @@ class PageBatchTask:
                 update_retry_result(self.records,retry_records)
 
             except RuntimeError:
-                if retry_job and retry_job.status in {"validating","submitted","in_progress"}:
-                    self.batch_client.cancel(retry_job.batch_id)
-                    self.batch_client.delete_uploaded_file(batch_job.input_file_id)
+                if retry_job:
+                    self.batch_client.cancel_batch_job(retry_job)
+                    self.batch_client.clean_up_batch_job(retry_job)
             finally:
                 if retry_job:
-                    self.batch_client.delete_uploaded_file(batch_job.input_file_id)
+                    self.batch_client.clean_up_batch_job(retry_job)
 
                 self.retries.append(
                     {
@@ -202,12 +200,11 @@ class PageBatchTask:
         self.check_completeness()
 
     def cleanup(self) -> None:
-        if not self or not self.batch_job or not self.contents:
+        if not self or not self.batch_job:
             return
         try:
-            if self.status in {"validating","submitted","in_progress"}:
-                self.batch_client.cancel(self.batch_job.batch_id)
-            self.batch_client.clean_up(self.batch_job)
+            self.batch_client.cancel(self.batch_job.batch_id)
+            self.batch_client.clean_up_batch_job(self.batch_job)
         except RuntimeError:
             warnings.warn("Cleanup failed", RuntimeWarning)
 
