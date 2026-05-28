@@ -45,7 +45,7 @@ class PageBatchTask:
         self.input_path = input_path
 
         self.custom_ids = []
-        self.model_name = task_config.get("model","gpt-5-mini")
+        self.model = task_config.get("model","gpt-5-mini")
 
         self.instructions = self._load_instructions(task_config)
         self.user_inputs = []
@@ -87,7 +87,7 @@ class PageBatchTask:
     def write_batch_input_file(self) -> None:
         self.batch_input_file.reset_JSONLs()
         self.batch_input_file.add_multiple_JSONLs(
-            model_name=self.model_name,
+            model=self.model,
             custom_ids=self.custom_ids,
             instructions=self.instructions,
             users=self.user_inputs,
@@ -154,7 +154,7 @@ class PageBatchTask:
             input_path = self.input_path.parent / f"{self.name}_retry{attempt}.jsonl"
             retry_batch_input_file = BatchInputFile(path=input_path)
             retry_batch_input_file.add_multiple_JSONLs(
-                model_name=self.model_name,
+                model=self.model,
                 custom_ids=retry_custom_ids,
                 instructions=self.instructions,
                 users=retry_user_inputs,
