@@ -37,7 +37,7 @@ class PageBatchTask:
     records:list[dict[str,Any]]
 
     def __init__(self,pages:list[dict[str,Any]],batch_client:OpenAIBatchClient,input_path:Path,task_config:dict[str,Any]) -> None:
-        self.name = input_path.name
+        self.name = input_path.stem
         self.status = "created"
         self.has_valid_output = False
 
@@ -45,7 +45,7 @@ class PageBatchTask:
         self.input_path = input_path
 
         self.custom_ids = []
-        self.model = task_config.get("model","gpt-5-mini")
+        self.model = task_config.get("model") or "gpt-5-mini"
 
         self.instructions = self._load_instructions(task_config)
         self.user_inputs = []
@@ -110,7 +110,6 @@ class PageBatchTask:
             raise ValueError
         self.batch_job = self.batch_client.wait_for_completion(batch_job=self.batch_job)
         self.update_status()
-
 
     def collect_batch_output(self) -> None:
         if not self.batch_job:
