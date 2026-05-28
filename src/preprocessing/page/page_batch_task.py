@@ -183,7 +183,6 @@ class PageBatchTask:
             except RuntimeError:
                 if retry_job:
                     self.batch_client.cancel_batch_job(retry_job)
-                    self.batch_client.clean_up_batch_job(retry_job)
             finally:
                 if retry_job:
                     self.batch_client.clean_up_batch_job(retry_job)
@@ -203,7 +202,7 @@ class PageBatchTask:
         if not self or not self.batch_job:
             return
         try:
-            self.batch_client.cancel(self.batch_job.batch_id)
+            self.batch_client.cancel_batch_job(self.batch_job)
             self.batch_client.clean_up_batch_job(self.batch_job)
         except RuntimeError:
             warnings.warn("Cleanup failed", RuntimeWarning)
