@@ -5,7 +5,7 @@ import warnings
 from pathlib import Path
 from typing import Any,TypeVar
 from collections.abc import Callable
-from preprocessing.page.build_page_request import build_page_requests
+from src.preprocessing.page.build_page_request import build_page_requests
 from src.openai.batch_client import OpenAIBatchClient
 from src.openai.valid_format import ValidTextFormat
 from src.openai.batch_job import BatchJob
@@ -63,9 +63,9 @@ class PageBatchTask:
     def run(self):
         self.reset()
         try:
-            run_with_retry(function=self.submit_batch)
-            run_with_retry(function=self.wait_batch)
-            run_with_retry(function=self.collect_batch_output)
+            self.run_with_retry(function=self.submit_batch)
+            self.run_with_retry(function=self.wait_batch)
+            self.run_with_retry(function=self.collect_batch_output)
             self.retry_batch()
         finally:
             self.cleanup()
@@ -87,6 +87,7 @@ class PageBatchTask:
     def write_batch_input_file(self) -> None:
         self.batch_input_file.reset_JSONLs()
         self.batch_input_file.add_multiple_JSONLs(
+            name = self.name,
             model=self.model,
             custom_ids=self.custom_ids,
             instructions=self.instructions,
@@ -154,6 +155,7 @@ class PageBatchTask:
             input_path = self.input_path.parent / f"{self.name}_retry{attempt}.jsonl"
             retry_batch_input_file = BatchInputFile(path=input_path)
             retry_batch_input_file.add_multiple_JSONLs(
+                name = self.name,
                 model=self.model,
                 custom_ids=retry_custom_ids,
                 instructions=self.instructions,
@@ -164,9 +166,9 @@ class PageBatchTask:
             retry_batch_input_file.write_to_file()
 
             try:
-                retry_job = run_with_retry(self.batch_client.submit, retry_batch_input_file)
-                retry_job = run_with_retry(self.batch_client.wait_for_completion,retry_job)
-                retry_contents,retry_outputs,retry_records = run_with_retry(
+                retry_job = self.run_with_retry(self.batch_client.submit, retry_batch_input_file)
+                retry_job = self.run_with_retry(self.batch_client.wait_for_completion,retry_job)
+                retry_contents,retry_outputs,retry_records = self.run_with_retry(
                     self.batch_client.collect_batch_output,
                     retry_job
                 )
@@ -219,29 +221,29 @@ class PageBatchTask:
     @staticmethod
     def _load_instructions(task_config: dict[str, Any]) -> str:
         prompt_path = task_config.get("prompt_path")
-        if prompt_path is None:
+        if not prompt_path:
             return "You are a helpful assistant."
         return Path(prompt_path).read_text(encoding="utf-8")
 
+    @staticmethod
+    def run_with_retry(function: Callable[..., T], *args, max_retries: int = 3, base_delay: int = 2) -> T:
+        for attempt in range(1, max_retries + 2):
+            try:
+                return function(*args)
+
+            except Exception as error:
+                if attempt > max_retries:
+                    raise RuntimeError(f"Stage {function.__name__} failed") from error
+
+                delay = base_delay * 2 ** (attempt - 1)
+
+                warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
+                              RuntimeWarning, stacklevel=2)
+                time.sleep(delay)
+
+        raise RuntimeError(f"{function.__name__} failed")
 
 ## helper function
-def run_with_retry(function: Callable[..., T], *args, max_retries: int = 3, base_delay: int = 2) -> T:
-    for attempt in range(1, max_retries + 2):
-        try:
-            return function(*args)
-
-        except Exception as error:
-            if attempt > max_retries:
-                raise RuntimeError(f"Stage {function.__name__} failed") from error
-
-            delay = base_delay * 2 ** (attempt - 1)
-
-            warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
-                          RuntimeWarning, stacklevel=2)
-            time.sleep(delay)
-
-    raise RuntimeError(f"{function.__name__} failed")
-
 def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,Any]]) -> None:
     result_index_map = {
         old_item["custom_id"]: index
