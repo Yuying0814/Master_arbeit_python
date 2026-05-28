@@ -47,11 +47,13 @@ class PageBatchTask:
 
         self.custom_ids = []
         self.model_name = task_config.get("model","gpt-5-mini")
-        prompt_path:Path = task_config.get("instructions","")
+        
+        prompt_path:Path = task_config.get("prompt_path","")
         if prompt_path:
             self.instructions = prompt_path.read_text(encoding="utf-8")
         else:
             self.instructions = ""
+
         self.user_inputs = []
         self.text_format = task_config.get("text_format","text")
         self.max_output_tokens = task_config.get("max_output_tokens",2000)
@@ -67,7 +69,7 @@ class PageBatchTask:
     def run(self):
         self.reset()
         try:
-            self.wait_batch()
+            self.write_batch_input_file()
             run_with_retry(function=self.submit_batch)
             run_with_retry(function=self.wait_batch)
             run_with_retry(function=self.collect_batch_output)
