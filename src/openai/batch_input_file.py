@@ -13,7 +13,7 @@ class BatchInputFile:
 
     def add_one_JSONL(self,custom_id:str,user:str,**opts):
         body: dict = {}
-        body["model"] = opts.get("model","gpt-5-mini")
+        body["model"] = opts.get("model") or "gpt-5-mini"
         body["input"] = user
 
 
