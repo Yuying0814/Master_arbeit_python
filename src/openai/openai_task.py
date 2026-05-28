@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 from inspect import isclass
 from pathlib import Path
 from typing import Any, TypeAlias
@@ -15,6 +16,7 @@ class OpenAITask:
     user: str
     timeout: int
     text_format: ValidTextFormat
+    response: Any
 
     def __init__(self,api_key: str,user: str,task_config: dict[str, Any],timeout: int = 3000) -> None:
         self.openai_client = OpenAI(api_key=api_key)
@@ -23,11 +25,10 @@ class OpenAITask:
         self.instructions = self._load_instructions(task_config)
         self.timeout = timeout
         self.text_format = task_config.get("text_format", "text")
-        self.max_output_tokens = task_config.get("max_output_tokens", 2000)
 
     def run(self) -> Any:
         if self._uses_create_api():
-            response = self.openai_client.responses.create(
+            self.response = self.openai_client.responses.create(
                 model=self.model,
                 input=self.user,
                 instructions=self.instructions,
@@ -35,17 +36,17 @@ class OpenAITask:
                 timeout=self.timeout,
             )
 
-            return response.output_text
+            return self.response.output_text
 
         if self._uses_parse_api():
-            response = self.openai_client.responses.parse(
+            self.response = self.openai_client.responses.parse(
                 model=self.model,
                 input=self.user,
                 instructions=self.instructions,
                 text_format=self._get_parse_text_format(),
                 timeout=self.timeout,
             )
-            return response.output_parsed
+            return self.response.output_parsed
         raise TypeError(
             "Invalid text_format. Expected 'text', 'json', dict, "
             "StructuredOutputModel class, or StructuredOutputModel instance."
@@ -73,6 +74,14 @@ class OpenAITask:
         if prompt_path is None:
             return "You are a helpful assistant."
         return Path(prompt_path).read_text(encoding="utf-8")
+
+    @staticmethod
+    def  parse_create_output(output):
+        try:
+            return json.loads(output)
+        except:
+            return output
+
 
 
 
