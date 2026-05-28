@@ -14,7 +14,7 @@ class MistralClient:
                 file_path:Path|str,
                 model_name:str = "mistral-ocr-latest",
                 table_format:Literal["markdown","html"] = "html",
-                include_image:bool = False) -> dict[str,Any]:
+                include_image:bool = True) -> dict[str,Any]:
         file_path = Path(file_path).resolve()
 
         if not file_path.exists():

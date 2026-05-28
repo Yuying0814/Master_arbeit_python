@@ -9,7 +9,6 @@ from src.openai.valid_format import ValidTextFormat
 
 
 class OpenAITask:
-
     openai_client: OpenAI
     model: str
     instructions: str
@@ -17,19 +16,14 @@ class OpenAITask:
     timeout: int
     text_format: ValidTextFormat
 
-    def __init__(
-        self,
-        api_key: str,
-        user: str,
-        task_config: dict[str, Any],
-        timeout: int = 3000,
-    ) -> None:
+    def __init__(self,api_key: str,user: str,task_config: dict[str, Any],timeout: int = 3000) -> None:
         self.openai_client = OpenAI(api_key=api_key)
         self.user = user
         self.model = task_config.get("model", "gpt-5-mini")
         self.instructions = self._load_instructions(task_config)
         self.timeout = timeout
         self.text_format = task_config.get("text_format", "text")
+        self.max_output_tokens = task_config.get("max_output_tokens", 2000)
 
     def run(self) -> Any:
         if self._uses_create_api():
@@ -75,12 +69,9 @@ class OpenAITask:
 
     @staticmethod
     def _load_instructions(task_config: dict[str, Any]) -> str:
-        """Load instructions from a prompt file."""
         prompt_path = task_config.get("prompt_path")
-
         if prompt_path is None:
             return "You are a helpful assistant."
-
         return Path(prompt_path).read_text(encoding="utf-8")
 
 

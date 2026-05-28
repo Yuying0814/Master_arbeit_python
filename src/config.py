@@ -50,10 +50,11 @@ def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
 
     return OpenaiConfig(task=task)
 
-def _build_mistral_task_config()->MistralConfig:
+def _build_mistral_task_config(pdf_path:Path)->MistralConfig:
     task:dict[str, dict] = {}
     task["ocr"] = {
-        "model": "mistral-ocr-latest",
+        "file_path": pdf_path,
+        "model_name": "mistral-ocr-latest",
         "table_format": "html",
         "include_image": True,
     }
@@ -125,7 +126,7 @@ class Config:
         return cls(
             project_path = project_path,
             openai_config = _build_openai_task_config(project_path.prompt_path),
-            mistral_config = _build_mistral_task_config(),
+            mistral_config = _build_mistral_task_config(project_path.pdf_path),
         )
 
     def load_env(self):

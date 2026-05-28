@@ -2,9 +2,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass,field
 from pathlib import Path
-
 from src.openai.build_text_format import build_text_format
-from utils.build_json_schema import build_tools_schema
+from src.utils.build_json_schema import build_tools_schema
 
 @dataclass
 class BatchInputFile:
@@ -12,11 +11,10 @@ class BatchInputFile:
     JSONLs:list[dict] = field(default_factory=list)
     custom_ids: list[str] = field(default_factory=list)
 
-    def add_one_JSONL(self,model_name:str,custom_id:str,user:str,**opts):
-        body:dict = {
-            "model": model_name,
-            "input": user
-        }
+    def add_one_JSONL(self,custom_id:str,user:str,**opts):
+        body: dict = {}
+        body["model"] = opts.get("model","gpt-5-mini")
+        body["input"] = user
 
         if "instructions" in opts and opts["instructions"] and isinstance(opts["instructions"],str):
             body["instructions"] = opts["instructions"]
@@ -45,14 +43,14 @@ class BatchInputFile:
         self.JSONLs.append(JSONL)
         self.custom_ids.append(custom_id)
 
-    def add_multiple_JSONLs(self,model_name:str,custom_ids:list[str],users:list[str],**opts):
+    def add_multiple_JSONLs(self,custom_ids:list[str],users:list[str],**opts):
         if len(custom_ids) == 0 or len(users) == 0:
             raise ValueError("custom ids and user prompt must not be empty ")
 
         if len(custom_ids) != len(users):
             raise ValueError(f"custom_ids and user prompt must have the same length")
         for custom_id,user in zip(custom_ids,users):
-            self.add_one_JSONL(model_name=model_name,custom_id=custom_id,user=user,**opts)
+            self.add_one_JSONL(custom_id=custom_id,user=user,**opts)
 
     def write_to_file(self):
         with self.path.open("w",encoding="utf-8") as file:

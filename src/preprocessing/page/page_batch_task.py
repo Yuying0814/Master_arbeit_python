@@ -47,12 +47,7 @@ class PageBatchTask:
         self.custom_ids = []
         self.model_name = task_config.get("model","gpt-5-mini")
 
-        prompt_path:Path = task_config.get("prompt_path","")
-        if prompt_path:
-            self.instructions = prompt_path.read_text(encoding="utf-8")
-        else:
-            self.instructions = ""
-
+        self.instructions = self._load_instructions(task_config)
         self.user_inputs = []
         self.text_format = task_config.get("text_format","text")
         self.max_output_tokens = task_config.get("max_output_tokens",2000)
@@ -221,6 +216,12 @@ class PageBatchTask:
             return
         self.status = self.batch_job.status
 
+    @staticmethod
+    def _load_instructions(task_config: dict[str, Any]) -> str:
+        prompt_path = task_config.get("prompt_path")
+        if prompt_path is None:
+            return "You are a helpful assistant."
+        return Path(prompt_path).read_text(encoding="utf-8")
 
 
 ## helper function
