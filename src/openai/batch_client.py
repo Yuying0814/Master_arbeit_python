@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from openai import OpenAI
 from src.openai.batch_job import BatchJob
+from src.openai.batch_input_file import BatchInputFile
 
 
 class OpenAIBatchClient:
@@ -15,14 +16,9 @@ class OpenAIBatchClient:
     def __init__(self, api_key:str) -> None:
         self.openai_client = OpenAI(api_key=api_key)
 
-    def batch_run(self,custom_ids:list[str],batch_input:Path|str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-        batch_input = Path(batch_input)
-        if not batch_input.exists():
-            raise FileNotFoundError(f"File not found: {batch_input}")
-        if not batch_input.is_file():
-            raise ValueError(f"Path is not a file: {batch_input}")
+    def batch_run(self,batch_input_file:BatchInputFile) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
 
-        batch_job = self.submit(custom_ids,batch_input)
+        batch_job = self.submit(batch_input_file)
         batch_job = self.wait_for_completion(batch_job)
         contents,outputs,records = self.collect_batch_output(batch_job)
         return contents,outputs,records
@@ -164,11 +160,13 @@ class OpenAIBatchClient:
         except Exception as error:
             warnings.warn(f"Failed to cancel batch: {batch_id}\n{error}")
 
-    def submit(self,custom_ids:list[str],batch_input:Path) -> BatchJob:
+    def submit(self,batch_input_file:BatchInputFile) -> BatchJob:
+        batch_input = batch_input_file.path
         name = batch_input.name
+
         try:
             input_file_id = self.upload(batch_input)
-            batch_job = BatchJob(name=name, input_path=batch_input, custom_ids=custom_ids)
+            batch_job = BatchJob(name=name, input_path=batch_input)
             batch_job.update(input_file_id=input_file_id,status="uploaded")
         except Exception as error:
             raise RuntimeError(f"Failed to submit batch: {batch_input}") from error
@@ -232,6 +230,11 @@ class OpenAIBatchClient:
         raw_output = self.get_batch_output(output_file_id)
         contents,outputs,records = self.parse_batch_output(raw_output)
         return contents,outputs,records
+
+    def clean_up(self,batch_job:BatchJob) -> None:
+        if batch_job.is_completed():
+            self.delete_uploaded_file(batch_job.input_file_id)
+
 
 
 

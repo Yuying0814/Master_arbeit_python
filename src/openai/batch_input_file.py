@@ -2,11 +2,13 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass,field
 from pathlib import Path
+
 from src.openai.build_text_format import build_text_format
 from utils.build_json_schema import build_tools_schema
 
 @dataclass
 class BatchInputFile:
+    path:Path
     JSONLs:list[dict] = field(default_factory=list)
     custom_ids: list[str] = field(default_factory=list)
 
@@ -52,8 +54,8 @@ class BatchInputFile:
         for custom_id,user in zip(custom_ids,users):
             self.add_one_JSONL(model_name=model_name,custom_id=custom_id,user=user,**opts)
 
-    def write_to_file(self,batch_input_file:Path):
-        with batch_input_file.open("w",encoding="utf-8") as file:
+    def write_to_file(self):
+        with self.path.open("w",encoding="utf-8") as file:
             for item in self.JSONLs:
                 text = json.dumps(item,ensure_ascii=False)+"\n"
                 file.write(text)

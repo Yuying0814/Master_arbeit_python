@@ -7,7 +7,6 @@ from typing import Any
 class BatchJob:
     name:str
     input_path:Path
-    custom_ids:list[str]
     batch_id:str = ""
     input_file_id:str = ""
     output_file_id:str = ""

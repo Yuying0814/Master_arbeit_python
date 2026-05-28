@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from src.preprocessing.toc.toc_detection import detect_toc_entry, detect_toc_title
-from src.preprocessing.utils.text_utils import text_to_lines,extract_text_from_pages
+from src.preprocessing.utils.text_utils import text_to_lines,extract_text_from_page
 
 
 def find_toc_pages(pages: list[Any], threshold: float = 0.2) -> list[Any]:
@@ -22,7 +22,7 @@ def find_toc_pages(pages: list[Any], threshold: float = 0.2) -> list[Any]:
     search_range = _build_toc_search_range(n_pages)
 
     for page_index in search_range:
-        page_text = extract_text_from_pages(pages[page_index])
+        page_text = extract_text_from_page(pages[page_index])
         lines = text_to_lines(page_text)
 
         is_title_page = False

@@ -16,33 +16,35 @@ def text_to_lines(text: str) -> list[str]:
     return [line for line in all_lines if line.strip()]
 
 ##########################################################################################
-def extract_text_from_pages(pages: dict|list[dict]) -> str|list[str]:
+def extract_text_from_page(page: dict) -> str:
+    required_fields = ("markdown", "tables", "index")
+    missing_fields = [
+        field_name
+        for field_name in required_fields
+        if field_name not in page
+    ]
+
+    if missing_fields:
+        raise ValueError(f"Missing fields: {', '.join(missing_fields)}")
+
+    text = page["markdown"]
+
+    for table in page["tables"]:
+        content = extract_html_text(table["content"])
+        pattern = f"[{table['id']}]({table['id']})"
+        text = text.replace(pattern, content)
+
+    return text
+
+
+def extract_text_from_pages(pages: dict | list[dict]) -> list[str]:
     if not pages:
         raise ValueError("No pages")
 
     if isinstance(pages, dict):
         pages = [pages]
 
-    required_fields = ("markdown", "tables", "index")
-    texts:list[str] = []
-
-    for page in pages:
-        missing_fields = [field_name for field_name in required_fields if field_name not in page]
-
-        if missing_fields:
-            raise ValueError(f"Missing fields: {', '.join(missing_fields)}")
-
-        text = page["markdown"]
-
-        for table in page["tables"]:
-            content = extract_html_text(table["content"])
-            pattern = f"[{table['id']}]({table['id']})"
-            text = text.replace(pattern,content)
-
-        texts.append(text)
-        if len(texts) == 1:
-            return str(texts)
-    return texts
+    return [extract_text_from_page(page) for page in pages]
 
 def extract_html_text(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")

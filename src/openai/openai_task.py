@@ -9,7 +9,6 @@ from src.openai.valid_format import ValidTextFormat
 
 
 class OpenAITask:
-    """Run a single OpenAI Responses API task."""
 
     openai_client: OpenAI
     model: str
