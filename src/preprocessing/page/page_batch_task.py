@@ -69,8 +69,6 @@ class PageBatchTask:
     def run(self):
         self.reset()
         try:
-            self.generate_user_requests()
-            self.write_batch_input_file()
             run_with_retry(function=self.submit_batch)
             run_with_retry(function=self.wait_batch)
             run_with_retry(function=self.collect_batch_output)
@@ -105,6 +103,10 @@ class PageBatchTask:
         self.batch_input_file.write_to_file()
 
     def submit_batch(self) -> None:
+        if not self.custom_ids or not self.user_inputs:
+            self.generate_user_requests()
+
+        self.write_batch_input_file()
         self.batch_job = self.batch_client.submit(batch_input_file=self.batch_input_file)
         self.update_status()
 
