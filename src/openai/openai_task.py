@@ -1,13 +1,16 @@
 from __future__ import annotations
 import json
+import time
+import warnings
 from inspect import isclass
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, TypeVar
+from collections.abc import Callable
 from openai import OpenAI
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.openai.build_text_format import build_text_format
 from src.openai.valid_format import ValidTextFormat
-
+T = TypeVar("T")
 
 class OpenAITask:
     openai_client: OpenAI
@@ -18,7 +21,7 @@ class OpenAITask:
     text_format: ValidTextFormat
     response: Any
 
-    def __init__(self,api_key: str,user: str,task_config: dict[str, Any],timeout: int = 3000) -> None:
+    def __init__(self,api_key: str,user: str,task_config: dict[str, Any],timeout: int = 2000) -> None:
         self.openai_client = OpenAI(api_key=api_key)
         self.user = user
         self._load_task_config(task_config)
@@ -78,7 +81,21 @@ class OpenAITask:
             return json.loads(output)
         except json.JSONDecodeError:
             return output
+    @staticmethod
+    def run_with_retry(function: Callable[..., T], *args, max_retries: int = 3, base_delay: int = 2) -> T:
+        for attempt in range(1, max_retries + 2):
+            try:
+                return function(*args)
 
+            except Exception as error:
+                if attempt > max_retries:
+                    raise RuntimeError(f"Stage {function.__name__} failed") from error
+
+                delay = base_delay * 2 ** (attempt - 1)
+
+                warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
+                              RuntimeWarning, stacklevel=2)
+                time.sleep(delay)
 
 def _load_model(task_config: dict[str, Any]) -> str:
     model = task_config.get("model")
