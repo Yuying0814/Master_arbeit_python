@@ -21,10 +21,9 @@ class OpenAITask:
     def __init__(self,api_key: str,user: str,task_config: dict[str, Any],timeout: int = 3000) -> None:
         self.openai_client = OpenAI(api_key=api_key)
         self.user = user
-        self.model = task_config.get("model", "gpt-5-mini")
-        self.instructions = self._load_instructions(task_config)
+        self._load_task_config(task_config)
         self.timeout = timeout
-        self.text_format = task_config.get("text_format", "text")
+
 
     def run(self) -> Any:
         if self._uses_create_api():
@@ -68,12 +67,10 @@ class OpenAITask:
 
         raise TypeError("text_format is not a valid StructuredOutputModel.")
 
-    @staticmethod
-    def _load_instructions(task_config: dict[str, Any]) -> str:
-        prompt_path = task_config.get("prompt_path")
-        if prompt_path is None:
-            return "You are a helpful assistant."
-        return Path(prompt_path).read_text(encoding="utf-8")
+    def _load_task_config(self, task_config: dict[str, Any]) -> None:
+        self.model = _load_model(task_config)
+        self.instructions = _load_instructions(task_config)
+        self.text_format = _load_text_format(task_config)
 
     @staticmethod
     def  parse_create_output(output):
@@ -82,6 +79,24 @@ class OpenAITask:
         except json.JSONDecodeError:
             return output
 
+
+def _load_model(task_config: dict[str, Any]) -> str:
+    model = task_config.get("model")
+    if not model:
+        return "gpt-5-mini"
+    return model
+
+def _load_instructions(task_config: dict[str, Any]) -> str:
+    prompt_path = task_config.get("prompt_path")
+    if not prompt_path:
+        return "You are a helpful assistant."
+    return Path(prompt_path).read_text(encoding="utf-8")
+
+def _load_text_format(task_config: dict[str, Any]) -> str:
+    text_format = task_config.get("text_format")
+    if not text_format:
+        return "text"
+    return text_format
 
 
 
