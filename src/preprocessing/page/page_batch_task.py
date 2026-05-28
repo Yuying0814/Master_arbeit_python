@@ -47,7 +47,7 @@ class PageBatchTask:
 
         self.custom_ids = []
         self.model_name = task_config.get("model","gpt-5-mini")
-        
+
         prompt_path:Path = task_config.get("prompt_path","")
         if prompt_path:
             self.instructions = prompt_path.read_text(encoding="utf-8")
@@ -69,6 +69,7 @@ class PageBatchTask:
     def run(self):
         self.reset()
         try:
+            self.generate_user_requests()
             self.write_batch_input_file()
             run_with_retry(function=self.submit_batch)
             run_with_retry(function=self.wait_batch)
@@ -92,6 +93,7 @@ class PageBatchTask:
         self.user_inputs = user_inputs
 
     def write_batch_input_file(self) -> None:
+        self.batch_input_file.reset_JSONLs()
         self.batch_input_file.add_multiple_JSONLs(
             model_name=self.model_name,
             custom_ids=self.custom_ids,
@@ -103,9 +105,6 @@ class PageBatchTask:
         self.batch_input_file.write_to_file()
 
     def submit_batch(self) -> None:
-        if not self.custom_ids or not self.user_inputs:
-            self.generate_user_requests()
-
         self.batch_job = self.batch_client.submit(batch_input_file=self.batch_input_file)
         self.update_status()
 
@@ -153,7 +152,7 @@ class PageBatchTask:
             }
             retry_user_inputs = [input_id_map[retry_custom_id] for retry_custom_id in retry_custom_ids]
 
-            if contents and any(content.get("incomplete reason") == "max_output_tokens" for content in contents):
+            if contents and any(content.get("incomplete_reason") == "max_output_tokens" for content in contents):
                 self.max_output_tokens += 500*attempt
 
             input_path = self.input_path.parent / f"{self.name}_retry{attempt}.jsonl"
