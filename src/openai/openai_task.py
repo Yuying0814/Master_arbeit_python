@@ -36,7 +36,7 @@ class OpenAITask:
                 timeout=self.timeout,
             )
 
-            return self.response.output_text
+            return self.parse_create_output(self.response.output_text)
 
         if self._uses_parse_api():
             self.response = self.openai_client.responses.parse(
@@ -79,7 +79,7 @@ class OpenAITask:
     def  parse_create_output(output):
         try:
             return json.loads(output)
-        except:
+        except json.JSONDecodeError:
             return output
 
 
