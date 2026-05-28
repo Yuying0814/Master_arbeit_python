@@ -16,13 +16,16 @@ class BatchInputFile:
         body["model"] = opts.get("model","gpt-5-mini")
         body["input"] = user
 
+
+
         if "instructions" in opts and opts["instructions"] and isinstance(opts["instructions"],str):
             body["instructions"] = opts["instructions"]
 
         if "text_format" in opts and opts["text_format"]:
-            body["text"] = {
-                    "format": build_text_format(opts["text_format"]),
-                }
+            args = (opts["text_format"],)
+            if "name" in opts and opts["name"] and isinstance(opts["name"], str):
+                args += (opts["name"],)
+            body["text"] = {"format": build_text_format(*args)}
 
         if "max_output_tokens" in opts and opts["max_output_tokens"]:
             if isinstance(opts["max_output_tokens"],int) and opts["max_output_tokens"] > 0 and not isinstance(opts["max_output_tokens"],bool):
