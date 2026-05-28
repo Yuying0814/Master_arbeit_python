@@ -23,7 +23,7 @@ class PageBatchTask:
     input_path:Path
 
     custom_ids:list[str]
-    model_name:str
+    model:str
     instructions:str
     user_inputs:list[str]
     text_format:ValidTextFormat
@@ -39,14 +39,14 @@ class PageBatchTask:
 
     def __init__(self,pages:list[dict[str,Any]],batch_client:OpenAIBatchClient,input_path:Path,task_config:dict[str,Any]) -> None:
         self.name = input_path.name
-        self.update_status()
+        self.status = "created"
         self.has_valid_output = False
 
         self.pages = pages
         self.input_path = input_path
 
         self.custom_ids = []
-        self.model_name = task_config.get("model_name","gpt-5-mini")
+        self.model_name = task_config.get("model","gpt-5-mini")
         prompt_path:Path = task_config.get("instructions","")
         if prompt_path:
             self.instructions = prompt_path.read_text(encoding="utf-8")
@@ -59,6 +59,7 @@ class PageBatchTask:
         self.batch_client = batch_client
         self.batch_job = None
         self.batch_input_file = BatchInputFile(path=self.input_path)
+        self.retries = []
         self.contents = []
         self.outputs = []
         self.records = []
@@ -66,6 +67,7 @@ class PageBatchTask:
     def run(self):
         self.reset()
         try:
+            self.wait_batch()
             run_with_retry(function=self.submit_batch)
             run_with_retry(function=self.wait_batch)
             run_with_retry(function=self.collect_batch_output)
@@ -87,7 +89,7 @@ class PageBatchTask:
         self.custom_ids = custom_ids
         self.user_inputs = user_inputs
 
-    def write_bath_input_file(self) -> None:
+    def write_batch_input_file(self) -> None:
         self.batch_input_file.add_multiple_JSONLs(
             model_name=self.model_name,
             custom_ids=self.custom_ids,
@@ -143,11 +145,11 @@ class PageBatchTask:
             if self.has_valid_output:
                 return
 
-            retry_user_inputs = [
-                self.user_inputs[index]
-                for index,custom_id in enumerate(self.custom_ids)
-                if custom_id in retry_custom_ids
-                ]
+            input_id_map = {
+                custom_id:user_input
+                    for custom_id,user_input in zip(self.custom_ids,self.user_inputs)
+            }
+            retry_user_inputs = [input_id_map[retry_custom_id] for retry_custom_id in retry_custom_ids]
 
             if contents and any(content.get("incomplete reason") == "max_output_tokens" for content in contents):
                 self.max_output_tokens += 500*attempt
@@ -166,7 +168,7 @@ class PageBatchTask:
 
             try:
                 retry_job = run_with_retry(self.batch_client.submit, retry_batch_input_file)
-                retry_job = run_with_retry(self.batch_client.wait_for_completion,retry_batch_input_file)
+                retry_job = run_with_retry(self.batch_client.wait_for_completion,retry_job)
                 retry_contents,retry_outputs,retry_records = run_with_retry(
                     self.batch_client.collect_batch_output,
                     retry_job
