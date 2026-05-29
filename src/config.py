@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 from dataclasses import dataclass
+from src.models.page_output import PageClassification,PageDescription
+from src.models.register_output import RegisterIndexOutput,RegisterMapOutput
 
 
 def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
@@ -12,7 +14,7 @@ def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
     task["classify_pages"] = {
         "model": "gpt-5-mini",
         "prompt_path": prompt_path/"prompt_classifyPages.txt",
-        "text_format": "",
+        "text_format": PageClassification,
         "max_output_tokens": 2000,
     }
     task["verify_reg_sum_pages"] = {
@@ -32,20 +34,20 @@ def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
     task["add_page_description"] = {
         "model": "gpt-5-mini",
         "prompt_path": prompt_path/"prompt_addPageDescription.txt",
-        "text_format": "",
+        "text_format": PageDescription,
         "max_output_tokens": 2000,
     }
 
     task["extract_reg_index"] = {
         "model": "gpt-5-mini",
         "prompt_path": prompt_path/"prompt_extractRegIndex.txt",
-        "text_format": "",
+        "text_format": RegisterIndexOutput,
     }
 
     task["extract_reg_map"] = {
         "model": "gpt-5-mini",
         "prompt_path": prompt_path/"prompt_extractRegMap.txt",
-        "text_format": "",
+        "text_format": RegisterMapOutput,
     }
 
     return OpenaiConfig(task=task)
