@@ -8,13 +8,17 @@ def parse_verification_content(page_task:PageBatchTask) ->list[int]:
     index_content_map = _build_index_content_map(page_task)
     return [key for key,value in index_content_map.items() if value.strip() == "yes"]
 
-def parse_classification_content(page_task:PageBatchTask) ->list[dict[str,bool]]:
+def parse_classification_content(page_task:PageBatchTask,pages:list[dict[str,Any]]) -> None:
     index_content_map = _build_index_content_map(page_task)
-    return [index_content_map.get(page["index"],PageClassification.get_default_value()) for page in page_task.pages]
+    outputs = [index_content_map.get(page["index"],PageClassification.get_default_value()) for page in page_task.pages]
+    for page,output in zip(pages,outputs):
+        page["classification"] = output
 
-def parse_description_content(page_task:PageBatchTask):
+def parse_description_content(page_task:PageBatchTask,pages:list[dict[str,Any]]) -> None:
     index_content_map = _build_index_content_map(page_task)
-    return [index_content_map.get(page["index"],PageDescription.get_default_value()) for page in page_task.pages]
+    outputs = [index_content_map.get(page["index"],PageDescription.get_default_value()) for page in page_task.pages]
+    for page,output in zip(pages,outputs):
+        page["description"] = output
 
 def _build_custom_id_content_map(page_task:PageBatchTask) -> list[dict[str,Any]]:
     content_id_map = {
