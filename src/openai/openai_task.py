@@ -48,7 +48,7 @@ class OpenAITask:
                 text_format=self._get_parse_text_format(),
                 timeout=self.timeout,
             )
-            return self.response.output_parsed
+            return self.response.output_parsed.model_dump()
         raise TypeError(
             "Invalid text_format. Expected 'text', 'json', dict, "
             "StructuredOutputModel class, or StructuredOutputModel instance."
@@ -96,6 +96,7 @@ class OpenAITask:
                 warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
                               RuntimeWarning, stacklevel=2)
                 time.sleep(delay)
+        raise RuntimeError(f"{function.__name__} failed")
 
 def _load_model(task_config: dict[str, Any]) -> str:
     model = task_config.get("model")
