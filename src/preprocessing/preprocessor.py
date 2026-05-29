@@ -89,42 +89,26 @@ class Preprocessor:
 
     def pipeline(self):
         self.run_ocr()
-        print("Ocr completed")
-
         self.classify_pages()
-        print("Classification completed")
-
         self.get_page_candidates()
-        print("Page candidates updated")
-
         self.create_verification_task()
-        print("Verification task created")
 
         try:
+            print("Waiting for completion of verification task for register summary pages")
             self.wait_and_collect(self.task_reg_sum_verification)
-
             self.reg_sum_page_idx = parse_verification_content(self.task_reg_sum_verification)
-            print("Start register map extraction")
-
             self.extract_reg_index()
-            print("Register index extraction completed")
 
+            print("Waiting for completion of verification task for register pages")
             self.wait_and_collect(self.task_reg_page_verification)
             self.reg_page_idx = parse_verification_content(self.task_reg_page_verification)
-
             self.refine_classification()
-            print("Refinement completed")
-
             self.create_add_description_task()
-            print("Description task created")
-            print("Start register map extraction")
-
             self.extract_reg_map()
-            print("Register map extraction completed")
 
+            print("Waiting for completion of verification task for register pages")
             self.wait_and_collect(self.task_add_description)
             parse_description_content(self.task_add_description,self.pages)
-            print("Page description added")
         finally:
             self.cleanup()
 
@@ -146,6 +130,7 @@ class Preprocessor:
             } for page in self.ocr_result.get("pages")]
 
         self.pages = remove_header_footer(pages)
+        print("Ocr completed")
 
     def save_ocr_result(self,**opts):
         if "output_path" in opts and opts["output_path"]:
@@ -188,6 +173,7 @@ class Preprocessor:
 
         self.reg_page_candidate_idx= sorted(set(self.reg_page_idx_from_toc+self.reg_page_idx_from_retrieval+self.reg_page_idx_from_llm))
         self.reg_sum_candidate_idx = sorted(set(self.reg_sum_idx_from_toc+self.reg_sum_idx_from_retrieval+self.reg_sum_idx_from_llm))
+        print("Page candidates updated")
 
     def classify_pages(self):
         config = self.config.openai.task["classify_pages"]
@@ -200,17 +186,19 @@ class Preprocessor:
             input_path=inputPath,
             task_config=config,
         )
-
+        print("Classification task created")
         self.task_classification.run()
 
         if not self.task_classification.has_valid_output:
             raise RuntimeError("Task classification failed")
 
         parse_classification_content(self.task_classification,self.pages)
+        print("Classification completed")
 
     def create_verification_task(self):
         self.verify_reg_sum_pages()
         self.verify_reg_pages()
+        print("Verification tasks created")
 
     def verify_reg_sum_pages(self):
         if not self.reg_sum_candidate_idx:
@@ -234,6 +222,7 @@ class Preprocessor:
         )
 
         PageBatchTask.run_with_retry(self.task_reg_sum_verification.submit_batch)
+        print("Task for verification of register summary pages created")
 
     def verify_reg_pages(self):
         if not self.reg_page_candidate_idx:
@@ -257,11 +246,13 @@ class Preprocessor:
         )
 
         PageBatchTask.run_with_retry(self.task_reg_page_verification.submit_batch)
+        print("Task for verification of register pages created")
 
     def extract_reg_index(self):
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction")
             return
+
         config = self.config.openai.task["extract_reg_index"]
         pages = [
             {
@@ -275,13 +266,14 @@ class Preprocessor:
                 "pages": [pages[index] for index in self.reg_sum_page_idx]
             }
         )
-
+        print("Start register map extraction")
         task_reg_index_extraction = OpenAITask(
             api_key=self.config.get_apikey("openai"),
             user = user,
             task_config=config,
         )
         self.reg_summary = task_reg_index_extraction.run()
+        print("Register index extraction completed")
 
     def extract_reg_map(self):
         if not self.reg_page_idx:
@@ -307,12 +299,14 @@ class Preprocessor:
             }
         )
 
+        print("Start register map extraction")
         task_reg_map_extraction = OpenAITask(
             api_key=self.config.get_apikey("openai"),
             user = user,
             task_config=config,
         )
         self.reg_map = task_reg_map_extraction.run()
+        print("Register map extraction completed")
 
     def refine_classification(self):
         sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
@@ -329,6 +323,7 @@ class Preprocessor:
             classification["is_register_map_relevant"] = (
                 not classification["is_register_map_relevant"]
             )
+        print("Refinement completed")
 
     def create_add_description_task(self):
         if all_classification_false(self.pages):
@@ -356,6 +351,7 @@ class Preprocessor:
         )
 
         PageBatchTask.run_with_retry(self.task_add_description.submit_batch)
+        print("Description task created")
 
     @staticmethod
     def wait_and_collect(task:PageBatchTask):
