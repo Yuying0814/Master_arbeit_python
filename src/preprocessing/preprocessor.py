@@ -38,8 +38,8 @@ class Preprocessor:
     reg_sum_candidate_idx: list[int]
     reg_sum_page_idx: list[int]
 
-    reg_summary: list[dict[str,Any]]
-    reg_map: list[dict[str,Any]]
+    reg_summary: dict[str,Any]
+    reg_map: dict[str,Any]
 
     openai_batch_client: OpenAIBatchClient
     mistral_client: MistralClient
@@ -74,8 +74,8 @@ class Preprocessor:
         self.reg_sum_candidate_idx = []
         self.reg_sum_page_idx = []
 
-        self.reg_summary = []
-        self.reg_map = []
+        self.reg_summary = {}
+        self.reg_map = {}
 
         self.openai_batch_client = OpenAIBatchClient(config.get_apikey("openai"))
         self.mistral_client = MistralClient(config.get_apikey("mistral"))
@@ -266,7 +266,7 @@ class Preprocessor:
                 "pages": [pages[index] for index in self.reg_sum_page_idx]
             }
         )
-        print("Start register map extraction")
+        print("Start register index information extraction")
         task_reg_index_extraction = OpenAITask(
             api_key=self.config.get_apikey("openai"),
             user = user,
