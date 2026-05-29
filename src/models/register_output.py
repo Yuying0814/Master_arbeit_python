@@ -1,5 +1,5 @@
 from pydantic import Field
-from models.structuredOutputModel import StructuredOutputModel
+from src.models.structuredOutputModel import StructuredOutputModel
 
 class RegisterIndexItem(StructuredOutputModel):
     name: str

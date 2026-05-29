@@ -94,19 +94,19 @@ class Preprocessor:
         self.create_verification_task()
 
         try:
-            print("Waiting for completion of verification task for register summary pages")
+            print("Waiting for completion of verification task for register summary pages\n")
             self.wait_and_collect(self.task_reg_sum_verification)
             self.reg_sum_page_idx = parse_verification_content(self.task_reg_sum_verification)
             self.extract_reg_index()
 
-            print("Waiting for completion of verification task for register pages")
+            print("Waiting for completion of verification task for register pages\n")
             self.wait_and_collect(self.task_reg_page_verification)
             self.reg_page_idx = parse_verification_content(self.task_reg_page_verification)
             self.refine_classification()
             self.create_add_description_task()
             self.extract_reg_map()
 
-            print("Waiting for completion of verification task for register pages")
+            print("Waiting for completion of adding page descriptions\n")
             self.wait_and_collect(self.task_add_description)
             parse_description_content(self.task_add_description,self.pages)
         finally:
@@ -115,12 +115,12 @@ class Preprocessor:
     def run_ocr(self):
         ocr_config = self.config.mistral.task.get("ocr")
         if not valid_mistral_config(ocr_config):
-           raise ValueError("OCR config not defined or not loaded")
+           raise ValueError("OCR config not defined or not loaded\n")
 
         try:
             self.ocr_result = self.mistral_client.run_ocr(**ocr_config)
         except RuntimeError as error:
-            raise RuntimeError(f"OCR failed") from error
+            raise RuntimeError(f"OCR failed\n") from error
 
         pages = [
             {
@@ -130,7 +130,7 @@ class Preprocessor:
             } for page in self.ocr_result.get("pages")]
 
         self.pages = remove_header_footer(pages)
-        print("Ocr completed")
+        print("Ocr completed\n")
 
     def save_ocr_result(self,**opts):
         if "output_path" in opts and opts["output_path"]:
@@ -141,7 +141,7 @@ class Preprocessor:
             with open(output_path,"w",encoding="utf-8") as file:
                 file.write(json.dumps(self.ocr_result))
         except OSError as error:
-            raise OSError(f"write ocr failed") from error
+            raise OSError(f"write ocr failed\n") from error
 
     def get_page_candidates(self):
         pages = find_toc_pages(self.pages)
@@ -173,7 +173,7 @@ class Preprocessor:
 
         self.reg_page_candidate_idx= sorted(set(self.reg_page_idx_from_toc+self.reg_page_idx_from_retrieval+self.reg_page_idx_from_llm))
         self.reg_sum_candidate_idx = sorted(set(self.reg_sum_idx_from_toc+self.reg_sum_idx_from_retrieval+self.reg_sum_idx_from_llm))
-        print("Page candidates updated")
+        print("Page candidates updated\n")
 
     def classify_pages(self):
         config = self.config.openai.task["classify_pages"]
@@ -186,24 +186,24 @@ class Preprocessor:
             input_path=inputPath,
             task_config=config,
         )
-        print("Classification task created")
+        print("Classification task created\n")
         self.task_classification.run()
 
         if not self.task_classification.has_valid_output:
-            raise RuntimeError("Task classification failed")
+            raise RuntimeError("Task classification failed\n")
 
         parse_classification_content(self.task_classification,self.pages)
-        print("Classification completed")
+        print("Classification completed\n")
 
     def create_verification_task(self):
         self.verify_reg_sum_pages()
         self.verify_reg_pages()
-        print("Verification tasks created")
+        print("Verification tasks created\n")
 
     def verify_reg_sum_pages(self):
         if not self.reg_sum_candidate_idx:
             self.task_reg_sum_verification = None
-            print("No verification task for register summary")
+            print("No verification task for register summary\n")
             return
 
         config = self.config.openai.task["verify_reg_sum_pages"]
@@ -222,12 +222,12 @@ class Preprocessor:
         )
 
         PageBatchTask.run_with_retry(self.task_reg_sum_verification.submit_batch)
-        print("Task for verification of register summary pages created")
+        print("Task for verification of register summary pages created\n")
 
     def verify_reg_pages(self):
         if not self.reg_page_candidate_idx:
             self.task_reg_page_verification = None
-            print("No verification task for register map")
+            print("No verification task for register map\n")
             return
 
         config = self.config.openai.task["verify_reg_pages"]
@@ -246,11 +246,11 @@ class Preprocessor:
         )
 
         PageBatchTask.run_with_retry(self.task_reg_page_verification.submit_batch)
-        print("Task for verification of register pages created")
+        print("Task for verification of register pages created\n")
 
     def extract_reg_index(self):
         if not self.reg_sum_page_idx:
-            print("No register summary page for index information extraction")
+            print("No register summary page for index information extraction\n")
             return
 
         config = self.config.openai.task["extract_reg_index"]
@@ -266,18 +266,18 @@ class Preprocessor:
                 "pages": [pages[index] for index in self.reg_sum_page_idx]
             }
         )
-        print("Start register index information extraction")
+        print("Start register index information extraction\n")
         task_reg_index_extraction = OpenAITask(
             api_key=self.config.get_apikey("openai"),
             user = user,
             task_config=config,
         )
         self.reg_summary = task_reg_index_extraction.run()
-        print("Register index extraction completed")
+        print("Register index extraction completed\n")
 
     def extract_reg_map(self):
         if not self.reg_page_idx:
-            print("No register page for register map extraction")
+            print("No register page for register map extraction\n")
             return
         config = self.config.openai.task["extract_reg_map"]
         pages = [
@@ -299,14 +299,14 @@ class Preprocessor:
             }
         )
 
-        print("Start register map extraction")
+        print("Start register map extraction\n")
         task_reg_map_extraction = OpenAITask(
             api_key=self.config.get_apikey("openai"),
             user = user,
             task_config=config,
         )
         self.reg_map = task_reg_map_extraction.run()
-        print("Register map extraction completed")
+        print("Register map extraction completed\n")
 
     def refine_classification(self):
         sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
@@ -323,13 +323,13 @@ class Preprocessor:
             classification["is_register_map_relevant"] = (
                 not classification["is_register_map_relevant"]
             )
-        print("Refinement completed")
+        print("Refinement completed\n")
 
     def create_add_description_task(self):
         if all_classification_false(self.pages):
             for page in self.pages:
                 page["description"] = PageDescription.get_default_value()
-            print("All pages are not relevant to any topics")
+            print("All pages are not relevant to any topics\n")
             self.task_add_description = None
             return
 
@@ -351,7 +351,7 @@ class Preprocessor:
         )
 
         PageBatchTask.run_with_retry(self.task_add_description.submit_batch)
-        print("Description task created")
+        print("Description task created\n")
 
     @staticmethod
     def wait_and_collect(task:PageBatchTask):

@@ -12,7 +12,7 @@ def parse_verification_content(page_task:PageBatchTask | None) ->list[int]:
 
 def parse_classification_content(page_task:PageBatchTask | None,pages:list[dict[str,Any]]) -> None:
     if not page_task:
-        print("No classification task")
+        print("No classification task\n")
         return
     index_content_map = _build_index_content_map(page_task)
     for page in pages:
@@ -24,7 +24,7 @@ def parse_classification_content(page_task:PageBatchTask | None,pages:list[dict[
 
 def parse_description_content(page_task:PageBatchTask | None,pages:list[dict[str,Any]]) -> None:
     if not page_task:
-        print("No add description task")
+        print("No add description task\n")
         return
     index_content_map = _build_index_content_map(page_task)
     for page in pages:
@@ -33,7 +33,7 @@ def parse_description_content(page_task:PageBatchTask | None,pages:list[dict[str
             page_index,
             PageDescription.get_default_value(),
         )
-    print("Page description added")
+    print("Page description added\n")
 
 def _build_custom_id_content_map(page_task:PageBatchTask) -> dict[str,Any]:
     content_id_map = {
