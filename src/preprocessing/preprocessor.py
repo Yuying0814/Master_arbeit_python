@@ -102,7 +102,7 @@ class Preprocessor:
 
         try:
             self.wait_and_collect(self.task_reg_sum_verification)
-            self.task_reg_sum_verification.cleanup()
+
             self.reg_sum_page_idx = parse_verification_content(self.task_reg_sum_verification)
             print("Start register map extraction")
 
@@ -215,12 +215,16 @@ class Preprocessor:
     def verify_reg_sum_pages(self):
         if not self.reg_sum_candidate_idx:
             self.task_reg_sum_verification = None
+            print("No verification task for register summary")
             return
 
         config = self.config.openai.task["verify_reg_sum_pages"]
         name = inspect.currentframe().f_code.co_name
         inputPath = self.config.project_path.input_path/f"{name}.json"
-        page_candidates = [self.pages[index] for index in set(self.reg_sum_candidate_idx)]
+        page_candidates = [
+            self.pages[index]
+            for index in self.reg_sum_candidate_idx
+        ]
 
         self.task_reg_sum_verification = PageBatchTask(
             pages = page_candidates,
@@ -234,12 +238,16 @@ class Preprocessor:
     def verify_reg_pages(self):
         if not self.reg_page_candidate_idx:
             self.task_reg_page_verification = None
+            print("No verification task for register map")
             return
 
         config = self.config.openai.task["verify_reg_pages"]
         name = inspect.currentframe().f_code.co_name
         inputPath = self.config.project_path.input_path/f"{name}.json"
-        page_candidates = [self.pages[index] for index in set(self.reg_page_candidate_idx)]
+        page_candidates = [
+            self.pages[index]
+            for index in self.reg_page_candidate_idx
+        ]
 
         self.task_reg_page_verification = PageBatchTask(
             pages = page_candidates,
@@ -252,6 +260,7 @@ class Preprocessor:
 
     def extract_reg_index(self):
         if not self.reg_sum_page_idx:
+            print("No register summary page for index information extraction")
             return
         config = self.config.openai.task["extract_reg_index"]
         pages = [
@@ -276,6 +285,7 @@ class Preprocessor:
 
     def extract_reg_map(self):
         if not self.reg_page_idx:
+            print("No register page for register map extraction")
             return
         config = self.config.openai.task["extract_reg_map"]
         pages = [
@@ -324,6 +334,28 @@ class Preprocessor:
         if all_classification_false(self.pages):
             for page in self.pages:
                 page["description"] = PageDescription.get_default_value()
+            print("All pages are not relevant to any topics")
+            self.task_add_description = None
+            return
+
+        config = self.config.openai.task["add_page_description"]
+        name = inspect.currentframe().f_code.co_name
+        input_path = self.config.project_path.input_path / f"{name}.jsonl"
+
+        page_candidates = [
+            page
+            for page in self.pages
+            if any(bool(value) for value in page.get("classification", {}).values())
+        ]
+
+        self.task_add_description = PageBatchTask(
+            pages=page_candidates,
+            batch_client=self.openai_batch_client,
+            input_path=input_path,
+            task_config=config,
+        )
+
+        PageBatchTask.run_with_retry(self.task_add_description.submit_batch)
 
     @staticmethod
     def wait_and_collect(task:PageBatchTask):

@@ -2,7 +2,7 @@ import json
 import math
 import re
 from typing import Any
-from preprocessing.utils.text_utils import extract_text_from_page
+from src.preprocessing.utils.text_utils import extract_text_from_page
 
 def build_page_requests(pages:list[dict[str,Any]],request_name:str)->list[dict[str,str]]:
     keep_keys = ("index","markdown","tables","classification")
