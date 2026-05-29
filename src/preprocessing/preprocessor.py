@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from src.openai.openai_task import OpenAITask
-from models.page_output import PageDescription
-from preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
-from preprocessing.toc.resolve_toc_entries import resolve_toc_entries
-from preprocessing.toc.toc_entry import extract_toc_entries
+from src.models.page_output import PageDescription
+from src.preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
+from src.preprocessing.toc.resolve_toc_entries import resolve_toc_entries
+from src.preprocessing.toc.toc_entry import extract_toc_entries
 from src.preprocessing.mistral.mistral_client import MistralClient
 from src.preprocessing.page.parse_results import parse_classification_content,parse_verification_content,parse_description_content
 from src.preprocessing.toc.find_toc_pages import find_toc_pages
@@ -17,11 +17,6 @@ from src.preprocessing.utils.text_utils import remove_header_footer
 from src.preprocessing.page.page_batch_task import PageBatchTask
 from src.openai.batch_client import OpenAIBatchClient
 from src.config import Config
-
-
-def all_classification_false(pages):
-    pass
-
 
 class Preprocessor:
     pdf_path: Path
@@ -56,7 +51,7 @@ class Preprocessor:
     config:Config
 
     def __init__(self,config: Config):
-        if not config.project_path.pdf_path.exists() or config.project_path.pdf_path.is_file():
+        if not config.project_path.pdf_path.exists() or not config.project_path.pdf_path.is_file():
             raise FileNotFoundError
 
         self.config = config
@@ -79,7 +74,7 @@ class Preprocessor:
         self.reg_sum_candidate_idx = []
         self.reg_sum_page_idx = []
 
-        self.reg_sum_summary = []
+        self.reg_summary = []
         self.reg_map = []
 
         self.openai_batch_client = OpenAIBatchClient(config.get_apikey("openai"))
@@ -261,9 +256,9 @@ class Preprocessor:
         config = self.config.openai.task["extract_reg_index"]
         pages = [
             {
-            "index",page["index"],
-            "markdown",page["markdown"],
-            "tables",page["tables"]
+            "index": page["index"],
+            "markdown": page["markdown"],
+            "tables": page["tables"]
             } for page in self.pages]
 
         user = json.dumps(
@@ -285,12 +280,12 @@ class Preprocessor:
         config = self.config.openai.task["extract_reg_map"]
         pages = [
             {
-            "index",page["index"],
-            "markdown",page["markdown"],
-            "tables",page["tables"]
+            "index": page["index"],
+            "markdown": page["markdown"],
+            "tables": page["tables"]
             } for page in self.pages]
 
-        if not self.reg_summary or "registers" not in self.reg_summary or not self.reg_sum_summary["registers"]:
+        if not self.reg_summary or "registers" not in self.reg_summary or not self.reg_summary["registers"]:
             registers = []
         else:
             registers = self.reg_summary["registers"]
@@ -307,24 +302,24 @@ class Preprocessor:
             user = user,
             task_config=config,
         )
-        self.reg_summary = task_reg_map_extraction.run()
+        self.reg_map = task_reg_map_extraction.run()
 
     def refine_classification(self):
-        def refine_classification(self) -> None:
-            sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
-            reg_page_diff_idx = set(self.reg_page_idx) ^ set(self.reg_page_idx_from_llm)
+        sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
+        reg_page_diff_idx = set(self.reg_page_idx) ^ set(self.reg_page_idx_from_llm)
 
-            for index in sum_page_diff_idx:
-                classification = self.pages[index]["classification"]
-                classification["is_register_summary_relevant"] = (
-                    not classification["is_register_summary_relevant"]
-                )
+        for index in sum_page_diff_idx:
+            classification = self.pages[index]["classification"]
+            classification["is_register_summary_relevant"] = (
+                not classification["is_register_summary_relevant"]
+            )
 
-            for index in reg_page_diff_idx:
-                classification = self.pages[index]["classification"]
-                classification["is_register_map_relevant"] = (
-                    not classification["is_register_map_relevant"]
-                )
+        for index in reg_page_diff_idx:
+            classification = self.pages[index]["classification"]
+            classification["is_register_map_relevant"] = (
+                not classification["is_register_map_relevant"]
+            )
+
     def create_add_description_task(self):
         if all_classification_false(self.pages):
             for page in self.pages:
@@ -335,8 +330,8 @@ class Preprocessor:
         if not task:
             return
 
-        PageBatchTask.run_with_retry(task.wait_batch())
-        PageBatchTask.run_with_retry(task.collect_batch_output())
+        PageBatchTask.run_with_retry(task.wait_batch)
+        PageBatchTask.run_with_retry(task.collect_batch_output)
         task.retry_batch()
 
         if not task.has_valid_output:
@@ -351,29 +346,6 @@ class Preprocessor:
 
         if self.task_add_description:
             self.task_add_description.cleanup()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Helper
 def valid_mistral_config(config:dict[str,Any]) -> bool:
@@ -394,4 +366,10 @@ def valid_openai_config(config:dict[str,Any]) -> bool:
     allowed_keys = {"model","prompt_path","text_format","tools","max_output_tokens"}
     return set(config.keys()).issubset(allowed_keys)
 
+def all_classification_false(pages: list[dict[str, Any]]) -> bool:
+    for page in pages:
+        classification = page.get("classification", {})
+        if any(bool(value) for value in classification.values()):
+            return False
 
+    return True
