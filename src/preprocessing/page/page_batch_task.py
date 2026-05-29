@@ -195,6 +195,7 @@ class PageBatchTask:
         self.check_completeness()
 
     def cleanup(self) -> None:
+        '''try to cancel the batch(only when status is "validating" "submitted" "in progress" "") and delete uploaded file'''
         if not self or not self.batch_job:
             return
         try:
