@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from src.openai.openai_task import OpenAITask
+from src.openai.batch_client import OpenAIBatchClient
 from src.models.page_output import PageDescription
 from src.preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
 from src.preprocessing.toc.resolve_toc_entries import resolve_toc_entries
@@ -15,8 +16,7 @@ from src.preprocessing.page.parse_results import parse_classification_content,pa
 from src.preprocessing.toc.find_toc_pages import find_toc_pages
 from src.preprocessing.utils.text_utils import remove_header_footer
 from src.preprocessing.page.page_batch_task import PageBatchTask
-from src.openai.batch_client import OpenAIBatchClient
-from src.config import Config
+from src.preprocessing.config import PreprocessingConfig
 
 class Preprocessor:
     pdf_path: Path
@@ -48,9 +48,9 @@ class Preprocessor:
     task_reg_page_verification: PageBatchTask | None
     task_add_description: PageBatchTask | None
 
-    config:Config
+    config:PreprocessingConfig
 
-    def __init__(self,config: Config):
+    def __init__(self,config: PreprocessingConfig):
         if not config.project_path.pdf_path.exists() or not config.project_path.pdf_path.is_file():
             raise FileNotFoundError
 
@@ -88,25 +88,28 @@ class Preprocessor:
         self.pipeline()
 
     def pipeline(self):
+        print("-----------------------------------------------------------------------\n")
+        print("start running text preprocessor pipeline\n")
+        print("-----------------------------------------------------------------------\n")
         self.run_ocr()
         self.classify_pages()
         self.get_page_candidates()
         self.create_verification_task()
 
         try:
-            print("Waiting for completion of verification task for register summary pages\n")
+            print("Waiting for completion of verification task for register summary pages:\n")
             self.wait_and_collect(self.task_reg_sum_verification)
             self.reg_sum_page_idx = parse_verification_content(self.task_reg_sum_verification)
             self.extract_reg_index()
 
-            print("Waiting for completion of verification task for register pages\n")
+            print("Waiting for completion of verification task for register pages:\n")
             self.wait_and_collect(self.task_reg_page_verification)
             self.reg_page_idx = parse_verification_content(self.task_reg_page_verification)
             self.refine_classification()
             self.create_add_description_task()
             self.extract_reg_map()
 
-            print("Waiting for completion of adding page descriptions\n")
+            print("Waiting for completion of adding page descriptions:\n")
             self.wait_and_collect(self.task_add_description)
             parse_description_content(self.task_add_description,self.pages)
         finally:
@@ -187,6 +190,7 @@ class Preprocessor:
             task_config=config,
         )
         print("Classification task created\n")
+        print("Waiting for completion of classification task for all pages:\n")
         self.task_classification.run()
 
         if not self.task_classification.has_valid_output:
