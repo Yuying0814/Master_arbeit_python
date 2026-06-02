@@ -110,7 +110,7 @@ def _load_instructions(task_config: dict[str, Any]) -> str:
         return "You are a helpful assistant."
     return Path(prompt_path).read_text(encoding="utf-8")
 
-def _load_text_format(task_config: dict[str, Any]) -> str:
+def _load_text_format(task_config: dict[str, Any]) -> ValidTextFormat:
     text_format = task_config.get("text_format")
     if not text_format:
         return "text"
