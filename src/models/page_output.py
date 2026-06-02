@@ -10,7 +10,7 @@ class PageClassification(StructuredOutputModel):
     is_timing_relevant: bool
     is_interrupt_alert_relevant: bool
     is_fifo_relevant: bool
-    is_coding_example_relevant: bool
+    is_coding_example: bool
 
     @classmethod
     def get_default_value(cls)->dict[str,bool]:
