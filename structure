@@ -1,52 +1,31 @@
-Master_arbeit_matlab/
-├── .gitignore
-├── main.m
+Master_arbeit_python/
+├── .idea/
+├── data/
+│   └── input_pdf/
 ├── prompts/
 │   ├── prompt_addPageDescription.txt
 │   ├── prompt_classifyPages.txt
 │   ├── prompt_extractRegIndex.txt
 │   ├── prompt_extractRegMap.txt
+│   ├── prompt_preRegExtractor.txt
+│   ├── prompt_regClassifier.txt
+│   ├── prompt_regMapExtractor.txt
+│   ├── prompt_regSummaryClassifier.txt
+│   ├── prompt_tocClassifier.txt
+│   ├── prompt_tocExtractor.txt
+│   ├── prompt_tocResolver.txt
 │   ├── prompt_verifyRegPages.txt
 │   └── prompt_verifyRegSumPages.txt
 ├── src/
-│   ├── Config.m
-│   ├── +openai/
-│   │   ├── BatchJob.m
-│   │   ├── OpenaiBatch.m
-│   │   ├── OpenaiTaskAgent.m
-│   │   └── mustBeValidResponseFormat.m
-│   ├── +preprocessing/
-│   │   ├── Preprocessor.m
-│   │   ├── +mistral/
-│   │   │   └── Mistral.m
-│   │   ├── +page/
-│   │   │   ├── PageBatchTask.m
-│   │   │   ├── buildPageRequest.m
-│   │   │   ├── getClassificationFormat.m
-│   │   │   ├── getDescriptionFormat.m
-│   │   │   ├── parseClassificationContent.m
-│   │   │   ├── parseDescriptionContent.m
-│   │   │   └── parseVerificationContent.m
-│   │   ├── +register/
-│   │   │   ├── getRegIndexDefaultFormat.m
-│   │   │   └── getRegMapDefaultFormat.m
-│   │   ├── +retrieval/
-│   │   │   └── findRelevantPageRange.m
-│   │   ├── +toc/
-│   │   │   ├── detectTocEntry.m
-│   │   │   ├── detectTocTitle.m
-│   │   │   ├── extractTocEntry.m
-│   │   │   ├── findTocPages.m
-│   │   │   └── resolveTocEntries.m
-│   │   └── +utils/
-│   │       ├── extractTextFrom.m
-│   │       ├── matchPattern.m
-│   │       ├── removeHeaderFooter.m
-│   │       └── text2lines.m
-│   └── +utils/
-│       └── buildJSONSchema.m
-├── data/
-│   ├── input/
-│   └── output/
-├── llms-with-matlab-main/
-└── tests/
+│   ├── __pycache__/
+│   ├── text_vorverarbeiter/
+│   │   ├── models/
+│   │   ├── ocr/
+│   │   └── __init__.py
+│   ├── config.py
+│   └── main.py
+├── tests/
+│   └── test_preprocessor.py
+├── .gitignore
+├── README.md
+└── structure
