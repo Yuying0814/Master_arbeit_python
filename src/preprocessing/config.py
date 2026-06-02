@@ -74,6 +74,7 @@ class MistralConfig:
     task:dict[str, dict]
 
 class PreprocessingConfig(BaseConfig):
+    project_path: ProjectPath
     openai: OpenaiConfig
     mistral: MistralConfig
 
