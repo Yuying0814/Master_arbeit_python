@@ -16,10 +16,15 @@ def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
     return OpenaiConfig(task=task)
 
 @dataclass(frozen=True)
+class CodingProjectPath(BaseProjectPath):
+    code_dir: Path
+
+@dataclass(frozen=True)
 class OpenaiConfig:
     task:dict[str, dict]
 
 class CodingConfig(BaseConfig):
+    project_path: CodingProjectPath
     openai: OpenaiConfig
 
     def __init__(self,project_path:BaseProjectPath,openai_config:OpenaiConfig) -> None:
@@ -27,7 +32,10 @@ class CodingConfig(BaseConfig):
         self.openai = openai_config
 
     @classmethod
-    def load_config(cls,env:str|Path=""):
+    def load_config(cls,code_dir:str|Path,env:str|Path=""):
+        code_dir = Path(code_dir)
+        code_dir.mkdir(parents=True, exist_ok=True)
+
         root_path = Path(__file__).resolve().parents[2]
 
         if isinstance(env,str):
@@ -43,7 +51,7 @@ class CodingConfig(BaseConfig):
 
         env_path = env
 
-        project_path = BaseProjectPath(
+        project_path = CodingProjectPath(
             root_path=root_path,
             input_path=root_path /"data"/ "input",
             output_path=root_path /"data"/ "output",
@@ -51,6 +59,7 @@ class CodingConfig(BaseConfig):
             src_dir=root_path / "src",
             env_path=env_path,
             tests_dir=root_path / "tests",
+            code_dir = code_dir,
         )
 
         return cls(
