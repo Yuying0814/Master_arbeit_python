@@ -1,0 +1,8 @@
+*.env
+draft.py
+*.json
+*.jsonl
+*.pyc
+__pycache__/
+.idea/
+data/input_pdf/
