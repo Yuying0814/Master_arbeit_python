@@ -152,7 +152,10 @@ def _resolve_marked_entries_to_pages(toc_entries: list[dict[str, Any]],keep_line
     for start_page, end_page in zip(start_pages, end_pages):
         page_numbers.extend(range(start_page, end_page + 1))
 
-    return sorted(set(page_numbers))
+    # Convert page number to python list index, only valid when the real page number equals the PDF page number and page["index"] from ocr result.
+    page_indices = [page_number -1 for page_number in page_numbers if page_number >0]
+
+    return sorted(set(page_indices))
 
 
 def _find_true_segments(mask: list[bool]) -> list[tuple[int, int]]:
