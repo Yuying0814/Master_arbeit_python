@@ -152,11 +152,9 @@ class Preprocessor:
             page["index"] for page in pages if page["result_toc"]["is_toc"]
         ]
 
-        self.toc_entries = extract_toc_entries(
-            [
-                pages[i] for i in self.toc_page_idx
-            ]
-        )
+        toc_pages = get_pages_by_ocr_index(pages,self.toc_page_idx)
+        self.toc_entries = extract_toc_entries(toc_pages)
+
         self.reg_page_idx_from_toc,self.reg_sum_idx_from_toc = resolve_toc_entries(self.toc_entries)
 
         pages = find_relevant_page_range(pages)
@@ -213,10 +211,7 @@ class Preprocessor:
         config = self.config.openai.task["verify_reg_sum_pages"]
         name = inspect.currentframe().f_code.co_name
         inputPath = self.config.project_path.input_path/f"{name}.json"
-        page_candidates = [
-            self.pages[index]
-            for index in self.reg_sum_candidate_idx
-        ]
+        page_candidates = get_pages_by_ocr_index(self.pages,self.reg_sum_candidate_idx)
 
         self.task_reg_sum_verification = PageBatchTask(
             pages = page_candidates,
@@ -237,10 +232,7 @@ class Preprocessor:
         config = self.config.openai.task["verify_reg_pages"]
         name = inspect.currentframe().f_code.co_name
         inputPath = self.config.project_path.input_path/f"{name}.json"
-        page_candidates = [
-            self.pages[index]
-            for index in self.reg_page_candidate_idx
-        ]
+        page_candidates = get_pages_by_ocr_index(self.pages,self.reg_page_candidate_idx)
 
         self.task_reg_page_verification = PageBatchTask(
             pages = page_candidates,
@@ -265,9 +257,10 @@ class Preprocessor:
             "tables": page["tables"]
             } for page in self.pages]
 
+        selected_pages = get_pages_by_ocr_index(pages,self.reg_sum_page_idx)
         user = json.dumps(
             {
-                "pages": [pages[index] for index in self.reg_sum_page_idx]
+                "pages": selected_pages,
             }
         )
         print("Start register index information extraction\n")
@@ -296,9 +289,10 @@ class Preprocessor:
         else:
             registers = self.reg_summary["registers"]
 
+        selected_pages = get_pages_by_ocr_index(pages, self.reg_page_idx)
         user = json.dumps(
             {
-                "pages": [pages[index] for index in self.reg_page_idx],
+                "pages": selected_pages,
                 "registers":registers
             }
         )
@@ -316,14 +310,16 @@ class Preprocessor:
         sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
         reg_page_diff_idx = set(self.reg_page_idx) ^ set(self.reg_page_idx_from_llm)
 
+        page_index_map = {page["index"]: page for page in self.pages}
+
         for index in sum_page_diff_idx:
-            classification = self.pages[index]["classification"]
+            classification = page_index_map[index]["classification"]
             classification["is_register_summary_relevant"] = (
                 not classification["is_register_summary_relevant"]
             )
 
         for index in reg_page_diff_idx:
-            classification = self.pages[index]["classification"]
+            classification = page_index_map[index]["classification"]
             classification["is_register_map_relevant"] = (
                 not classification["is_register_map_relevant"]
             )
@@ -405,3 +401,7 @@ def all_classification_false(pages: list[dict[str, Any]]) -> bool:
             return False
 
     return True
+
+def get_pages_by_ocr_index(pages:list[dict[str,Any]],page_indices) -> list[dict[str,Any]]:
+    page_index_map = {page["index"]: page for page in pages}
+    return [page_index_map[page_index] for page_index in page_indices]
