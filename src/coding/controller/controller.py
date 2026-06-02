@@ -1,5 +1,5 @@
 
-from src.coding.config import Config
+from src.coding.config import CodingConfig
 from src.coding.verifier.verifier import FakeVerifier
 from src.coding.planner.planner import FakePlanner
 from src.coding.retriever.retriever import FakeRetriever
@@ -14,10 +14,10 @@ class Controller:
     accepted_files: list[CodeFile]
     not_accepted_files: list[CodeFile]
     max_tries: int = 10
-    config:Config
+    config:CodingConfig
 
 
-    def __init__(self,user_request,config:Config):
+    def __init__(self,user_request,config:CodingConfig):
         self.user_request = user_request
         self.logs = []
         self.accepted_files = []
@@ -73,7 +73,6 @@ class Controller:
                 self.not_accepted_files.extend(coder_output.files)
 
         FileWriter.write_to_files(self.accepted_files,)
-
 
 
     def receive_user_request(self,user_request:str):
