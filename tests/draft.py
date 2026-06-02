@@ -1,38 +1,105 @@
-from preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
-from src.preprocessing.mistral.mistral_client import MistralClient
-from dotenv import load_dotenv
+from __future__ import annotations
+
+import json
+import sys
 from pathlib import Path
-from preprocessing.toc.find_toc_pages import find_toc_pages
-from preprocessing.toc.toc_entry import extract_toc_entries
-from preprocessing.utils.text_utils import remove_header_footer
-from preprocessing.toc.resolve_toc_entries import resolve_toc_entries
-import os
+from typing import Any
 
-env_path = Path.cwd().parent / '.env'
-load_dotenv(dotenv_path=env_path)
-api_key = os.getenv("MISTRAL_API_KEY")
-pdf = Path.cwd().parent / "data" / "input_pdf" / "opt3001.pdf"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 
-client = MistralClient(api_key=api_key)
-ocr_result = client.run_ocr(pdf)
-pages = ocr_result["pages"]
+from config import Config
+from src.preprocessing.preprocessor import Preprocessor
 
-outpages = find_toc_pages(pages)
 
-# for page_index, page in enumerate(outpages):
-#     print(page_index, page["result_toc"])
-#
-toc_pages = [page for index, page in enumerate(outpages) if page["result_toc"]["is_toc"]]
-toc_pages = remove_header_footer(toc_pages)
-toc_entries = extract_toc_entries(toc_pages)
-page_idx,sum_idx = resolve_toc_entries(toc_entries)
-pages = find_relevant_page_range(pages)
-for index,page in enumerate(pages):
-    print(index,page["result_retrieval"])
-reg_index = [index+1 for index,page in enumerate(pages) if page["result_retrieval"]["is_reg_map_relevant"]]
-reg_sum_index = [index+1 for index,page in enumerate(pages) if page["result_retrieval"]["is_reg_sum_relevant"]]
-print(reg_index)
-print(reg_sum_index)
+def make_json_safe(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, dict):
+        return {
+            str(key): make_json_safe(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, list):
+        return [
+            make_json_safe(item)
+            for item in value
+        ]
+
+    if isinstance(value, tuple):
+        return [
+            make_json_safe(item)
+            for item in value
+        ]
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
+    return {
+        "pdf_path": preprocessor.pdf_path,
+        "toc_page_idx": preprocessor.toc_page_idx,
+        "toc_entries": preprocessor.toc_entries,
+        "reg_page_idx_from_toc": preprocessor.reg_page_idx_from_toc,
+        "reg_page_idx_from_retrieval": preprocessor.reg_page_idx_from_retrieval,
+        "reg_page_idx_from_llm": preprocessor.reg_page_idx_from_llm,
+        "reg_page_candidate_idx": preprocessor.reg_page_candidate_idx,
+        "reg_page_idx": preprocessor.reg_page_idx,
+        "reg_sum_idx_from_toc": preprocessor.reg_sum_idx_from_toc,
+        "reg_sum_idx_from_retrieval": preprocessor.reg_sum_idx_from_retrieval,
+        "reg_sum_idx_from_llm": preprocessor.reg_sum_idx_from_llm,
+        "reg_sum_candidate_idx": preprocessor.reg_sum_candidate_idx,
+        "reg_sum_page_idx": preprocessor.reg_sum_page_idx,
+        "reg_summary": preprocessor.reg_summary,
+        "reg_map": preprocessor.reg_map,
+    }
+
+def write_json(output_path: Path, data: Any) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    output_path.write_text(
+        json.dumps(
+            make_json_safe(data),
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_preprocessor_pipeline() -> None:
+    pdf_path = PROJECT_ROOT / "data" / "input_pdf" / "ITG-3050-Register-Map.pdf"
+    name = pdf_path.stem
+
+    config = Config.load_config(pdf=pdf_path)
+    preprocessor = Preprocessor(config)
+
+    preprocessor.run()
+
+    output_dir = config.project_path.output_path
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    write_json(
+        output_dir / f"{name}_preprocessor_snapshot.json",
+        build_preprocessor_snapshot(preprocessor),
+    )
+
+    write_json(
+        output_dir / f"{name}_register_map.json",
+        preprocessor.reg_map,
+    )
+
+    write_json(
+        output_dir / f"{name}_pages.json",
+        preprocessor.pages,
+    )
+
+    assert preprocessor.pages
 
 
 

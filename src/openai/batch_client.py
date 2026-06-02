@@ -162,7 +162,7 @@ class OpenAIBatchClient:
 
     def submit(self,batch_input_file:BatchInputFile) -> BatchJob:
         batch_input = batch_input_file.path
-        name = batch_input.name
+        name = batch_input.stem
 
         try:
             input_file_id = self.upload(batch_input)
