@@ -3,7 +3,8 @@ from src.models.structuredOutputModel import StructuredOutputModel
 
 class RegisterIndexItem(StructuredOutputModel):
     name: str
-    address: str
+    is_multi_address: bool
+    physical_address: list[str]
     bank: str
     page: str
     source_index: str
@@ -16,6 +17,7 @@ class RegisterAddress(StructuredOutputModel):
     decimal: str
     bank: str
     page: str
+    description: str
 
 class RegisterFieldValue(StructuredOutputModel):
     value: str
@@ -37,7 +39,8 @@ class RegisterSource(StructuredOutputModel):
 class RegisterMapItem(StructuredOutputModel):
     index: int
     name: str
-    address: RegisterAddress
+    is_multi_address: bool
+    physical_address: list[RegisterAddress]
     register_description: str
     width_bits: int
     type_write_read: str
