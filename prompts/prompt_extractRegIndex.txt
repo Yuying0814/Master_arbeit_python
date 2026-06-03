@@ -42,20 +42,23 @@ The register name.
 Copy the register name exactly as written when possible.
 If unavailable, do not create this register object.
 
-### 1.2 'address': string
+### 1.2 `is_multi_address`: logical boolean
+Whether the preliminary logical register occupies more than one physical address.
+
+### 1.3 `physical_address`: string
 The register address.
 Preserve the original address format as much as possible.
 If unavailable, use "empty".
 
-### 1.3 'bank': string
+### 1.4 'bank': string
 The register bank value.
 If unavailable, use "empty".
 
-### 1.4 'page': string
+### 1.5 'page': string
 The register page value.
 If unavailable, use "empty".
 
-### 1.5 'source_index': string
+### 1.6 'source_index': string
 The source page index from Input 'pages.index'.
 If the same register is supported by multiple source pages, join the source indexes with commas without spaces.
 Example: "6,7"
