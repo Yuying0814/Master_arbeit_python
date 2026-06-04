@@ -15,7 +15,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 def test_without_preprocessing(pdf_name:str):
     pdf_path = PROJECT_ROOT / "data" / "input_pdf" / pdf_name
     name = pdf_path.stem
-    output_path = PROJECT_ROOT / "data" /"output" / "test_without_preprocessing" / name
+    output_path = PROJECT_ROOT / "data" /"output" / "test_without_preprocessing" / f"{name}.json"
 
     load_dotenv(dotenv_path=PROJECT_ROOT/".env")
     openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
