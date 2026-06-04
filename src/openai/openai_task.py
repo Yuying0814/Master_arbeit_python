@@ -30,10 +30,9 @@ class OpenAITask:
 
 
     def run(self,user_input:str = None) -> Any:
-        if user_input is None:
-            user = self.user
+        user = user_input if user_input is not None else self.user
 
-        if not user_input.strip():
+        if not user.strip():
             raise ValueError("User input must be provided")
 
         if self._uses_create_api():
