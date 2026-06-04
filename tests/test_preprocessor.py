@@ -11,11 +11,11 @@ from src.preprocessing.config import PreprocessingConfig
 from src.preprocessing.preprocessor import Preprocessor
 
 
-def test_preprocessor_pipeline() -> None:
+def test_preprocessor_pipeline(pdf_name:str) -> None:
     """ Test for preprocessor pipeline """
     """ Test Results will be written to project root/data/output """
 
-    pdf_path:Path = PROJECT_ROOT / "data" / "input_pdf" / "ATmega8.pdf" ## Enter real PDF Path Here for testing e.g. PROJECT_ROOT / "data" / "input_pdf" / "xxx"
+    pdf_path:Path = PROJECT_ROOT / "data" / "input_pdf" / pdf_name ## Enter real PDF Path Here for testing e.g. PROJECT_ROOT / "data" / "input_pdf" / "xxx"
     name = pdf_path.stem
     config = PreprocessingConfig.load_config(pdf=pdf_path)
     preprocessor = Preprocessor(config)
