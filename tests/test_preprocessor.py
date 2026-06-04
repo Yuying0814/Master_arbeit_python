@@ -22,7 +22,7 @@ def test_preprocessor_pipeline(pdf_name:str) -> None:
 
     preprocessor.run()
 
-    output_dir = config.project_path.output_path
+    output_dir = config.project_path.output_path / name
     output_dir.mkdir(parents=True, exist_ok=True)
 
     write_json(
