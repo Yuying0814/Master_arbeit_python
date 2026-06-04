@@ -81,6 +81,7 @@ class OpenAITask:
             return json.loads(output)
         except json.JSONDecodeError:
             return output
+
     @staticmethod
     def run_with_retry(function: Callable[..., T], *args, max_retries: int = 3, base_delay: int = 2) -> T:
         for attempt in range(1, max_retries + 2):
