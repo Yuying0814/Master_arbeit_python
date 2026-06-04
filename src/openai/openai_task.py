@@ -29,11 +29,11 @@ class OpenAITask:
         self._load_task_config(task_config)
 
 
-    def run(self,user:str = None) -> Any:
-        if user is None:
+    def run(self,user_input:str = None) -> Any:
+        if user_input is None:
             user = self.user
 
-        if not user.strip():
+        if not user_input.strip():
             raise ValueError("User input must be provided")
 
         if self._uses_create_api():
