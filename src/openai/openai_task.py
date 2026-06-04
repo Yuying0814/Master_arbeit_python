@@ -21,18 +21,25 @@ class OpenAITask:
     text_format: ValidTextFormat
     response: Any
 
-    def __init__(self,api_key: str,user: str,task_config: dict[str, Any],timeout: int = 2000) -> None:
+    def __init__(self,api_key: str,*,user: str = None,task_config: dict[str, Any],timeout: int = None) -> None:
         self.openai_client = OpenAI(api_key=api_key)
-        self.user = user
+        self.user = user if user is not None else ""
+        self.timeout = timeout if timeout is not None else 2000
+
         self._load_task_config(task_config)
-        self.timeout = timeout
 
 
-    def run(self) -> Any:
+    def run(self,user:str = None) -> Any:
+        if user is None:
+            user = self.user
+
+        if not user.strip():
+            raise ValueError("User input must be provided")
+
         if self._uses_create_api():
             self.response = self.openai_client.responses.create(
                 model=self.model,
-                input=self.user,
+                input=user,
                 instructions=self.instructions,
                 text={"format": build_text_format(self.text_format)},
                 timeout=self.timeout,
@@ -43,7 +50,7 @@ class OpenAITask:
         if self._uses_parse_api():
             self.response = self.openai_client.responses.parse(
                 model=self.model,
-                input=self.user,
+                input=user,
                 instructions=self.instructions,
                 text_format=self._get_parse_text_format(),
                 timeout=self.timeout,
