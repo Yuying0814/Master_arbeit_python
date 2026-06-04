@@ -38,10 +38,10 @@ class BatchTask:
     def __init__(self,
                  api_key:str,
                  input_path:Path,
-                 *,model:str = None,
-                 prompt_path:Path|str = None,
+                 *,model:str|None = None,
+                 prompt_path:Path|str|None = None,
                  text_format:ValidTextFormat|None = None,
-                 max_output_tokens:int = None,
+                 max_output_tokens:int|None = None,
                  ) -> None:
 
         self.name = input_path.stem
@@ -66,7 +66,7 @@ class BatchTask:
         self.outputs = []
         self.records = []
 
-    @ classmethod
+    @classmethod
     def load_from_task_config(cls,api_key:str,input_path:Path,task_config):
         return cls(
             api_key=api_key,
@@ -109,6 +109,9 @@ class BatchTask:
         self.batch_input_file.write_to_file()
 
     def submit_batch(self) -> None:
+        if not self.custom_ids or not self.user_inputs:
+            raise ValueError("User requests must be added before submitting the batch task.")
+
         self.write_batch_input_file()
         self.batch_job = self.batch_client.submit(batch_input_file=self.batch_input_file)
         self.update_status()
@@ -214,7 +217,7 @@ class BatchTask:
 
     def reset(self):
         self.status = "created"
-        self.has_valid_output = True
+        self.has_valid_output = False
         self.batch_job = None
         self.contents = []
         self.outputs = []
