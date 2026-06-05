@@ -3,199 +3,387 @@ Your task is to extract register information only from the user-provided content
 
 # Input
 
-1. `pages`: JSON object array.
-   The provided register-detail page contexts.
+## 1. `pages`: JSON object array
 
+The provided register-detail page contexts.
 Each `pages(i)` is a single-page context object and may contain the following fields:
 
-1.1 `index`: integer
+### 1.1 `index`: integer
+
 The page index metadata.
 
-1.2 `markdown`: string
+### 1.2 `markdown`: string
+
 The page content.
 
-1.3 `tables`: array
-Extracted tables for the page.
+### 1.3 `tables`: array of objects
 
+Extracted tables for the page.
 Each `tables(j)` may contain the following fields:
 
-1.3.1 `id`: string
+#### 1.3.1 `id`: string
+
 The table id.
 
-1.3.2 `content`: string
+#### 1.3.2 `content`: string
+
 The table content.
 
-1.3.3 `format`: string
+#### 1.3.3 `format`: string
+
 The table format.
 
-1.3.4 `word_confidence_scores`: any
+#### 1.3.4 `word_confidence_scores`: any
+
 Not relevant for this task.
 
-2. `registers`: JSON object array.
-   Preliminary register-name and address information extracted by a previous model from register summary, register map, or memory map pages.
+## 2. `registers`: JSON object array
 
+Preliminary register-name and address information extracted by a previous model from register summary, register map, or memory map pages.
 Each input `registers(i)` may contain the following fields:
 
-2.1 `name`: string
+### 2.1 `name`: string
+
 The preliminary register name.
 
-2.2 `is_multi_address`: logical boolean
+### 2.2 `is_multi_address`: logical boolean
+
 Whether the preliminary logical register occupies more than one physical address.
 
-2.3 `physical_address`: array of strings
+### 2.3 `physical_address`: array of strings
+
 The preliminary physical register addresses.
 Each string may be a hexadecimal address, decimal address, compact address range, or original address text extracted from the source.
 
-2.4 `bank`: string
+### 2.4 `bank`: string
+
 The preliminary register bank information.
 
-2.5 `page`: string
+### 2.5 `page`: string
+
 The preliminary device register page information, such as register page, memory page, address page, or page selector.
 This is not the PDF page number or any document page index.
 
-2.6 `source_index`: string
+### 2.6 `source_index`: string
+
 The preliminary source page index or indexes.
 Multiple source indexes may be provided as a comma-separated string.
 
 # Output
 
-Return one top-level object with the field `Registers`.
+Return one top-level JSON object with the field `Registers`.
 
-1. `Registers`: array
-   The final array of extracted logical register objects.
+## 1. `Registers`: array of objects
 
-Each register object must contain the following fields:
+The final array of extracted logical register objects.
 
-1.1 `index`: positive integer
+Each register object must represent exactly one logical register.
+
+Preserve register order as follows:
+
+1. If input `registers` is not empty, preserve the original order from input `registers` first.
+2. Append additional registers supplemented from `pages` in the order shown in the provided page content.
+3. If input `registers` is empty, preserve the original register order from the provided page content whenever possible.
+
+Merge duplicate entries that refer to the same logical register. Do not merge different registers into one entry unless the source clearly shows they are the same register.
+Do not split one logical register into multiple entries unless the source clearly defines separate registers or deterministic name-address expansion is possible.
+
+Each `Registers(i)` must contain the following fields:
+
+### 1.1 `index`: positive integer
+
 The sequential index of the register in the extraction result.
+The first register must have `index = 1`, and each following register must increase sequentially by 1.
 
-1.2 `name`: string
+### 1.2 `name`: string
+
 The register name.
+The name must represent exactly one logical register.
+Copy register names exactly as written when possible.
+If multiple equivalent register names are shown, prefer the formal register title from the register table or heading.
+If a register name is only available from input `registers` and is a plausible register candidate, use that name.
+Do not invent unsupported register names.
 
-1.3 `is_multi_address`: logical boolean
+### 1.3 `is_multi_address`: logical boolean
+
 Whether this logical register occupies more than one physical register address.
+Set `is_multi_address = true` when `physical_address` contains more than one address object for the same logical register.
+Set `is_multi_address = false` when `physical_address` contains zero or one address object.
+When preliminary `registers.is_multi_address` conflicts with the final number of `physical_address` objects, the final `physical_address` array determines `is_multi_address`.
 
-1.4 `physical_address`: array
+### 1.4 `physical_address`: array of objects
+
 An array of physical register address objects occupied by this logical register.
+Each `physical_address` object must represent exactly one physical register address.
+Do not store compact ranges, combined address expressions, or address lists inside one `physical_address` object.
+For a single-address register, include exactly one `physical_address` object.
+For a multi-address logical register, include all explicitly supported physical addresses in order.
+Use input `registers.physical_address` only as preliminary evidence. Correct it using explicit evidence from `pages.markdown` and `pages.tables.content` if the page content conflicts with it.
 
-Each `physical_address` object must contain:
+Each `physical_address` object must contain the following fields:
 
-1.4.1 `hex`: string
+#### 1.4.1 `hex`: string
+
 The physical register address in hexadecimal form.
+Use uppercase hexadecimal with `0x` prefix.
+If only decimal address is given and hexadecimal can be converted exactly, convert it and fill this field.
+If the hexadecimal address is unavailable and cannot be converted exactly, use an empty string.
 
-1.4.2 `decimal`: string
+#### 1.4.2 `decimal`: string
+
 The physical register address in decimal form.
+Store it as a decimal integer string without prefix.
+If only hexadecimal address is given and decimal can be converted exactly, convert it and fill this field.
+If the decimal address is unavailable and cannot be converted exactly, use an empty string.
 
-1.4.3 `bank`: string
+#### 1.4.3 `bank`: string
+
 The register bank information.
+Fill this field only when the content explicitly states a register bank, bank number, bank name, memory bank, register page bank, or equivalent bank identifier.
+Use input `registers.bank` as preliminary bank information only if it is explicitly provided.
 
-1.4.4 `page`: string
+#### 1.4.4 `page`: string
+
 The device register page information, such as register page, memory page, address page, or page selector.
 This is part of the device address space and is not the PDF page number or any document page index.
+Fill this field only when the content explicitly states a device register page, memory page, address page, page selector, or equivalent address-space page identifier.
+Use input `registers.page` as preliminary device register page information only if it is explicitly provided and clearly refers to the device register address space.
+Never store PDF page numbers, printed document page numbers, document page labels, or OCR page indexes in this field.
 
-1.4.5 `description`: string
+#### 1.4.5 `description`: string
+
 A concise factual description of this physical address, such as byte role or address role.
+Fill this field only when the role of the physical address is explicitly supported by the source, such as byte role or named byte field.
+Do not use this field for the general logical register function. Use `register_description` for the logical register function.
 
-1.5 `register_description`: string
+### 1.5 `register_description`: string
+
 A concise factual description of the register purpose or function.
+For a logical register that spans multiple physical registers, describe the combined logical meaning here.
+Fill this field only when the register purpose or function is explicitly described in `pages.markdown` or the corresponding `pages.tables.content`.
+If the register purpose or function is unavailable, use an empty string.
 
-1.6 `width_bits`: integer
+### 1.6 `width_bits`: integer
+
 The total logical register width in bits.
+Use the explicit register width when stated.
+If the register width can be derived exactly from a complete bit definition table, register bit diagram, or explicitly stated multi-byte mapping, fill this field.
+If the register width is unavailable, use `null`.
 
-1.7 `type_write_read`: string
+### 1.7 `type_write_read`: string
+
 The register access type.
-
 Allowed values:
-
 * `R`
 * `W`
 * `RW`
 * empty string
+Use `R` for read-only, `W` for write-only, and `RW` for read/write.
+Normalize `R/W` to `RW`.
+Only fill register-level `type_write_read` when the access type is explicitly stated.
+Do not infer register-level access type from bit-field access type unless the source explicitly applies it to the whole register.
 
-1.8 `bit_field`: array
-An array of bit-field objects for this register.
+### 1.8 `field_parts`: array of objects
 
-Each `bit_field` object must contain:
+An array of physical register parts that belong to this logical register.
+For a single-address register, include exactly one `field_parts` object that represents the register itself.
+For a multi-address logical register, include one `field_parts` object for each explicitly supported physical register address, byte segment, or sub-register.
+Each `field_parts` object must contain the following fields:
 
-1.8.1 `name_or_parameter`: string
+#### 1.8.1 `register_name`: string
+
+The name of this physical register part, sub-register, byte field, or address-level register segment.
+Copy the source name exactly when the source explicitly names this part.
+For a single-address register without a separate part name, use the logical register name.
+For a multi-address logical register, use the explicitly supported byte name, part name, or physical register name when available.
+If the part name is unavailable, use an empty string.
+
+#### 1.8.2 `physical_address`: object
+
+The physical address object corresponding to this register part.
+This object must contain the same fields as a ### 1.4 `physical_address` object:
+`hex`, `decimal`, `bank`, `page`, and `description`.
+Each `field_parts(i).physical_address` object must represent exactly one physical register address.
+For a single-address register, this object should match the only object in the top-level `physical_address` array.
+For a multi-address logical register, each `field_parts(i).physical_address` object should correspond to one object in the top-level `physical_address` array.
+
+#### 1.8.3 `description`: string
+
+A concise factual description of this register part, such as high byte, low byte, MSB, LSB, command byte, data byte, status byte, or named sub-register role.
+Fill this field only when the role or function of this part is explicitly supported by the source.
+If unavailable, use an empty string.
+
+#### 1.8.4 `width_bits`: integer
+
+The width of this register part in bits.
+Use the explicit part width when stated.
+If the part width can be derived exactly from a complete bit definition table, register bit diagram, or explicitly stated byte mapping, fill this field.
+If the part width is unavailable, use `null`.
+
+#### 1.8.5 `type_write_read`: string
+
+The access type of this register part.
+Allowed values:
+* `R`
+* `W`
+* `RW`
+* empty string
+Use `R` for read-only, `W` for write-only, and `RW` for read/write.
+Normalize `R/W` to `RW`.
+Only fill part-level `type_write_read` when the access type is explicitly stated for this physical part or sub-register.
+Do not infer part-level access type from the logical register-level access type unless the source explicitly applies it to the part.
+
+#### 1.8.6 `bit_field`: array of objects
+
+An array of bit-field objects for this register part.
+Create one bit-field entry per explicit bit field, parameter, reserved field, named bit range, or explicit bit cell shown in the provided content for this register part.
+If no bit-field information is explicitly available for this register part, use an empty `bit_field` array.
+Unless the datasheet explicitly states otherwise, interpret bit tables as MSB on the left and bit 0 on the right.
+Bit positions in `bit_field` are local to the physical register part, not global positions across the whole logical register.
+
+Each `bit_field` object must contain the following fields:
+
+##### 1.8.6.1 `name_or_parameter`: string
+
 The name of the bit field, parameter, or bit label.
+Copy bit-field names, parameter names, and value labels exactly as written when possible.
+If the field is explicitly labeled `Reserved`, `RFU`, `unused`, `unimplemented`, or equivalent, use the explicit source label.
 
-1.8.2 `field_description`: string
+##### 1.8.6.2 `field_description`: string
+
 A concise factual description of the field.
+Fill this field only when the bit-field function or meaning is explicitly described in the source.
+If the bit-field function or meaning is unavailable, use an empty string.
 
-1.8.3 `bit_start`: integer
-The lower bit index of the field.
+##### 1.8.6.3 `bit_start`: integer
 
-1.8.4 `bit_end`: integer
-The upper bit index of the field.
+The lower bit index of the field within this physical register part.
+For bit ranges shown in descending form, store the lower bit index in `bit_start`.
+For example, if the source gives bit range `7:4`, output `bit_start = 4`.
+For a single bit field, set `bit_start` to that bit index.
+If the bit position is unavailable, use `null`.
 
-1.8.5 `bit_width`: integer
+##### 1.8.6.4 `bit_end`: integer
+
+The upper bit index of the field within this physical register part.
+For bit ranges shown in descending form, store the upper bit index in `bit_end`.
+For example, if the source gives bit range `7:4`, output `bit_end = 7`.
+For a single bit field, set `bit_end` to that bit index.
+If the bit position is unavailable, use `null`.
+
+##### 1.8.6.5 `bit_width`: integer
+
 The width of the field in bits.
+If `bit_start` and `bit_end` are known, compute:
+`bit_width = bit_end - bit_start + 1`
+For a single bit field, set `bit_width = 1`.
+If the bit width is unavailable, use `null`.
 
-1.8.6 `values`: array
+##### 1.8.6.6 `values`: array of objects
+
 An array of explicit value-definition objects for this field.
+Only include values explicitly defined in the provided content.
+If no explicit values are available, use an empty `values` array.
+Do not infer undocumented value meanings.
+Each `values` object must contain the following fields:
 
-Each `values` object must contain:
+###### 1.8.6.6.1 `value`: string
 
-1.8.6.1 `value`: string
 The literal encoded value of the field.
+Copy the value exactly as written whenever possible.
+Do not normalize away useful source notation if the source gives a specific encoding.
 
-1.8.6.2 `value_description`: string
+###### 1.8.6.6.2 `value_description`: string
+
 The explicit meaning of that value.
+Fill this field with the explicit meaning of the corresponding encoded value.
+Copy or faithfully compress the exact description from the source.
+Do not infer undocumented meanings.
 
-1.8.7 `is_reserved`: logical boolean
+##### 1.8.6.7 `is_reserved`: logical boolean
+
 Whether this bit field is explicitly marked as reserved, RFU, unused, unimplemented, or equivalent.
+Use `true` only if the field is explicitly labeled `Reserved`, `RFU`, `unused`, `unimplemented`, or equivalent, or if the bit field is shown in a register table without any function and no later description explains it.
+Use `false` otherwise.
+Do not mark a field as reserved unless the source clearly indicates it.
 
-1.8.8 `type_write_read`: string
+##### 1.8.6.8 `type_write_read`: string
+
 The bit-field access type.
-
 Allowed values:
-
 * `R`
 * `W`
 * `RW`
 * empty string
+Use `R` for read-only, `W` for write-only, and `RW` for read/write.
+Normalize `R/W` to `RW`.
+Only fill bit-field-level `type_write_read` when the bit-field access type is explicitly stated.
+Do not infer bit-field access type from the register-level or part-level access type unless the source explicitly applies it to the field.
 
-1.9 `category`: string
+### 1.9 `category`: string
+
 The primary functional category of the register.
-
 Recommended concise categories include:
 `fifo`, `interrupt`, `initialization`, `power_management`, `configuration`, `status`, `data`, `control`, `mode_control`, `threshold`, `alert`, `calibration`, `identification`, `interface`.
+Select `category` based on the register function explicitly supported by the source.
+If no clear category is supported, use an empty string.
+Do not invent or infer a category from prior knowledge.
 
-1.10 `source`: array
+### 1.10 `source`: array of objects
+
 An array of source-page objects.
+Include every provided page that directly supports the extracted register entry.
+Use an empty `source` array only when no supporting page index is available.
+Use input `registers.source_index` as a preliminary source reference only if it corresponds to provided page indexes or helps trace the preliminary register candidate.
+If input `registers.source_index` contains multiple comma-separated indexes, split them and convert each valid index into a separate `source` object only when it corresponds to a provided `pages.index`.
 
-Each `source` object must contain:
+Each `source` object must contain the following field:
 
-1.10.1 `page_index`: integer
+#### 1.10.1 `page_index`: integer
+
 The source page index.
+Use the exact `pages.index` metadata value.
+Do not use printed PDF page numbers, document page labels, or OCR page indexes unless they are exactly the same as `pages.index`.
 
-1.11 `default_value`: string
+### 1.11 `default_value`: string
+
 The default, reset, initial, power-on, or POR value of the whole logical register.
+For a multi-address logical register with an explicit default value, describe the physical part order used to interpret this value in `default_value_description`.
+Fill this field only when the whole-register default, reset, initial, power-on, or POR value is explicitly stated.
+Copy the value as written whenever possible, preserving useful notation such as binary, hexadecimal, decimal, bit pattern, or symbolic form.
+Do not infer the whole-register default value by combining bit-field defaults unless the source explicitly defines it that way.
+If unavailable, use an empty string.
 
-1.12 `default_value_description`: string
+### 1.12 `default_value_description`: string
+
 A concise factual description or note associated with the whole-register default value.
+For a multi-address logical register, use this field to record the explicitly supported byte order, physical address order, or part order associated with the default value when such information is available.
+Fill this field only when the source explicitly gives a condition, note, or qualifier for the whole-register default value.
+Do not infer this field from bit-field defaults or from general register behavior.
+If unavailable, use an empty string.
 
 # General Rules
 
 1. Construct the final register list using input `registers` as the primary seed list.
 2. If input `registers` is not empty, construct the final register list in this order:
-    * Include all real register candidates explicitly listed in input `registers`.
-    * Enrich, correct, and complete these candidates using `pages.markdown` and the corresponding `pages.tables.content`.
-    * Supplement additional real registers that are explicitly present in `pages` but missing from input `registers`.
-    * Merge duplicate entries that refer to the same logical register.
+
+   * Include all real register candidates explicitly listed in input `registers`.
+   * Enrich, correct, and complete these candidates using `pages.markdown` and the corresponding `pages.tables.content`. Remove unreasonable duplicates.
+   * Supplement additional real registers that are explicitly present in `pages` but missing from input `registers`.
+   * Merge duplicate entries that refer to the same logical register.
 3. If input `registers` is empty, construct the final register list only from `pages.markdown` and the corresponding `pages.tables.content`.
 4. Use input `registers` only as preliminary evidence for register existence, name, `is_multi_address`, `physical_address`, bank, device register page, and source index.
 5. Extract detailed register information from `pages.markdown` and the corresponding `pages.tables.content`.
-   Detailed fields include register description, bit fields, value definitions, access type, reset value, width, and category.
+   Detailed fields include register description, physical address parts, bit fields, value definitions, access type, reset value, width, and category.
 6. If a table reference appears in `pages.markdown`, interpret it using the table whose `tables(j).id` matches the table reference.
-7. Do not blindly copy unsupported detailed information from input `registers`.
+7. Do not blindly copy unsupported detailed information from input `registers`. Do not treat input `registers` as the final authority. After enriching the seeded registers, check whether additional registers must be supplemented from `pages`, and remove unreasonable duplicate or conflicting register entries.
 8. If a preliminary register entry from input `registers` conflicts with explicit evidence in `pages`, correct it using the provided page content.
 9. If a preliminary register entry from input `registers` cannot be verified in `pages`, keep its explicitly provided name and physical address information only when it is itself a plausible register entry from a register summary, register map, or memory map source. Leave unsupported detailed fields empty.
 10. Do not use prior knowledge about the device, manufacturer, protocol, register conventions, or typical sensor behavior.
-11. Do not guess, invent, or infer unsupported register names, addresses, descriptions, access permissions, reset values, widths, bit fields, enumerations, banks, device register pages, or categories.
+11. Do not guess, invent, or infer unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device register pages.
 12. Prefer register tables, bit tables, register maps, memory maps, and explicit legends over surrounding prose when both are available.
 13. Preserve register order as follows:
+
     * If input `registers` is not empty, preserve the original order from input `registers` first.
     * Append additional registers supplemented from `pages` in the order shown in the provided page content.
     * If input `registers` is empty, preserve the original register order from the provided page content whenever possible.
@@ -210,98 +398,52 @@ A concise factual description or note associated with the whole-register default
 22. Keep all descriptions concise, factual, and source-grounded.
 23. Final output must contain only the structured result. Do not output explanations, markdown, comments, or reasoning.
 
-# Field Rules
-
-1. `index` must start from 1 and increase sequentially.
-2. `name` must represent exactly one logical register.
-3. Copy register names, bit-field names, parameter names, and value labels exactly as written when possible.
-4. If multiple equivalent register names are shown, prefer the formal register title from the register table or heading.
-5. If a register name is only available from input `registers` and is a plausible register candidate, use that name.
-6. `physical_address` must contain the physical address objects occupied by the logical register.
-7. Use uppercase hexadecimal with `0x` prefix for `physical_address.hex`.
-8. If only decimal address is given and hexadecimal can be converted exactly, convert it and fill `physical_address.hex`.
-9. If only hexadecimal address is given and decimal can be converted exactly, convert it and fill `physical_address.decimal`.
-10. Store `physical_address.decimal` as a decimal integer string without prefix.
-11. Fill `physical_address.bank` only when the content explicitly states a register bank, bank number, bank name, memory bank, register page bank, or equivalent bank identifier.
-12. Use input `registers.bank` as preliminary bank information only if it is explicitly provided.
-13. Fill `physical_address.page` only when the content explicitly states a device register page, memory page, address page, page selector, or equivalent address-space page identifier.
-14. Use input `registers.page` as preliminary device register page information only if it is explicitly provided and clearly refers to the device register address space.
-15. Do not infer bank or device register page information from address patterns, PDF page numbers, OCR page indexes, table position, or section titles.
-16. Fill `physical_address.description` only when the role of the physical address is explicitly supported by the source, such as byte role or named byte field.
-17. Do not use `physical_address.description` for the general logical register function. Use `register_description` for the logical register function.
-18. Set `is_multi_address = true` when `physical_address` contains more than one address object for the same logical register.
-19. Set `is_multi_address = false` when `physical_address` contains zero or one address object.
-20. Fill `register_description` only when the register purpose or function is explicitly described in `pages.markdown` or the corresponding `pages.tables.content`.
-21. If the register purpose or function is unavailable, leave `register_description` empty.
-22. Use the explicit register width when stated.
-23. If the register width can be derived exactly from a complete bit definition table, register bit diagram, or explicitly stated multi-byte mapping, fill `width_bits`.
-24. If the register width is unavailable, use `0`.
-25. Use `R` for read-only, `W` for write-only, and `RW` for read/write.
-26. Normalize `R/W` to `RW`.
-27. Only fill register-level `type_write_read` when the access type is explicitly stated.
-28. Only fill bit-field-level `type_write_read` when the bit-field access type is explicitly stated.
-29. Do not infer bit-field access type from the register-level access type unless the source explicitly applies it to the field.
-30. Create one bit-field entry per explicit bit field, parameter, reserved field, named bit range, or explicit bit cell shown in the provided content.
-31. If no bit-field information is explicitly available, use an empty `bit_field` array.
-32. Fill `field_description` only when the bit-field function or meaning is explicitly described in the source.
-33. If the bit-field function or meaning is unavailable, leave `field_description` empty.
-34. Unless the datasheet explicitly states otherwise, interpret bit tables as MSB on the left and bit 0 on the right.
-35. If `bit_start` and `bit_end` are known, compute `bit_width = bit_end - bit_start + 1`.
-36. If a field is explicitly labeled `Reserved`, `RFU`, `unused`, `unimplemented`, or equivalent, include it and set `is_reserved = true`.
-37. Do not invent names for unnamed bit fields.
-38. Only include values explicitly defined in the provided content.
-39. Fill `value_description` with the explicit meaning of the corresponding encoded value.
-40. If no explicit values are available, use an empty `values` array.
-41. Do not infer undocumented value meanings.
-42. Select `category` based on the register function explicitly supported by the source.
-43. If no clear category is supported, leave `category` empty.
-44. Fill `source` with all provided pages that directly support the register entry.
-45. Use an empty `source` array only when no supporting page index is available.
-46. Use the exact `pages.index` value for `source.page_index`.
-47. Do not use printed PDF page numbers, document page labels, or OCR page indexes for `source.page_index` unless they are exactly the same as `pages.index`.
-48. Fill `default_value` only when the whole-register default, reset, initial, power-on, or POR value is explicitly stated.
-49. Do not infer the whole-register default value by combining bit-field defaults unless the source explicitly defines it that way.
-50. Fill `default_value_description` only when the source explicitly gives a condition, note, or qualifier for the whole-register default value.
-
 # Additional Constraints
 
-1. Do not omit required schema fields.
-2. Use only the fixed output fields defined in the schema.
-   Never add extra fields.
-3. `Registers`, `physical_address`, `bit_field`, `values`, and `source` must always be arrays.
+1. In general, one physical address plus bank/page should correspond to one logical register entry. If the source explicitly defines aliases, mode-dependent meanings, or separate read/write views at the same address, keep only the source-supported logical representation and describe the alias or access-dependent meaning in `register_description` or `field_parts.description`. Do not create duplicate register entries for the same address unless the source explicitly requires separate logical registers.
+2. Prefer creating logical register entries. For example, if the source clearly defines high-byte and low-byte data registers as one combined data value, represent them as one logical register with multiple physical addresses and multiple `field_parts`.
+3. Do not omit required schema fields.
+4. Use only the fixed output fields defined in the schema. Never add extra fields.
+5. `Registers`, `physical_address`, `field_parts`, `bit_field`, `values`, and `source` must always be arrays.
    Even if there is only one element, output it as an array with one object.
-4. For unavailable fields, use the following schema-compatible empty values:
-    * missing string: empty string
-    * missing array: empty array
-    * missing integer: 0
-    * missing boolean `is_reserved`: false
-    * missing boolean `is_multi_address`: false
-5. Each final `Registers.physical_address(i)` object must represent exactly one physical register address. Its `hex` and `decimal` fields must not contain a compact range, combined address expression, or address list.
-6. For a single-address register, include exactly one `physical_address` object.
-7. For a multi-address logical register, include all explicitly supported physical addresses in order.
-8. When preliminary `registers.is_multi_address` conflicts with the final number of `physical_address` objects, the final `physical_address` array determines `is_multi_address`.
-9. Do not infer intermediate addresses unless the source provides an explicit deterministic address range.
-10. If input `registers.source_index` contains multiple comma-separated indexes, split them and convert each valid index into a separate `source` object only when it corresponds to a provided `pages.index`.
-11. Never store PDF page numbers, printed document page numbers, document page labels, or OCR page indexes in `physical_address.page`. Use `source.page_index` for document source pages.
-12. Expand compact register names and compact address ranges only when the expansion is explicit and deterministic.
-13. When expanding names and addresses from the same row or aligned structure, preserve the original order and pair them positionally when the counts match.
-14. Do not expand a range if the source clearly describes one single multi-byte register, one logical register block, or one register array rather than separate register entries.
-15. If a compact range is ambiguous, extract only explicitly supported entries and leave uncertain fields empty.
-16. Do not output compact names or compact addresses when deterministic expansion is possible.
-17. For bit ranges shown in descending form, store the lower bit index in `bit_start` and the upper bit index in `bit_end`.
-18. For a single bit field, set both `bit_start` and `bit_end` to that bit index and set `bit_width = 1`.
-19. Never output values outside the allowed fixed structures.
+6. For unavailable fields, use the following schema-compatible empty values:
+
+   * missing string: empty string
+   * missing array: empty array
+   * missing integer: `null`
+   * missing boolean `is_reserved`: `false`
+   * missing boolean `is_multi_address`: `false`
+7. Each final `Registers.physical_address(i)` object must represent exactly one physical register address. Its `hex` and `decimal` fields must not contain a compact range, combined address expression, or address list.
+8. Each final `Registers.field_parts(i).physical_address` object must represent exactly one physical register address. It must not be an array.
+9. For a single-address register, include exactly one `physical_address` object and exactly one `field_parts` object.
+10. For a multi-address logical register, include all explicitly supported physical addresses in order and include one `field_parts` object for each explicitly supported physical address, byte segment, or sub-register.
+11. When preliminary `registers.is_multi_address` conflicts with the final number of `physical_address` objects, the final `physical_address` array determines `is_multi_address`.
+12. Do not infer intermediate addresses unless the source provides an explicit deterministic address range.
+13. If input `registers.source_index` contains multiple comma-separated indexes, split them and convert each valid index into a separate `source` object only when it corresponds to a provided `pages.index`.
+14. Never store PDF page numbers, printed document page numbers, document page labels, or OCR page indexes in `physical_address.page`. Use `source.page_index` for document source pages.
+15. Expand compact register names and compact address ranges only when the expansion is explicit and deterministic.
+16. When expanding names and addresses from the same row or aligned structure, preserve the original order and pair them positionally when the counts match.
+17. Do not expand a range if the source clearly describes one single multi-byte register, one logical register block, or one register array rather than separate register entries.
+18. If a compact range is ambiguous, extract only explicitly supported entries and leave uncertain fields empty.
+19. Do not output compact names or compact addresses when deterministic expansion is possible.
+20. For bit ranges shown in descending form, store the lower bit index in `bit_start` and the upper bit index in `bit_end`.
+21. For a single bit field, set both `bit_start` and `bit_end` to that bit index and set `bit_width = 1`.
+22. Do not output a top-level `bit_field` field inside a register object.
+23. All bit-field information must be stored inside `field_parts(i).bit_field`.
+24. Bit positions in `field_parts(i).bit_field` are local to the corresponding physical register part.
+25. Never output values outside the allowed fixed structures.
 
 # Examples
 
 ## Example 1: General correct register map
+
 The following is a general example of a valid structured register map output for a fictional device.
 
 {
 "Registers": [
 {
 "index": 1,
-"name": "SYS_CTRL",
+"name": "CTRL_CFG",
 "is_multi_address": false,
 "physical_address": [
 {
@@ -312,43 +454,56 @@ The following is a general example of a valid structured register map output for
 "description": ""
 }
 ],
-"register_description": "Controls the main operating state of the device.",
+"register_description": "Controls the basic operating configuration of the fictional device.",
+"width_bits": 8,
+"type_write_read": "RW",
+"field_parts": [
+{
+"register_name": "CTRL_CFG",
+"physical_address": {
+"hex": "0x10",
+"decimal": "16",
+"bank": "",
+"page": "",
+"description": ""
+},
+"description": "",
 "width_bits": 8,
 "type_write_read": "RW",
 "bit_field": [
 {
-"name_or_parameter": "enable[0]",
-"field_description": "Enables the device operation.",
+"name_or_parameter": "EN",
+"field_description": "Enables the fictional device operation.",
 "bit_start": 0,
 "bit_end": 0,
 "bit_width": 1,
 "values": [
 {
 "value": "0",
-"value_description": "Disabled"
+"value_description": "Disabled."
 },
 {
 "value": "1",
-"value_description": "Enabled"
+"value_description": "Enabled."
 }
 ],
 "is_reserved": false,
 "type_write_read": ""
 },
 {
-"name_or_parameter": "mode[2:1]",
-"field_description": "Selects the operating mode.",
+"name_or_parameter": "MODE",
+"field_description": "Selects the fictional operating mode.",
 "bit_start": 1,
 "bit_end": 2,
 "bit_width": 2,
 "values": [
 {
 "value": "00",
-"value_description": "Idle mode"
+"value_description": "Idle mode."
 },
 {
 "value": "01",
-"value_description": "Active mode"
+"value_description": "Active mode."
 }
 ],
 "is_reserved": false,
@@ -364,6 +519,8 @@ The following is a general example of a valid structured register map output for
 "is_reserved": true,
 "type_write_read": ""
 }
+]
+}
 ],
 "category": "control",
 "source": [
@@ -376,7 +533,7 @@ The following is a general example of a valid structured register map output for
 },
 {
 "index": 2,
-"name": "MEAS_DATA",
+"name": "DATA_CODE",
 "is_multi_address": true,
 "physical_address": [
 {
@@ -384,20 +541,49 @@ The following is a general example of a valid structured register map output for
 "decimal": "32",
 "bank": "",
 "page": "",
-"description": "MSB."
+"description": "High byte."
 },
 {
 "hex": "0x21",
 "decimal": "33",
 "bank": "",
 "page": "",
-"description": "LSB."
+"description": "Low byte."
 }
 ],
-"register_description": "Contains the latest 16-bit measurement result.",
+"register_description": "Contains a fictional 16-bit data code.",
 "width_bits": 16,
 "type_write_read": "R",
-"bit_field": [],
+"field_parts": [
+{
+"register_name": "DATA_CODE_H",
+"physical_address": {
+"hex": "0x20",
+"decimal": "32",
+"bank": "",
+"page": "",
+"description": "High byte."
+},
+"description": "High byte of the fictional data code.",
+"width_bits": 8,
+"type_write_read": "R",
+"bit_field": []
+},
+{
+"register_name": "DATA_CODE_L",
+"physical_address": {
+"hex": "0x21",
+"decimal": "33",
+"bank": "",
+"page": "",
+"description": "Low byte."
+},
+"description": "Low byte of the fictional data code.",
+"width_bits": 8,
+"type_write_read": "R",
+"bit_field": []
+}
+],
 "category": "data",
 "source": [
 {
@@ -411,26 +597,28 @@ The following is a general example of a valid structured register map output for
 }
 
 ## Example 2: Deterministic range expansion
+
 If the source explicitly gives:
 
-names: `FLAG0-FLAG3`
+names: `FLAG_REG0-FLAG_REG3`
+
 addresses: `0x30-0x33`
 
 Then output four separate register entries:
 
-* `FLAG0` at `0x30`
-* `FLAG1` at `0x31`
-* `FLAG2` at `0x32`
-* `FLAG3` at `0x33`
+* `FLAG_REG0` at `0x30`
+* `FLAG_REG1` at `0x31`
+* `FLAG_REG2` at `0x32`
+* `FLAG_REG3` at `0x33`
 
 Do not output:
 
-* name: `FLAG0-FLAG3`
+* name: `FLAG_REG0-FLAG_REG3`
 * physical_address hex: `0x30-0x33`
 
 ## Example 3: Do not expand a single multi-byte register
 
-If the source clearly states that `SAMPLE_CODE` is one 16-bit logical register spanning addresses `0x40` and `0x41`, output one register entry for `SAMPLE_CODE`.
+If the source clearly states that `RESULT_WORD` is one 16-bit logical register spanning addresses `0x40` and `0x41`, output one register entry for `RESULT_WORD`.
 
 Do not split it into two registers unless the source explicitly defines two separate registers.
 
@@ -442,7 +630,7 @@ Correct:
 "Registers": [
 {
 "index": 1,
-"name": "SAMPLE_CODE",
+"name": "RESULT_WORD",
 "is_multi_address": true,
 "physical_address": [
 {
@@ -460,10 +648,39 @@ Correct:
 "description": "Low byte."
 }
 ],
-"register_description": "16-bit sample code register.",
+"register_description": "Stores a fictional 16-bit result word.",
 "width_bits": 16,
 "type_write_read": "R",
-"bit_field": [],
+"field_parts": [
+{
+"register_name": "RESULT_WORD_H",
+"physical_address": {
+"hex": "0x40",
+"decimal": "64",
+"bank": "",
+"page": "",
+"description": "High byte."
+},
+"description": "High byte of the fictional result word.",
+"width_bits": 8,
+"type_write_read": "R",
+"bit_field": []
+},
+{
+"register_name": "RESULT_WORD_L",
+"physical_address": {
+"hex": "0x41",
+"decimal": "65",
+"bank": "",
+"page": "",
+"description": "Low byte."
+},
+"description": "Low byte of the fictional result word.",
+"width_bits": 8,
+"type_write_read": "R",
+"bit_field": []
+}
+],
 "category": "data",
 "source": [
 {
@@ -481,7 +698,7 @@ Correct:
 If input `registers` contains:
 
 {
-"name": "GAIN_TRIM",
+"name": "CAL_WORD",
 "is_multi_address": true,
 "physical_address": ["0x50", "0x51"],
 "bank": "",
@@ -489,7 +706,7 @@ If input `registers` contains:
 "source_index": "24"
 }
 
-and the provided `pages` confirm that `GAIN_TRIM` is a gain calibration parameter stored across `0x50` and `0x51`, then output one logical register entry with two physical address objects.
+and the provided `pages` confirm that `CAL_WORD` is a fictional calibration word stored across `0x50` and `0x51`, then output one logical register entry with two physical address objects.
 
 Correct:
 
@@ -497,7 +714,7 @@ Correct:
 "Registers": [
 {
 "index": 1,
-"name": "GAIN_TRIM",
+"name": "CAL_WORD",
 "is_multi_address": true,
 "physical_address": [
 {
@@ -515,10 +732,39 @@ Correct:
 "description": "High byte."
 }
 ],
-"register_description": "Gain calibration parameter.",
+"register_description": "Stores a fictional calibration word.",
 "width_bits": 16,
 "type_write_read": "R",
-"bit_field": [],
+"field_parts": [
+{
+"register_name": "CAL_WORD_L",
+"physical_address": {
+"hex": "0x50",
+"decimal": "80",
+"bank": "",
+"page": "",
+"description": "Low byte."
+},
+"description": "Low byte of the fictional calibration word.",
+"width_bits": 8,
+"type_write_read": "R",
+"bit_field": []
+},
+{
+"register_name": "CAL_WORD_H",
+"physical_address": {
+"hex": "0x51",
+"decimal": "81",
+"bank": "",
+"page": "",
+"description": "High byte."
+},
+"description": "High byte of the fictional calibration word.",
+"width_bits": 8,
+"type_write_read": "R",
+"bit_field": []
+}
+],
 "category": "calibration",
 "source": [
 {

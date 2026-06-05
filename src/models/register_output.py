@@ -1,6 +1,7 @@
 from pydantic import Field
 from src.models.structuredOutputModel import StructuredOutputModel
 
+
 class RegisterIndexItem(StructuredOutputModel):
     name: str
     is_multi_address: bool
@@ -9,8 +10,10 @@ class RegisterIndexItem(StructuredOutputModel):
     page: str
     source_index: str
 
+
 class RegisterIndexOutput(StructuredOutputModel):
     registers: list[RegisterIndexItem]
+
 
 class RegisterAddress(StructuredOutputModel):
     hex: str
@@ -19,22 +22,35 @@ class RegisterAddress(StructuredOutputModel):
     page: str
     description: str
 
+
 class RegisterFieldValue(StructuredOutputModel):
     value: str
     value_description: str
 
+
 class RegisterBitField(StructuredOutputModel):
     name_or_parameter: str
     field_description: str
-    bit_start: int
-    bit_end: int
-    bit_width: int
+    bit_start: int | None
+    bit_end: int | None
+    bit_width: int | None
     values: list[RegisterFieldValue]
     is_reserved: bool
     type_write_read: str
 
+
+class RegisterFieldPart(StructuredOutputModel):
+    register_name: str
+    physical_address: RegisterAddress
+    description: str
+    width_bits: int | None
+    type_write_read: str
+    bit_field: list[RegisterBitField]
+
+
 class RegisterSource(StructuredOutputModel):
     page_index: int
+
 
 class RegisterMapItem(StructuredOutputModel):
     index: int
@@ -42,13 +58,14 @@ class RegisterMapItem(StructuredOutputModel):
     is_multi_address: bool
     physical_address: list[RegisterAddress]
     register_description: str
-    width_bits: int
+    width_bits: int | None
     type_write_read: str
-    bit_field: list[RegisterBitField]
+    field_parts: list[RegisterFieldPart]
     category: str
     source: list[RegisterSource]
     default_value: str
     default_value_description: str
+
 
 class RegisterMapOutput(StructuredOutputModel):
     registers: list[RegisterMapItem] = Field(alias="Registers")
