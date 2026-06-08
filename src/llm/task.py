@@ -29,6 +29,7 @@ class LLMTask:
             api_key=api_key,
             provider=task_config.model.provider,
             model_name=task_config.model.model_name,
+            temperature=task_config.model.temperature,
             max_output_tokens=task_config.model.max_tokens,
         )
 
@@ -58,7 +59,7 @@ class LLMTask:
         
         response = self.model.invoke(messages)
 
-        if self.text_format == "json":
+        if self.output_format == "json":
             return self._parse_json(response.content)
 
         if self.output_format == "text":
