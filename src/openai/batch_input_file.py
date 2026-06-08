@@ -22,7 +22,7 @@ class BatchInputFile:
             text_format: ValidTextFormat | None = None,
             max_output_tokens: int | None = None,
             name: str | None = None,
-    ):
+    ) -> None:
         body: dict = {}
 
         if model is None:
@@ -32,7 +32,7 @@ class BatchInputFile:
             raise TypeError("model must be a str")
 
         if instructions is None:
-            instructions = "You are a helpful assistance"
+            instructions = "You are a helpful assistant."
 
         if not isinstance(instructions, str):
             raise TypeError("instructions must be a str")
@@ -40,14 +40,14 @@ class BatchInputFile:
         if text_format is None:
             text_format = "text"
 
-        if not ValidTextFormat:
-            raise TypeError("text_format must be a str")
-
         if max_output_tokens is None:
-            if isinstance(max_output_tokens, int):
-                max_output_tokens = 500
+            max_output_tokens = 500
 
-        if not isinstance(max_output_tokens, int) or max_output_tokens <= 0:
+        if (
+                not isinstance(max_output_tokens, int)
+                or isinstance(max_output_tokens, bool)
+                or max_output_tokens <= 0
+        ):
             raise TypeError("max_output_tokens must be a positive integer")
 
         text_format_args = (text_format,)
@@ -63,7 +63,7 @@ class BatchInputFile:
         body["model"] = model
         body["input"] = user
         body["instructions"] = instructions
-        body["text_format"] = {"format": build_text_format(*text_format_args)}
+        body["text"] = {"format": build_text_format(*text_format_args)}
         body["max_output_tokens"] = max_output_tokens
 
         JSONL = {
@@ -84,12 +84,14 @@ class BatchInputFile:
                             instructions: str | None = None,
                             text_format: ValidTextFormat | None = None,
                             max_output_tokens: int | None = None,
-                            name: str | None = None,):
+                            name: str | None = None,) -> None:
+
         if len(custom_ids) == 0 or len(users) == 0:
             raise ValueError("custom ids and user prompt must not be empty ")
 
         if len(custom_ids) != len(users):
             raise ValueError(f"custom_ids and user prompt must have the same length")
+
         for custom_id,user in zip(custom_ids,users):
             self.add_one_JSONL(
                 custom_id=custom_id,
@@ -101,13 +103,13 @@ class BatchInputFile:
                 name=name
             )
 
-    def write_to_file(self):
+    def write_to_file(self) -> None:
         with self.path.open("w",encoding="utf-8") as file:
             for item in self.JSONLs:
                 text = json.dumps(item,ensure_ascii=False)+"\n"
                 file.write(text)
 
-    def reset_JSONLs(self):
+    def reset_JSONLs(self) -> None:
         self.JSONLs.clear()
         self.custom_ids.clear()
 
