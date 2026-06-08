@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Literal
+from typing import Literal,Any
 from pydantic import BaseModel, Field
 
 LLMProvider = Literal["openai", "ollama"]
