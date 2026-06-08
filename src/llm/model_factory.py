@@ -7,12 +7,9 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
 
-LLMProvider = Literal["openai", "ollama"]
-
-
 def build_chat_model(
     *,
-    provider: LLMProvider,
+    provider: str,
     model_name: str,
     api_key: str | None = None,
     temperature: float = 0.0,

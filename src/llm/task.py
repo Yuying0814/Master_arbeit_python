@@ -22,7 +22,7 @@ class LLMTask:
         self.system = system
         self.output_format = output_format
 
-    @ classmethod
+    @classmethod
     def load_from_task_config(cls, task_config:TaskConfig, api_key:str = None) -> LLMTask:
 
         model = build_chat_model(
