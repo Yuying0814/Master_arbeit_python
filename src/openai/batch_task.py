@@ -12,7 +12,7 @@ from src.openai.batch_input_file import BatchInputFile
 
 T = TypeVar("T")
 
-class BatchTask:
+class OpenAIBatchTask:
     name:str
     status:str
     has_valid_output:bool
@@ -39,7 +39,7 @@ class BatchTask:
                  api_key:str,
                  input_path:Path,
                  *,model:str|None = None,
-                 prompt_path:Path|str|None = None,
+                 instructions: str|None = None,
                  text_format:ValidTextFormat|None = None,
                  max_output_tokens:int|None = None,
                  ) -> None:
@@ -54,7 +54,7 @@ class BatchTask:
         self.user_inputs = []
 
         self.model = model if model is not None else "gpt-5-mini"
-        self.instructions = _load_instructions(prompt_path)
+        self.instructions = instructions if instructions is not None else "You are a helpful assistance"
         self.text_format = text_format if text_format is not None else "text"
         self.max_output_tokens = max_output_tokens if max_output_tokens is not None else 500
 
@@ -66,14 +66,6 @@ class BatchTask:
         self.outputs = []
         self.records = []
 
-    @classmethod
-    def load_from_task_config(cls,api_key:str,input_path:Path,task_config):
-        return cls(
-            api_key=api_key,
-            input_path=input_path,
-            **task_config,
-        )
-
     def run(self):
         self.reset()
         try:
@@ -84,13 +76,30 @@ class BatchTask:
         finally:
             self.cleanup()
 
+    def build_user_requests(self) -> list[dict[str, Any]]:
+        raise NotImplementedError("Subclasses must implement build_user_requests().")
+
     def add_user_requests(self,user_requests:list[dict[str,Any]]) -> None:
+        """
+        user_requests is a list of the user requests:
+        {
+            "custom_id": request_01，
+            "user_input": You are a....
+        }
+        """
+
         custom_ids = []
         user_inputs = []
 
         for user_request in user_requests:
+            if "custom_id" not in user_request or "user_input" not in user_request:
+                raise ValueError("Each user request must contain 'custom_id' and 'user_input'.")
+
             custom_ids.append(user_request["custom_id"])
             user_inputs.append(user_request["user_input"])
+
+        if len(custom_ids) != len(set(custom_ids)):
+            raise ValueError("Duplicate custom_id found in user requests.")
 
         self.custom_ids = custom_ids
         self.user_inputs = user_inputs
@@ -109,6 +118,9 @@ class BatchTask:
         self.batch_input_file.write_to_file()
 
     def submit_batch(self) -> None:
+        if not self.custom_ids or not self.user_inputs:
+            self.build_user_requests()
+
         if not self.custom_ids or not self.user_inputs:
             raise ValueError("User requests must be added before submitting the batch task.")
 
@@ -234,6 +246,9 @@ class BatchTask:
         for attempt in range(1, max_retries + 2):
             try:
                 return function(*args)
+
+            except (ValueError, TypeError):
+                raise
 
             except Exception as error:
                 if attempt > max_retries:
