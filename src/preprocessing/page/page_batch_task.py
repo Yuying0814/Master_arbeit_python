@@ -206,7 +206,7 @@ class PageBatchTask:
 
     def reset(self):
         self.status = "created"
-        self.has_valid_output = True
+        self.has_valid_output = False
         self.batch_job = None
         self.contents = []
         self.outputs = []
