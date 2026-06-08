@@ -11,28 +11,28 @@ class BatchInputFile:
     JSONLs:list[dict] = field(default_factory=list)
     custom_ids: list[str] = field(default_factory=list)
 
-    def add_one_JSONL(self,custom_id:str,user:str,**opts):
+    def add_one_JSONL(self, custom_id:str, user:str, model:str = None, instructions:str = None,
+                      text_format:str = None, max_output_tokens:int = None,):
         body: dict = {}
-        body["model"] = opts.get("model") or "gpt-5-mini"
+
+        if model is None:
+            model =  "gpt-5-mini"
+
+        if instructions is None:
+            instructions = "You are a helpful assistance"
+
+        if text_format is None:
+            text_format = "text"
+
+        if max_output_tokens is None:
+            max_output_tokens = 500
+
+
+        body["model"] = model
         body["input"] = user
-
-
-
-        if "instructions" in opts and opts["instructions"] and isinstance(opts["instructions"],str):
-            body["instructions"] = opts["instructions"]
-
-        if "text_format" in opts and opts["text_format"]:
-            args = (opts["text_format"],)
-            if "name" in opts and opts["name"] and isinstance(opts["name"], str):
-                args += (opts["name"],)
-            body["text"] = {"format": build_text_format(*args)}
-
-        if "max_output_tokens" in opts and opts["max_output_tokens"]:
-            if isinstance(opts["max_output_tokens"],int) and opts["max_output_tokens"] > 0 and not isinstance(opts["max_output_tokens"],bool):
-                body["max_output_tokens"] = opts["max_output_tokens"]
-
-        if "tools" in opts and opts["tools"]:
-            body["tools"] = build_tools_schema(opts["tools"])
+        body["instructions"] = instructions
+        body["text_format"] = text_format
+        body["max_output_tokens"] = max_output_tokens
 
         JSONL = {
             "custom_id": custom_id,
