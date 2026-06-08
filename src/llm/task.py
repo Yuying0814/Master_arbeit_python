@@ -23,9 +23,10 @@ class LLMTask:
         self.output_format = output_format
 
     @ classmethod
-    def load_from_task_config(cls,task_config:TaskConfig) -> LLMTask:
+    def load_from_task_config(cls,api_key:str, task_config:TaskConfig) -> LLMTask:
 
         model = build_chat_model(
+            api_key=api_key,
             provider=task_config.model.provider,
             model_name=task_config.model.model_name,
             max_output_tokens=task_config.model.max_tokens,
@@ -46,8 +47,8 @@ class LLMTask:
             ("human", user_input),
         ]
 
-        if self._is_structured_format(self.text_format):
-            structured_model = self.model.with_structured_output(self.text_format)
+        if self._is_structured_format(self.output_format):
+            structured_model = self.model.with_structured_output(self.output_format)
             result = structured_model.invoke(messages)
 
             if isinstance(result, BaseModel):

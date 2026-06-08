@@ -21,7 +21,7 @@ def build_chat_model(
 ) -> BaseChatModel:
 
     if max_output_tokens is None:
-        max_output_tokens = 500
+        max_output_tokens = 4000
 
     if provider == "openai":
         if not api_key:
@@ -39,7 +39,7 @@ def build_chat_model(
         return ChatOllama(
             model=model_name,
             temperature=temperature,
-            num_predictions=max_output_tokens,
+            num_predict=max_output_tokens,
         )
 
     raise ValueError(f"Unsupported LLM provider: {provider}")
