@@ -1,5 +1,5 @@
 from typing import Protocol
-from coding.retriever.classifier_base import RetrievalCandidate
+from src.coding.retriever.classifier_base import RetrievalCandidate
 
 
 class BatchTaskProcessor(Protocol):

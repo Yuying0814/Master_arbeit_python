@@ -23,7 +23,7 @@ class LLMTaskProcessor:
         self.output_format = output_format
 
     @classmethod
-    def load_from_task_config(cls, task_config:TaskConfig, api_key:str = None) -> LLMTask:
+    def load_from_task_config(cls, task_config:TaskConfig, api_key:str = None) -> "LLMTaskProcessor":
 
         model = build_chat_model(
             api_key=api_key,

@@ -2,8 +2,9 @@ import json
 
 from typing import Any
 from langchain_ollama import ChatOllama
+
 from src.models.batch import UserRequest
-from src.llm.common.common import HasLangChainResultParser
+from src.llm.common.common import HasLangChainResultParser,ValidOutputFormat
 
 
 class OllamaBatchTaskProcessor(HasLangChainResultParser):
@@ -13,11 +14,12 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
     system:str
     retries:list[dict[str,Any]]
 
-    def __init__(self, *, model: ChatOllama,system:str) -> None:
+    def __init__(self, *, model: ChatOllama, system:str, output_format:ValidOutputFormat) -> None:
         self.contents = []
         self.user_requests = []
         self.model = model
         self.system = system
+        self.output_format = output_format
 
     def build_user_requests(self) -> list[UserRequest]:
         raise NotImplementedError("Subclasses must implement build_user_requests().")
@@ -79,7 +81,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.contents = contents
         return contents
 
-    async def retry_batch(self,max_retries:int = 3,max_concurrency:int = 1) -> list[dict[str,Any]]:
+    async def retry_batch(self,max_retries:int = 3,max_concurrency:int = 1):
         retry_inputs = [
             self._build_user_input(user_request)
             for user_request, contents in zip(self.user_requests, self.contents)
@@ -95,17 +97,23 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
             retry_results = await retry_model.abatch(
                 inputs=retry_inputs,
-                max_concurrency=max_concurrency,
+                max_concurrency={"max_concurrency":max_concurrency},
                 return_exceptions=True,
             )
 
             retry_contents = self._collect_results(retry_results)
             self.update_contents(retry_contents)
+            if all(content["completed"] for content in self.contents):
+                break
 
-    def update_contents(self,retry_contents:list[dict[str,Any]]) -> None:
+    def update_contents(self, retry_contents: list[dict[str, Any]]) -> None:
         retry_index = 0
-        for index,content in enumerate(self.contents):
-            self.contents[index] = retry_contents[retry_index] if not content["completed"] else self.contents[index]
+
+        for index, content in enumerate(self.contents):
+            if content["completed"]:
+                continue
+
+            self.contents[index] = retry_contents[retry_index]
             retry_index += 1
 
 
