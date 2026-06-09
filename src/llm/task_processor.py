@@ -9,7 +9,7 @@ from src.llm.model_factory import build_chat_model
 from src.models.task_config import TaskConfig
 
 
-class LLMTask:
+class LLMTaskProcessor:
 
     def __init__(
         self,
