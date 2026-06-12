@@ -16,6 +16,6 @@ class BatchTask:
     def __init__(self, processor: BatchTaskProcessor) -> None:
         self.processor = processor
 
-    def run(self):
-        self.processor.run_batch()
+    async def run(self):
+        await self.processor.run_batch()
 

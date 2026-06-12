@@ -25,7 +25,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
     def build_user_requests(self) -> list[UserRequest]:
         raise NotImplementedError("Subclasses must implement build_user_requests().")
 
-    def add_user_request(self, user_requests: list[UserRequest]) -> None:
+    def add_user_requests(self, user_requests: list[UserRequest]) -> None:
         self.user_requests.extend(user_requests)
 
     async def run_batch(self,max_concurrency:int = 1) -> list[dict[str,Any]]:
@@ -35,9 +35,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
             user_inputs.append(
                 self._build_user_input(user_request)
             )
-        retry_model = self.model.with_retry(
-            stop_after_attempt=3
-        )
+        retry_model = self._build_runnable_model()
 
         results = await retry_model.abatch(
             inputs=user_inputs,
@@ -63,9 +61,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
             if not retry_inputs:
                 return self.contents
 
-            retry_model = self.model.with_retry(
-                stop_after_attempt=3
-            )
+            retry_model = self._build_runnable_model()
 
             retry_results = await retry_model.abatch(
                 inputs=retry_inputs,
@@ -80,6 +76,17 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
                 break
 
         return self.contents
+
+    def _build_runnable_model(self):
+        if self._is_structured_format(self.output_format):
+            return self.model.with_structured_output(self.output_format).with_retry(
+                stop_after_attempt=3
+            )
+
+        return self.model.with_retry(
+            stop_after_attempt=3
+        )
+
     def _build_user_input(self,user_request: UserRequest) -> list:
         user_input = json.loads(user_request.user_input)
         return[
