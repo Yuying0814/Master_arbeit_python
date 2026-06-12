@@ -1,6 +1,5 @@
 from __future__ import annotations
 import warnings
-import asyncio
 
 from pathlib import Path
 from typing import Any,TypeVar
@@ -79,7 +78,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             max_output_tokens=task_config.model.max_tokens
         )
 
-    async def run_batch(self):
+    async def run(self):
         self.reset()
         try:
             await self.run_with_retry_async(function=self.submit_batch)
@@ -89,10 +88,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         finally:
             await self.cleanup()
 
-    def build_user_requests(self) -> list[UserRequest]:
-        raise NotImplementedError("Subclasses must implement build_user_requests().")
-
-    def add_user_requests(self,user_requests:list[UserRequest]) -> None:
+    def add_user_inputs(self,user_requests:list[UserRequest]) -> None:
         """
         user_requests is a list of the user requests:
         {
@@ -128,10 +124,8 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         self.batch_input_file.write_to_file()
 
     async def submit_batch(self) -> None:
-        if not self.custom_ids or not self.user_inputs:
-            self.build_user_requests()
 
-        if not self.custom_ids or not self.user_inputs:
+        if not self._has_user_request:
             raise ValueError("User requests must be added before submitting the batch task.")
 
         self.write_batch_input_file()
@@ -200,7 +194,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             try:
                 retry_job = await self.run_with_retry_async(self.batch_client.submit, retry_batch_input_file)
                 retry_job = await self.run_with_retry_async(self.batch_client.wait_for_completion,retry_job)
-                retry_contents,retry_outputs,retry_records = await self.run_with_retry(
+                retry_contents,retry_outputs,retry_records = await self.run_with_retry_async(
                     self.batch_client.collect_batch_output,
                     retry_job
                 )
@@ -250,6 +244,9 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             self.status = "created"
             return
         self.status = self.batch_job.status
+
+    def _has_user_request(self):
+        return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
 
 # Helper
 def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,Any]]) -> None:

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama

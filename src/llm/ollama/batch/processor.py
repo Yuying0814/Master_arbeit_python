@@ -1,9 +1,11 @@
 import json
 
+from pathlib import Path
 from typing import Any
 from langchain_ollama import ChatOllama
 
 from src.models.batch import UserRequest
+from src.models.task_config import TaskConfig
 from src.llm.common.common import HasLangChainResultParser,ValidOutputFormat
 
 
@@ -13,6 +15,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
     user_requests: list[UserRequest]
     system:str
     retries:list[dict[str,Any]]
+    max_concurrency:int
 
     def __init__(self, *, model: ChatOllama, system:str, output_format:ValidOutputFormat) -> None:
         self.contents = []
@@ -21,14 +24,26 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.system = system
         self.output_format = output_format
         self.retries = []
+        self.max_concurrency = 1
 
-    def build_user_requests(self) -> list[UserRequest]:
-        raise NotImplementedError("Subclasses must implement build_user_requests().")
+    @classmethod
+    def load_from_task_config(cls,api_key:str,task_config:TaskConfig):
+        model = ChatOllama(
+            model=task_config.model.model_name,
+            temperature=task_config.model.temperature,
+            num_predict=task_config.model.max_tokens,
+        )
+        return cls(
+            model = model,
+            system = task_config.system,
+            output_format = task_config.output_format,
+        )
 
-    def add_user_requests(self, user_requests: list[UserRequest]) -> None:
-        self.user_requests.extend(user_requests)
+    def set_concurrency(self,max_concurrency:int = 1) -> None:
+        self.max_concurrency = max_concurrency
 
-    async def run_batch(self,max_concurrency:int = 1) -> list[dict[str,Any]]:
+
+    async def run(self) -> list[dict[str,Any]]:
         user_inputs = []
 
         for user_request in self.user_requests:
@@ -39,7 +54,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
         results = await retry_model.abatch(
             inputs=user_inputs,
-            config={"max_concurrency":max_concurrency},
+            config={"max_concurrency":self.max_concurrency},
             return_exceptions=True,
         )
 
@@ -47,7 +62,10 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.contents = contents
         return contents
 
-    async def retry_batch(self,max_retries:int = 3,max_concurrency:int = 1) -> list[dict[str,Any]]:
+    def add_user_inputs(self, user_requests: list[UserRequest]) -> None:
+        self.user_requests.extend(user_requests)
+
+    async def retry_batch(self,max_retries:int = 3) -> list[dict[str,Any]]:
 
         for attempt in range(1,max_retries+1):
             retry_user_requests = [user_request for user_request, content in zip(self.user_requests, self.contents) if
@@ -65,7 +83,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
             retry_results = await retry_model.abatch(
                 inputs=retry_inputs,
-                config={"max_concurrency":max_concurrency},
+                config={"max_concurrency":self.max_concurrency},
                 return_exceptions=True,
             )
 
