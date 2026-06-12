@@ -5,18 +5,19 @@ from typing import Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel
 
-from src.llm.model_factory import build_chat_model
 from src.models.task_config import TaskConfig
+from src.llm.model_factory import build_chat_model
+from src.llm.common.common import HasLangChainResultParser,ValidOutputFormat
 
 
-class LLMTaskProcessor:
+class LLMTaskProcessor(HasLangChainResultParser) :
 
     def __init__(
         self,
         *,
         model: BaseChatModel,
         system: str,
-        output_format: type[BaseModel] | str | dict[str, Any] = "text",
+        output_format: ValidOutputFormat = "text",
     ) -> None:
         self.model = model
         self.system = system
@@ -66,17 +67,3 @@ class LLMTaskProcessor:
             return response.content
 
         raise ValueError(f"Unsupported text_format: {self.output_format}")
-
-    @staticmethod
-    def _parse_json(content: str) -> Any:
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ValueError("Model output is not valid JSON.") from error
-
-    @staticmethod
-    def _is_structured_format(text_format: Any) -> bool:
-        if isinstance(text_format, dict):
-            return True
-
-        return isinstance(text_format, type) and issubclass(text_format, BaseModel)

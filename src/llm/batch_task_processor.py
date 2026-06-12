@@ -1,14 +1,13 @@
 from typing import Protocol
-from src.coding.retriever.classifier_base import RetrievalCandidate
+from src.models.batch import UserRequest
 
 
 class BatchTaskProcessor(Protocol):
     def run_batch(self):
         ...
 
-    def add_user_request(self):
+    def add_user_requests(self, user_requests: list[UserRequest]) -> None:
         ...
-
 
 
 class BatchTask:

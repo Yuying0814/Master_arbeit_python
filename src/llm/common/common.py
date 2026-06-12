@@ -1,6 +1,8 @@
 import json
 import time
 import warnings
+import asyncio
+
 from collections.abc import Callable
 
 from langchain_core.messages import AIMessage
@@ -75,6 +77,27 @@ class HasRunWithRetry:
                 warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
                               RuntimeWarning, stacklevel=2)
                 time.sleep(delay)
+
+        raise RuntimeError(f"{function.__name__} failed")
+
+    @staticmethod
+    async def run_with_retry_async(function: Callable[..., T], *args, max_retries: int = 3, base_delay: int = 2) -> T:
+        for attempt in range(1, max_retries + 2):
+            try:
+                return await function(*args)
+
+            except (ValueError, TypeError):
+                raise
+
+            except Exception as error:
+                if attempt > max_retries:
+                    raise RuntimeError(f"Stage {function.__name__} failed") from error
+
+                delay = base_delay * 2 ** (attempt - 1)
+
+                warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
+                              RuntimeWarning, stacklevel=2)
+                await asyncio.sleep(delay)
 
         raise RuntimeError(f"{function.__name__} failed")
 
