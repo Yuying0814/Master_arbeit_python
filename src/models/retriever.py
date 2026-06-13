@@ -5,6 +5,7 @@ from src.models.register_output import RegisterMapItem
 # retriever input
 class RetrievalRequest(StructuredOutputModel):
     request_id: str
+    path: str
     topics:list[RetrievalTopic]
 
 class RetrievalTopic(StructuredOutputModel):
