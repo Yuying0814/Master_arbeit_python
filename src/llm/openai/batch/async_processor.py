@@ -68,7 +68,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         self.records = []
 
     @classmethod
-    def load_from_task_config(cls,api_key:str,input_path:Path|str,task_config:TaskConfig):
+    def load_from_task_config(cls,api_key:str|None,input_path:Path|str|None,task_config:TaskConfig):
         if not api_key:
             raise ValueError("OpenAIBatchTaskProcessor expects a valid API key.")
         if not input_path:
