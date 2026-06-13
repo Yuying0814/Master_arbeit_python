@@ -115,7 +115,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         )
 
     def _build_user_input(self,user_request: UserRequest) -> list:
-        user_input = json.loads(user_request.user_input)
+        user_input = user_request.user_input
         return[
             ("system", self.system),
             ("human", user_input),
