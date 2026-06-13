@@ -29,16 +29,16 @@ class Task:
         return results
 
     @classmethod
-    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:Path = None) -> "Task":
+    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "Task":
         processor = cls.build_task_processor(
             task_config = task_config,
             api_key = api_key,
-            input_path = input_path
+            input_path = Path(input_path) if input_path else None,
         )
         return cls(processor)
 
     @staticmethod
-    def build_task_processor(task_config: TaskConfig,api_key,input_path) -> TaskProcessor:
+    def build_task_processor(task_config:TaskConfig, api_key:str|None ,input_path:Path|None) -> TaskProcessor:
         if not task_config.model.is_batch:
             return LLMTaskProcessor.load_from_task_config(
                 task_config = task_config,
