@@ -25,6 +25,7 @@ class Task:
     async def run(self,user_input: str | list[UserRequest]) -> Any:
         self.processor.add_user_inputs(user_input)
         results = await self.processor.run()
+        self.results = results
         return results
 
     @classmethod
