@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
 from dataclasses import dataclass
-from src.llm.common.common import ValidOutputFormat, LLMProvider
+from src.llm.common.types import ValidOutputFormat,LLMProvider
 
 
 class ModelConfig(BaseModel):
