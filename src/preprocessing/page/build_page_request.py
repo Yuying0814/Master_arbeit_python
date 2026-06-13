@@ -8,12 +8,12 @@ from src.models.batch import UserRequest
 def build_page_requests(
         request_name:str,
         all_pages:list[dict[str,Any]],
-        candidate_pages:list[dict[str,Any]] = None)->list[dict[str,str]]:
+        candidate_pages:list[dict[str,Any]] = None)->list[UserRequest]:
     keep_keys = ("index","markdown","tables","classification")
 
     new_all_pages = [{key:page[key]for key in keep_keys if key in page} for page in all_pages]
 
-    if candidate_pages:
+    if candidate_pages is not None:
         new_candidate_pages = [{key:page[key]for key in keep_keys if key in page} for page in candidate_pages]
     else:
         new_candidate_pages = new_all_pages
@@ -55,7 +55,7 @@ def _get_page_tail(page:dict[str,Any]) -> str:
     start_char_index = word_starts[start_word_index]
     return text[start_char_index:]
 
-def _build_index_page_map(all_pages:list[dict[str,Any]]) -> dict[str,Any]:
+def _build_index_page_map(all_pages:list[dict[str,Any]]) -> dict[int,dict[str,Any]]:
     return {
         page["index"]:page
         for page in all_pages
