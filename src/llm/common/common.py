@@ -7,17 +7,11 @@ from collections.abc import Callable
 
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel
-from typing import Any, TypeAlias, Literal,TypeVar
-from src.models.structuredOutputModel import StructuredOutputModel
+from typing import Any,TypeVar
+from src.llm.common.types import ValidOutputFormat
 from src.models.task_config import TaskConfig
 
 T = TypeVar("T")
-
-ValidOutputFormat: TypeAlias = (
-       Literal["text", "json"] | dict[str, Any] | StructuredOutputModel | type[StructuredOutputModel]
-)
-
-LLMProvider = Literal["openai", "ollama"]
 
 class HasOutputFormat:
     output_format: ValidOutputFormat

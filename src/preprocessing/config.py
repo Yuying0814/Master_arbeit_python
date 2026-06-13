@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 from dataclasses import dataclass
+
 from src.config import BaseConfig, BaseProjectPath
 from src.models.page_output import PageClassification,PageDescription
 from src.models.register_output import RegisterIndexOutput,RegisterMapOutput
