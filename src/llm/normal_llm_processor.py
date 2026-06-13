@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel
+from urllib3.util.util import to_str
 
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
@@ -27,6 +29,8 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
     @classmethod
     def load_from_task_config(cls, task_config:TaskConfig, api_key:str = None) -> "LLMTaskProcessor":
+        if not task_config.model.provider == "ollama" and not api_key:
+            raise ValueError("LLMTaskProcessor expects a valid API key.")
 
         model = build_chat_model(
             api_key=api_key,
@@ -70,10 +74,21 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
         raise ValueError(f"Unsupported text_format: {self.output_format}")
 
-    def add_user_inputs(self, user_input: str | list[UserRequest]) -> None:
-        if not isinstance(user_input, str):
-            raise ValueError("LLMTaskProcessor expects a single string input.")
-        self.user_input = user_input
+    def add_user_inputs(self, user_inputs: str | list[UserRequest]) -> None:
+        if not isinstance(user_inputs, str):
+            self.user_input = user_request_to_str(user_inputs)
+        else:
+            self.user_input = user_inputs
 
     def _has_valid_user_input(self) -> bool:
         return len(self.user_input.strip()) > 0
+
+def user_request_to_str(user_requests: list[UserRequest]) -> str:
+    data = {
+        "requests": [
+            request.model_dump()
+            for request in user_requests
+        ]
+    }
+
+    return json.dumps(data, ensure_ascii=False, indent=2)
