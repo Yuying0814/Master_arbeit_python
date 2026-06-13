@@ -1,9 +1,9 @@
 from typing import Any
 from src.utils.build_json_schema import build_json_schema
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.openai.valid_format import ValidTextFormat
+from src.llm.common.types import ValidOutputFormat
 
-def build_text_format(text_format:ValidTextFormat,schema_name:str = "A json schema") -> dict[str, Any]:
+def build_text_format(text_format:ValidOutputFormat,schema_name:str = "A json schema") -> dict[str, Any]:
     if isinstance(text_format,str):
         text_format = text_format.lower().strip()
         match text_format:

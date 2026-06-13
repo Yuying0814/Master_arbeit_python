@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass,field
 from pathlib import Path
-from src.llm.common.common import ValidOutputFormat
+from src.llm.common.types import ValidOutputFormat
 from src.llm.openai.build_text_format import build_text_format
 
 @dataclass
