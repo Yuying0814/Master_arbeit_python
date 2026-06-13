@@ -33,7 +33,7 @@ def build_page_requests(
             "current_page":page,
             "previous_content":previous_content,
         }
-        user_input = json.dumps(context)
+        user_input = json.dumps(context, ensure_ascii=False)
 
         user_requests.append(
             UserRequest(
