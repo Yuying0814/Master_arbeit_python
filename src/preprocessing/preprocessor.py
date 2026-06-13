@@ -7,6 +7,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+from src.models.page_output import PageClassification
 from src.llm.llm_task import LLMTask
 from src.preprocessing.page.build_page_request import build_page_requests
 from src.preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
@@ -200,7 +201,7 @@ class Preprocessor:
 
         task_config = self.config.llm_task_config.verify_reg_sum_pages
         task_name = inspect.currentframe().f_code.co_name
-        inputPath = self.config.project_path.input_path/f"{task_name}.json"
+        inputPath = self.config.project_path.input_path/f"{task_name}.jsonl"
 
         candidate_pages = _get_pages_by_ocr_index(self.pages, self.reg_sum_candidate_idx)
 
@@ -240,7 +241,7 @@ class Preprocessor:
 
         task_config = self.config.llm_task_config.verify_reg_pages
         task_name = inspect.currentframe().f_code.co_name
-        inputPath = self.config.project_path.input_path/f"{task_name}.json"
+        inputPath = self.config.project_path.input_path/f"{task_name}.jsonl"
 
         page_candidates = _get_pages_by_ocr_index(self.pages,self.reg_page_candidate_idx)
 
@@ -350,16 +351,23 @@ class Preprocessor:
         page_index_map = {page["index"]: page for page in self.pages}
 
         for index in sum_page_diff_idx:
-            classification = page_index_map[index]["classification"]
+            classification = page_index_map[index].setdefault(
+                "classification",
+                PageClassification.get_default_value(),
+            )
             classification["is_register_summary_relevant"] = (
                 not classification["is_register_summary_relevant"]
             )
 
         for index in reg_page_diff_idx:
-            classification = page_index_map[index]["classification"]
+            classification = page_index_map[index].setdefault(
+                "classification",
+                PageClassification.get_default_value(),
+            )
             classification["is_register_map_relevant"] = (
                 not classification["is_register_map_relevant"]
             )
+
         print("Refinement completed\n")
 
     # def create_add_description_task(self):

@@ -1,6 +1,6 @@
 from src.models.verifier import VerificationRequest,VerifierOutput
 
-class FakeVerifier():
+class Verifier():
     api_key: str
     request: VerificationRequest | None
 

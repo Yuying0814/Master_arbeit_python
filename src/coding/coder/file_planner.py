@@ -1,5 +1,5 @@
 from src.models.coder import FilePlannerInput
 
-class FakeFilePlanner:
+class FilePlanner:
     def __init__(self, api_key):
         pass

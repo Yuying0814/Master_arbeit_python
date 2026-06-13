@@ -105,7 +105,7 @@ def user_request_to_str(user_requests: list[UserRequest]) -> str:
         ]
     }
 
-    return json.dumps(data, ensure_ascii=False, indent=2)\
+    return json.dumps(data, ensure_ascii=False, indent=2)
 
 def _with_langchain_retry(runnable):
     return runnable.with_retry(

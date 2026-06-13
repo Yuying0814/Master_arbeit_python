@@ -1,16 +1,17 @@
 from models.coder import CodeFile
-from src.models.coder import CoderInput,CodeFile
+from src.models.coder import CoderInput,CodeFile,FilePlannerInput,FilePlan,FileCoderInput,FileCoderOutput
 from src.models.planner import ProgrammingPlan
-from src.coding.coder.file_coder import FakeFileCoder
-from src.coding.coder.file_planner import FakeFilePlanner
 from src.models.retriever import RetrievalResponse
 from src.models.verifier import VerificationRequest, VerifierOutput
+from src.coding.coder.file_coder import FileCoder
+from src.coding.coder.file_planner import FilePlanner
 
 
-class FakeCoder:
+
+class Coder:
     # unchanged after run()
-    planner: FakeFilePlanner
-    coder: FakeFileCoder
+    planner: FilePlanner
+    coder: FileCoder
     programming_plan: ProgrammingPlan | None
     retrieval_result: RetrievalResponse | None
     accepted_files: list[CodeFile]
@@ -22,8 +23,8 @@ class FakeCoder:
     code_passed: bool = False
 
     def __init__(self,api_key:str):
-        self.planner = FakeFilePlanner(api_key=api_key)
-        self.coder = FakeFileCoder(api_key=api_key)
+        self.planner = FilePlanner(api_key=api_key)
+        self.coder = FileCoder(api_key=api_key)
         self.reset()
 
     def reset(self):
@@ -40,7 +41,7 @@ class FakeCoder:
         self.accepted_files = coder_input.accepted_files
 
     def run(self):
-        pass
+        self.candidate_files = []
 
     def send_verification_request(self):
         return VerificationRequest(

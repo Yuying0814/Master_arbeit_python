@@ -3,7 +3,6 @@ from typing import Any
 
 from src.models.batch import UserRequest
 from src.models.page_output import PageClassification,PageDescription
-from src.preprocessing.page.page_batch_task import PageBatchTask
 
 def parse_verification_contents(
         contents: list[dict[str,Any]],
@@ -44,18 +43,18 @@ def parse_classification_content(
             PageClassification.get_default_value()
         )
 
-def parse_description_content(page_task:PageBatchTask | None,pages:list[dict[str,Any]]) -> None:
-    if not page_task:
-        print("No add description task\n")
-        return
-    index_content_map = _build_index_content_map(page_task)
-    for page in pages:
-        page_index = page["index"]
-        page["description"] = index_content_map.get(
-            page_index,
-            PageDescription.get_default_value(),
-        )
-    print("Page description added\n")
+# def parse_description_content(page_task:PageBatchTask | None,pages:list[dict[str,Any]]) -> None:
+#     if not page_task:
+#         print("No add description task\n")
+#         return
+#     index_content_map = _build_index_content_map(page_task)
+#     for page in pages:
+#         page_index = page["index"]
+#         page["description"] = index_content_map.get(
+#             page_index,
+#             PageDescription.get_default_value(),
+#         )
+#     print("Page description added\n")
 
 def _build_custom_id_content_map(contents: list[dict[str,Any]]) -> dict[str,Any]:
     return {

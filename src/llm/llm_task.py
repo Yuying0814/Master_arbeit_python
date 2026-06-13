@@ -23,6 +23,8 @@ class LLMTask:
 
     def __init__(self, processor: TaskProcessor) -> None:
         self.processor = processor
+        self.results = None
+        self.has_valid_output = False
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
         self.processor.add_user_inputs(user_input)
@@ -32,7 +34,7 @@ class LLMTask:
         return results
 
     @classmethod
-    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "Task":
+    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "LLMTask":
         processor = cls.build_task_processor(
             task_config = task_config,
             api_key = api_key,

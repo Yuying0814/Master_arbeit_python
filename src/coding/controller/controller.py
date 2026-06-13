@@ -1,11 +1,11 @@
 
 from src.coding.config import CodingConfig
-from src.coding.verifier.verifier import FakeVerifier
-from src.coding.planner.planner import FakePlanner
-from src.coding.retriever.retriever import FakeRetriever
+from src.coding.verifier.verifier import Verifier
+from src.coding.planner.planner import Planner
+from src.coding.retriever.retriever import Retriever
 from src.models.controller import WorkFlowLog
 from src.models.coder import CodeFile, CoderInput
-from src.coding.coder.coder import FakeCoder
+from src.coding.coder.coder import Coder
 from src.coding.filewriter.filewriter import FileWriter
 
 class Controller:
@@ -16,33 +16,33 @@ class Controller:
     max_tries: int = 10
     config:CodingConfig
 
-
     def __init__(self,user_request,config:CodingConfig):
         self.user_request = user_request
         self.logs = []
         self.accepted_files = []
         self.config = config
+        self.not_accepted_files = []
 
     def main(self):
         planner = FakePlanner(self.config.get_apikey("openai"))
+        retriever = FakeRetriever(self.config.get_apikey("openai"))
 
         planner_output = planner.create_plan(self.user_request)
         programming_plans = planner_output.ProgrammingPlans
-
         retrieval_requests = planner_output.RetrievalRequests
 
+        if len(programming_plans) != len(retrieval_requests):
+            raise ValueError(
+                "Each programming plan must have exactly one retrieval request. "
+                "Use an empty retrieval request when no retrieval is needed."
+            )
+
         #
-        retriever = FakeRetriever(self.config.get_apikey("openai"))
-
-
         for programming_plan,retrieval_request in zip(programming_plans, retrieval_requests):
-
-            retrieval_result = retriever.run(retrieval_request)
-
             coder = FakeCoder(self.config.get_apikey("openai"))
-
             verifier = FakeVerifier(self.config.get_apikey("openai"))
 
+            retrieval_result = retriever.run(retrieval_request)
             coder.start_plan(
                 CoderInput(
                     programming_plan=programming_plan,
@@ -72,7 +72,7 @@ class Controller:
             else:
                 self.not_accepted_files.extend(coder_output.files)
 
-        FileWriter.write_to_files(self.accepted_files,)
+        FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir)
 
 
     def receive_user_request(self,user_request:str):

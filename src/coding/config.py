@@ -1,35 +1,47 @@
 from __future__ import annotations
-from src.config import BaseConfig,BaseProjectPath
 from dataclasses import dataclass
 from pathlib import Path
+from pydantic import BaseModel
 
-def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
-    task:dict[str, dict] ={}
+from src.config import BaseConfig,BaseProjectPath
+from src.models.retriever import RetrievalResponse
+from src.models.task_config import TaskConfig,ModelConfig,CodingTaskConfigs
 
-    # task["classify_pages"] = {
-    #     "model": "gpt-5-mini",
-    #     "prompt_path": prompt_path/"prompt_classifyPages.txt",
-    #     "text_format": PageClassification,
-    #     "max_output_tokens": 2000,
-    # }
 
-    return OpenaiConfig(task=task)
+def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
+    retrieval = TaskConfig(
+        model = ModelConfig(
+            provider = "openai",
+            model_name="gpt-5-mini",
+            temperature=0.0,
+            max_tokens=2000,
+        ),
+        system = _read_instructions(prompt_path/"prompt_retriever.txt"),
+        output_format = RetrievalResponse,
+    )
+
+    return CodingTaskConfigs(
+        Retrieval=retrieval,
+    )
+
+def _read_instructions(prompt_path:str|Path|None) -> str:
+    if not prompt_path:
+        return "You are a helpful assistant."
+
+    prompt_path = Path(prompt_path)
+    return Path(prompt_path).read_text(encoding="utf-8")
 
 @dataclass(frozen=True)
 class CodingProjectPath(BaseProjectPath):
     code_dir: Path
 
-@dataclass(frozen=True)
-class OpenaiConfig:
-    task:dict[str, dict]
-
 class CodingConfig(BaseConfig):
     project_path: CodingProjectPath
-    openai: OpenaiConfig
+    task_configs: CodingTaskConfigs
 
-    def __init__(self,project_path:BaseProjectPath,openai_config:OpenaiConfig) -> None:
+    def __init__(self,project_path:BaseProjectPath,task_configs:CodingTaskConfigs) -> None:
         super().__init__(project_path)
-        self.openai = openai_config
+        self.task_configs = task_configs
 
     @classmethod
     def load_config(cls,code_dir:str|Path,env:str|Path=""):
@@ -64,7 +76,7 @@ class CodingConfig(BaseConfig):
 
         return cls(
             project_path = project_path,
-            openai_config = _build_openai_task_config(project_path.prompt_path),
+            task_configs = _build_task_config(project_path.prompt_path),
         )
 
 
