@@ -96,52 +96,6 @@ def _read_instructions(prompt_path:str|Path|None) -> str:
     prompt_path = Path(prompt_path)
     return Path(prompt_path).read_text(encoding="utf-8")
 
-
-
-# def _build_openai_task_config(prompt_path:Path)->OpenaiConfig:
-#     task:dict[str, dict] ={}
-#
-#     task["classify_pages"] = {
-#         "model": "gpt-5-mini",
-#         "prompt_path": prompt_path/"prompt_classifyPages.txt",
-#         "text_format": PageClassification,
-#         "max_output_tokens": 2000,
-#     }
-#     task["verify_reg_sum_pages"] = {
-#         "model": "gpt-5-mini",
-#         "prompt_path": prompt_path/"prompt_verifyRegSumPages.txt",
-#         "text_format": "text",
-#         "max_output_tokens": 1000,
-#     }
-#
-#     task["verify_reg_pages"] = {
-#         "model": "gpt-5-mini",
-#         "prompt_path": prompt_path/"prompt_verifyRegPages.txt",
-#         "text_format": "text",
-#         "max_output_tokens": 1000,
-#     }
-#
-#     task["add_page_description"] = {
-#         "model": "gpt-5-mini",
-#         "prompt_path": prompt_path/"prompt_addPageDescription.txt",
-#         "text_format": PageDescription,
-#         "max_output_tokens": 2000,
-#     }
-#
-#     task["extract_reg_index"] = {
-#         "model": "gpt-5-mini",
-#         "prompt_path": prompt_path/"prompt_extractRegIndex.txt",
-#         "text_format": RegisterIndexOutput,
-#     }
-#
-#     task["extract_reg_map"] = {
-#         "model": "gpt-5-mini",
-#         "prompt_path": prompt_path/"prompt_extractRegMap.txt",
-#         "text_format": RegisterMapOutput,
-#     }
-#
-#     return OpenaiConfig(task=task)
-
 def _build_mistral_task_config(pdf_path:Path)->MistralConfig:
     task:dict[str, dict] = {}
     task["ocr"] = {
