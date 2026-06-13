@@ -7,9 +7,11 @@ from collections.abc import Callable
 
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel
-from typing import Any,TypeVar
+from typing import Any,TypeVar,TYPE_CHECKING
 from src.llm.common.types import ValidOutputFormat
-from src.models.task_config import TaskConfig
+
+if TYPE_CHECKING:
+    from src.models.task_config import TaskConfig
 
 T = TypeVar("T")
 
@@ -97,5 +99,5 @@ class HasRunWithRetry:
 
 class HasTaskConfig:
     @classmethod
-    def load_from_task_config(cls,task_config:TaskConfig):
+    def load_from_task_config(cls,task_config:"TaskConfig"):
         ...
