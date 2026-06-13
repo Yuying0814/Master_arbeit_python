@@ -31,9 +31,6 @@ class BaseConfig:
             case "mistral":
                 api_key = os.getenv("MISTRALAI_API_KEY", "").strip()
             case _:
-                raise ValueError("Input must be one of: openai | mistral")
-
-        if not api_key:
-            raise ValueError(f"No API key found: {option}")
+                api_key = ""
 
         return api_key

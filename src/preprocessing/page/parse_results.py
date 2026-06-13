@@ -1,25 +1,47 @@
 from __future__ import annotations
 from typing import Any
-from src.preprocessing.page.page_batch_task import PageBatchTask
+
+from src.models.batch import UserRequest
 from src.models.page_output import PageClassification,PageDescription
+from src.preprocessing.page.page_batch_task import PageBatchTask
 
+def parse_verification_contents(
+        contents: list[dict[str,Any]],
+        user_requests: list[UserRequest],
+        pages:list[dict[str,Any]]) ->list[int]:
 
-def parse_verification_content(page_task:PageBatchTask | None) ->list[int]:
-    if not page_task:
-        return []
-    index_content_map = _build_index_content_map(page_task)
-    return [page_index for page_index,content in index_content_map.items() if str(content).strip().lower() == "yes"]
+    custom_id_content_map = _build_custom_id_content_map(
+        contents=contents
+    )
 
-def parse_classification_content(page_task:PageBatchTask | None,pages:list[dict[str,Any]]) -> None:
-    if not page_task:
-        print("No classification task\n")
-        return
-    index_content_map = _build_index_content_map(page_task)
+    page_index_content_map = _build_index_content_map(
+        custom_id_content_map=custom_id_content_map,
+        user_requests=user_requests,
+        pages=pages
+    )
+
+    return [page_index for page_index,content in page_index_content_map.items() if str(content).strip().lower() == "yes"]
+
+def parse_classification_content(
+        contents: list[dict[str,Any]],
+        user_requests: list[UserRequest],
+        pages:list[dict[str,Any]]) -> None:
+
+    custom_id_content_map = _build_custom_id_content_map(
+        contents=contents
+    )
+
+    page_index_content_map = _build_index_content_map(
+        custom_id_content_map = custom_id_content_map,
+        user_requests = user_requests,
+        pages = pages
+    )
+
     for page in pages:
         page_index = page["index"]
-        page["classification"] = index_content_map.get(
+        page["classification"] = page_index_content_map.get(
             page_index,
-            PageClassification.get_default_value(),
+            PageClassification.get_default_value()
         )
 
 def parse_description_content(page_task:PageBatchTask | None,pages:list[dict[str,Any]]) -> None:
@@ -35,17 +57,20 @@ def parse_description_content(page_task:PageBatchTask | None,pages:list[dict[str
         )
     print("Page description added\n")
 
-def _build_custom_id_content_map(page_task:PageBatchTask) -> dict[str,Any]:
-    content_id_map = {
-        result["custom_id"]: result.get("content")
-        for result in page_task.contents if "custom_id" in result
+def _build_custom_id_content_map(contents: list[dict[str,Any]]) -> dict[str,Any]:
+    return {
+        item["custom_id"]: item.get("content") for item in contents if "custom_id" in item
     }
-    return content_id_map
 
-def _build_index_content_map(page_task:PageBatchTask) -> dict[int,Any]:
-        content_id_map = _build_custom_id_content_map(page_task)
-        index_content_map = {
-            page["index"]:content_id_map[custom_id]
-            for custom_id,page in zip(page_task.custom_ids,page_task.pages) if custom_id in content_id_map
+def _build_index_content_map(
+        custom_id_content_map:dict[str,dict[str,Any]],
+        user_requests: list[UserRequest],
+        pages:list[dict[str,Any]]) -> dict[int,Any]:
+
+        return {
+            page["index"]: custom_id_content_map.get(
+                user_request.custom_id,
+                PageClassification.get_default_value()
+            )
+            for user_request,page in zip(user_requests,pages)
         }
-        return index_content_map

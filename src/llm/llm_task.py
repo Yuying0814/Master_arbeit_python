@@ -9,6 +9,7 @@ from src.llm.ollama.batch.processor import OllamaBatchTaskProcessor
 
 
 class TaskProcessor(Protocol):
+    has_valid_output:bool
     async def run(self):
         ...
 
@@ -18,6 +19,7 @@ class TaskProcessor(Protocol):
 class LLMTask:
     processor: TaskProcessor
     results: Any
+    has_valid_output:bool
 
     def __init__(self, processor: TaskProcessor) -> None:
         self.processor = processor
@@ -26,6 +28,7 @@ class LLMTask:
         self.processor.add_user_inputs(user_input)
         results = await self.processor.run()
         self.results = results
+        self.has_valid_output = self.processor.has_valid_output
         return results
 
     @classmethod

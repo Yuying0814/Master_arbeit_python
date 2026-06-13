@@ -16,6 +16,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
     system:str
     retries:list[dict[str,Any]]
     max_concurrency:int
+    has_valid_output:bool
 
     def __init__(self, *, model: ChatOllama, system:str, output_format:ValidOutputFormat) -> None:
         self.contents = []
@@ -25,6 +26,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.output_format = output_format
         self.retries = []
         self.max_concurrency = 1
+        self.has_valid_output = False
 
     @classmethod
     def load_from_task_config(cls,task_config:TaskConfig):
@@ -47,6 +49,8 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         if not self._has_user_request():
             raise ValueError("User requests must be added before starting the batch task.")
         user_inputs = []
+
+        self.reset()
 
         for user_request in self.user_requests:
             user_inputs.append(
@@ -81,6 +85,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
             ]
 
             if not retry_inputs:
+                self.has_valid_output = True
                 return self.contents
 
             retry_model = self._build_runnable_model()
@@ -95,14 +100,18 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
             self._record_retry(retry_user_requests,retry_contents)
             self._update_contents(retry_contents)
             if all(content["completed"] for content in self.contents):
+                self.has_valid_output = True
                 break
 
         return self.contents
 
-    def reset(self):
+    def reset(self) -> None:
         self.contents = []
-        self.user_requests = []
         self.retries = []
+        self.has_valid_output = False
+
+    def cleanup_user_requests(self) -> None:
+        self.user_requests = []
 
     def _build_runnable_model(self):
         if self._is_structured_format(self.output_format):
