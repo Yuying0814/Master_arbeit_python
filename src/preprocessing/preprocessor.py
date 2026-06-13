@@ -63,6 +63,7 @@ class Preprocessor:
         self.reg_page_idx_from_retrieval = []
         self.reg_page_idx_from_llm = []
         self.reg_page_candidate_idx = []
+        self.reg_page_idx = []
 
         self.reg_sum_idx_from_toc = []
         self.reg_sum_idx_from_retrieval = []
@@ -162,7 +163,7 @@ class Preprocessor:
     async def classify_pages(self):
         task_config = self.config.llm_task_config.classify_pages
         task_name = inspect.currentframe().f_code.co_name
-        inputPath = self.config.project_path.input_path/f"{task_name}.json"
+        inputPath = self.config.project_path.input_path/f"{task_name}.jsonl"
 
         user_requests = build_page_requests(
             request_name=task_name,
@@ -276,7 +277,7 @@ class Preprocessor:
     async def extract_reg_index(self):
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction\n")
-            self.reg_sum_page_idx = {}
+            self.reg_summary = {}
             return {}
 
         task_config = self.config.llm_task_config.extract_reg_index
