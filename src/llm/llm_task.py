@@ -15,7 +15,7 @@ class TaskProcessor(Protocol):
     def add_user_inputs(self,user_inputs: str | list[UserRequest]):
         ...
 
-class Task:
+class LLMTask:
     processor: TaskProcessor
     results: Any
 
