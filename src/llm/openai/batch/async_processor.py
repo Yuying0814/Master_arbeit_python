@@ -88,7 +88,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         finally:
             await self.cleanup()
 
-    def add_user_inputs(self,user_requests:list[UserRequest]) -> None:
+    def add_user_inputs(self,user_requests:str | list[UserRequest]) -> None:
         """
         user_requests is a list of the user requests:
         {
@@ -96,6 +96,8 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             "user_input": You are a....
         }
         """
+        if isinstance(user_requests, str):
+            raise TypeError("OpenAIBatchTaskProcessor expects a list of UserRequest.")
 
         custom_ids = []
         user_inputs = []

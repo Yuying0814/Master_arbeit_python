@@ -44,7 +44,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
 
     async def run(self) -> list[dict[str,Any]]:
-        if self._has_user_request():
+        if not self._has_user_request():
             raise ValueError("User requests must be added before starting the batch task.")
         user_inputs = []
 

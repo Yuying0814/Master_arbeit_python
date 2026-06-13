@@ -1,10 +1,10 @@
 from __future__ import annotations
-import asyncio
 
 from typing import Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel
 
+from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
 from src.llm.model_factory import build_chat_model
 from src.llm.common.common import HasLangChainResultParser,ValidOutputFormat
@@ -53,14 +53,14 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
         if self._is_structured_format(self.output_format):
             structured_model = self.model.with_structured_output(self.output_format)
-            result = structured_model.invoke(messages)
+            result = await structured_model.ainvoke(messages)
 
             if isinstance(result, BaseModel):
                 return result.model_dump()
 
             return result
         
-        response = self.model.invoke(messages)
+        response = await self.model.ainvoke(messages)
 
         if self.output_format == "json":
             return self._parse_json(response.content)
@@ -70,7 +70,9 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
         raise ValueError(f"Unsupported text_format: {self.output_format}")
 
-    def add_user_inputs(self, user_input: str):
+    def add_user_inputs(self, user_input: str | list[UserRequest]) -> None:
+        if not isinstance(user_input, str):
+            raise ValueError("LLMTaskProcessor expects a single string input.")
         self.user_input = user_input
 
     def _has_valid_user_input(self) -> bool:

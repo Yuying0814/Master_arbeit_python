@@ -19,7 +19,7 @@ class Task:
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
         self.processor.add_user_inputs(user_input)
-        await self.processor.run()
+        return await self.processor.run()
 
     @classmethod
     def load_from_task_config(cls, task_config: TaskConfig) -> "Task":
