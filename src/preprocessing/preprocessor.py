@@ -276,6 +276,7 @@ class Preprocessor:
     async def extract_reg_index(self):
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction\n")
+            self.reg_sum_page_idx = {}
             return {}
 
         task_config = self.config.llm_task_config.extract_reg_index
@@ -311,6 +312,7 @@ class Preprocessor:
     async def extract_reg_map(self):
         if not self.reg_page_idx:
             print("No register page for register map extraction\n")
+            self.reg_map = {}
             return {}
 
         task_config = self.config.llm_task_config.extract_reg_map
@@ -323,7 +325,7 @@ class Preprocessor:
         user_input = json.dumps(
             {
                 "pages": selected_pages,
-                "registers": self.reg_summary,
+                "registers": self.reg_summary.get("registers", [])
             },
             ensure_ascii=False,
         )
