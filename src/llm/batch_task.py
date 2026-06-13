@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, Any
 
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
@@ -17,7 +17,7 @@ class Task:
     def __init__(self, processor: TaskProcessor) -> None:
         self.processor = processor
 
-    async def run(self,user_input: str | list[UserRequest]):
+    async def run(self,user_input: str | list[UserRequest]) -> Any:
         self.processor.add_user_inputs(user_input)
         await self.processor.run()
 

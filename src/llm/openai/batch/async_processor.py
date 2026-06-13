@@ -125,7 +125,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
 
     async def submit_batch(self) -> None:
 
-        if not self._has_user_request:
+        if not self._has_user_request():
             raise ValueError("User requests must be added before submitting the batch task.")
 
         self.write_batch_input_file()

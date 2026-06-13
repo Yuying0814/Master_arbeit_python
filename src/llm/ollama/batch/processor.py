@@ -44,6 +44,8 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
 
     async def run(self) -> list[dict[str,Any]]:
+        if self._has_user_request():
+            raise ValueError("User requests must be added before starting the batch task.")
         user_inputs = []
 
         for user_request in self.user_requests:
@@ -60,9 +62,11 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
         contents = self._collect_results(self.user_requests,results)
         self.contents = contents
-        return contents
+        return await self.retry_batch()
 
-    def add_user_inputs(self, user_requests: list[UserRequest]) -> None:
+    def add_user_inputs(self, user_requests: str| list[UserRequest]) -> None:
+        if isinstance(user_requests, str):
+            raise ValueError("OllamaBatchTaskProcessor expects a list of UserRequest.")
         self.user_requests.extend(user_requests)
 
     async def retry_batch(self,max_retries:int = 3) -> list[dict[str,Any]]:
@@ -94,6 +98,11 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
                 break
 
         return self.contents
+
+    def reset(self):
+        self.contents = []
+        self.user_requests = []
+        self.retries = []
 
     def _build_runnable_model(self):
         if self._is_structured_format(self.output_format):
@@ -165,6 +174,9 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         for index, content in enumerate(self.contents):
             if content["custom_id"] in custom_id_retry_content_map:
                 self.contents[index] = custom_id_retry_content_map[content["custom_id"]]
+
+    def _has_user_request(self) -> bool:
+        return len(self.user_requests) > 0
 
 
 #
