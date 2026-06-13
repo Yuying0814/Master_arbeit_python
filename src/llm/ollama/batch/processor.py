@@ -27,7 +27,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.max_concurrency = 1
 
     @classmethod
-    def load_from_task_config(cls,api_key:str,task_config:TaskConfig):
+    def load_from_task_config(cls,task_config:TaskConfig):
         model = ChatOllama(
             model=task_config.model.model_name,
             temperature=task_config.model.temperature,
