@@ -85,6 +85,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             await self.run_with_retry_async(function=self.wait_batch)
             await self.run_with_retry_async(function=self.collect_batch_output)
             await self.retry_batch()
+            return self.contents
         finally:
             await self.cleanup()
 

@@ -23,7 +23,7 @@ class Task:
 
     @classmethod
     def load_from_task_config(cls, task_config: TaskConfig) -> "Task":
-        processor = Task.build_batch_task_processor(task_config)
+        processor = cls.build_batch_task_processor(task_config)
         return cls(processor)
 
     @staticmethod
