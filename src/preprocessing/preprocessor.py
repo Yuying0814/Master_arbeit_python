@@ -42,6 +42,10 @@ class Preprocessor:
     reg_summary: dict[str,Any]
     reg_map: dict[str,Any]
 
+    task_classification: LLMTask | None
+    task_reg_sum_verification:LLMTask | None
+    task_reg_page_verification:LLMTask | None
+
     mistral_client: MistralClient
 
     config:PreprocessingConfig
@@ -73,6 +77,10 @@ class Preprocessor:
 
         self.reg_summary = {}
         self.reg_map = {}
+
+        self.task_classification = None
+        self.task_reg_sum_verification = None
+        self.task_reg_page_verification = None
 
         self.mistral_client = MistralClient(config.get_apikey("mistral"))
 
@@ -163,7 +171,7 @@ class Preprocessor:
     async def classify_pages(self):
         task_config = self.config.llm_task_config.classify_pages
         task_name = inspect.currentframe().f_code.co_name
-        inputPath = self.config.project_path.input_path/f"{task_name}.jsonl"
+        input_Path = self.config.project_path.input_path/f"{task_name}.jsonl"
 
         user_requests = build_page_requests(
             request_name=task_name,
@@ -174,17 +182,17 @@ class Preprocessor:
             print("No pages for classification task\n")
             return
 
-        task = LLMTask.load_from_task_config(
+        self.task_classification = LLMTask.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
-            input_path=inputPath,
+            input_path=input_Path,
         )
         print("Classification task created\n")
         print("Waiting for completion of classification task for all pages:\n")
 
-        contents = await task.run(user_requests)
+        contents = await self.task_classification.run(user_requests)
 
-        if not getattr(task, "has_valid_output", True):
+        if not getattr(self.task_classification, "has_valid_output", True):
             raise RuntimeError("Task classification failed\n")
 
         parse_classification_content(
@@ -202,7 +210,7 @@ class Preprocessor:
 
         task_config = self.config.llm_task_config.verify_reg_sum_pages
         task_name = inspect.currentframe().f_code.co_name
-        inputPath = self.config.project_path.input_path/f"{task_name}.jsonl"
+        input_path = self.config.project_path.input_path/f"{task_name}.jsonl"
 
         candidate_pages = _get_pages_by_ocr_index(self.pages, self.reg_sum_candidate_idx)
 
@@ -212,17 +220,17 @@ class Preprocessor:
             candidate_pages = candidate_pages,
         )
 
-        task = LLMTask.load_from_task_config(
+        self.task_reg_sum_verification = LLMTask.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
-            input_path=inputPath,
+            input_path=input_path,
         )
 
         print("Task for verification of register summary pages created\n")
 
-        contents = await task.run(user_requests)
+        contents = await self.task_reg_sum_verification.run(user_requests)
 
-        if not getattr(task, "has_valid_output", True):
+        if not getattr(self.task_reg_sum_verification, "has_valid_output", True):
             raise RuntimeError("Invalid output from register summary page verification")
 
         self.reg_sum_page_idx = parse_verification_contents(
@@ -252,7 +260,7 @@ class Preprocessor:
             candidate_pages = page_candidates,
         )
 
-        task = LLMTask.load_from_task_config(
+        self.task_reg_page_verification = LLMTask.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=inputPath,
@@ -260,9 +268,9 @@ class Preprocessor:
 
         print("Task for verification of register pages created\n")
 
-        contents = await task.run(user_requests)
+        contents = await self.task_reg_page_verification.run(user_requests)
 
-        if not getattr(task, "has_valid_output", True):
+        if not getattr(self.task_reg_page_verification, "has_valid_output", True):
             raise RuntimeError("Invalid output from register page verification")
 
         self.reg_page_idx = parse_verification_contents(
@@ -413,15 +421,15 @@ class Preprocessor:
     #     if not task.has_valid_output:
     #         raise RuntimeError(f"Invalid output from {task.name}")
     #
-    # def cleanup(self):
-    #     if self.task_reg_sum_verification:
-    #         self.task_reg_sum_verification.cleanup()
-    #
-    #     if self.task_reg_page_verification:
-    #         self.task_reg_page_verification.cleanup()
-    #
-    #     if self.task_add_description:
-    #         self.task_add_description.cleanup()
+    def cleanup(self):
+        if self.task_classification is not None:
+            self.task_classification.cleanup()
+
+        if self.task_reg_sum_verification is not None:
+            self.task_reg_sum_verification.cleanup()
+
+        if self.task_reg_page_verification is not None:
+            self.task_reg_page_verification.cleanup()
 
 # Helper
 def _valid_mistral_config(config:dict[str,Any]) -> bool:

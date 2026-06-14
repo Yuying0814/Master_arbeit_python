@@ -211,7 +211,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
                 update_retry_result(self.outputs,retry_outputs)
                 update_retry_result(self.records,retry_records)
 
-            except RuntimeError:
+            except Exception:
                 if retry_job:
                     await self.batch_client.cancel_batch_job(retry_job)
             finally:

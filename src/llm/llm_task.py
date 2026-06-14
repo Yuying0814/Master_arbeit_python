@@ -33,6 +33,10 @@ class LLMTask:
         self.has_valid_output = self.processor.has_valid_output
         return results
 
+    async def cleanup(self) -> None:
+        if isinstance(self.processor, OpenAIBatchTaskProcessor):
+            await self.processor.cleanup()
+
     @classmethod
     def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "LLMTask":
         processor = cls.build_task_processor(
