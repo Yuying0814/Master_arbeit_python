@@ -88,7 +88,8 @@ class Preprocessor:
         try:
             await self.pipeline()
         except Exception:
-            self.cleanup()
+            await self.cleanup()
+            raise
 
     async def pipeline(self):
         print("-----------------------------------------------------------------------\n")
@@ -424,15 +425,15 @@ class Preprocessor:
     #     if not task.has_valid_output:
     #         raise RuntimeError(f"Invalid output from {task.name}")
     #
-    def cleanup(self):
+    async def cleanup(self):
         if self.task_classification is not None:
-            self.task_classification.cleanup()
+            await self.task_classification.cleanup()
 
         if self.task_reg_sum_verification is not None:
-            self.task_reg_sum_verification.cleanup()
+            await self.task_reg_sum_verification.cleanup()
 
         if self.task_reg_page_verification is not None:
-            self.task_reg_page_verification.cleanup()
+            await self.task_reg_page_verification.cleanup()
 
 # Helper
 def _valid_mistral_config(config:dict[str,Any]) -> bool:
