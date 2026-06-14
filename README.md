@@ -23,21 +23,21 @@ MODE = "multiple_test"
 For `single_test`, set `PDF_FILE`:
 
 ```python
-PDF_FILE = "D:\xxx\xxx\xxx\xxx\xxx.pdf"
+PDF_FILE = "D:/xxx/xxx/xxx/xxx/xxx.pdf"
 ```
 or
 ```python
-PDF_FILE = Path("D:\xxx\xxx\xxx\xxx\xxx.pdf")
+PDF_FILE = Path("D:/xxx/xxx/xxx/xxx/xxx.pdf")
 ```
 
-For `multiple_test`, set `PDF_DIR`:
+For `multiple_test`, set `PDF_DIR = your pdf folder`:
 
 ```python
-PDF_DIR = "D:\xxx\xxx\xxx\xxx"
+PDF_DIR = "D:/xxx/xxx/xxx/xxx"
 ```
 or
 ```python
-PDF_FILE = Path("D:\xxx\xxx\xxx\xxx")
+PDF_FILE = Path("D:/xxx/xxx/xxx/xxx")
 ```
 
 
@@ -52,11 +52,11 @@ MISTRALAI_API_KEY=your_mistral_api_key
 
 Set `ENV_FILE`:
 ```python
-ENV_FILE = "D:\xxx\xxx.env"
+ENV_FILE = "D:/xxx/xxx.env"
 ```
 or
 ```python
-ENV_FILE = Path("D:\xxx\xxx.env")
+ENV_FILE = Path("D:/xxx/xxx.env")
 ```
 
 ### 4. Configure the model settings
