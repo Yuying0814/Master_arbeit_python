@@ -2,19 +2,30 @@ import sys
 import asyncio
 from pathlib import Path
 from typing import Any,Literal
+from src.preprocessing.config import PreprocessingConfig
+from src.preprocessing.preprocessor import Preprocessor
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.preprocessing.config import PreprocessingConfig
-from src.preprocessing.preprocessor import Preprocessor
+# ============================================================
+# User configuration
+# ============================================================
+# Set MODE to "single_test" for one PDF or "multiple_test" for all PDFs in PDF_DIR.
+MODE: Literal["single_test", "multiple_test"] = "single_test"
 
+# Set the input PDF path for single_test mode.
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "lis3dh.pdf"
 
-MODE:Literal["single_test","multiple_test"] = "single_test"
-PDF_DIR:Path|str = ...  # Enter pdf dir here for multiple_test
-PDF_FILE:Path|str = ...  # Enter pdf path here for single_test
-ENV_FILE:Path|str = ""  # Enter .env path here
+# Set the input PDF directory for multiple_test mode.
+PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
 
+# Set the .env file path. Leave it as ".env" if the file is in the project root.
+ENV_FILE: Path | str = Path(".env")
+
+# ============================================================
+# Model configuration
+# ============================================================
 def configure_preprocessing_models(config: PreprocessingConfig) -> None:
     """Configure model settings for the current preprocessing run."""
     """Available settings for each task:
@@ -92,7 +103,7 @@ if __name__ == "__main__":
     match MODE:
         case "single_test":
             print(f"\n==============================")
-            print(f"Running tests for: {PDF_FILE.stem}")
+            print(f"Running tests for: {Path(PDF_FILE).stem}")
             print(f"==============================\n")
 
             # test_without_preprocessing(pdf_name)
