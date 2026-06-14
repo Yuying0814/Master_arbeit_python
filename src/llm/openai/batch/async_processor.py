@@ -49,6 +49,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         self.name = input_path.stem
         self.status = "created"
         self.has_valid_output = False
+        self.is_cleaned_up = False
 
         self.input_path = input_path
 
@@ -235,7 +236,8 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         if self.is_cleaned_up:
             return
 
-        if not self or not self.batch_job:
+        if not self.batch_job:
+            self.is_cleaned_up = True
             return
         try:
             await self.batch_client.cancel_batch_job(self.batch_job)
@@ -247,6 +249,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
     def reset(self):
         self.status = "created"
         self.has_valid_output = False
+        self.is_cleaned_up = False
         self.batch_job = None
         self.contents = []
         self.outputs = []
