@@ -102,14 +102,29 @@ class Preprocessor:
         reg_sum_verify_task = asyncio.create_task(self.verify_reg_sum_pages())
         reg_page_verify_task = asyncio.create_task(self.verify_reg_pages())
 
-        print("Waiting for completion of verification task for register summary pages:\n")
-        await reg_sum_verify_task
-        await self.extract_reg_index()
+        try:
+            print("Waiting for completion of verification task for register summary pages:\n")
+            await reg_sum_verify_task
+            await self.extract_reg_index()
 
-        print("Waiting for completion of verification task for register pages:\n")
-        await reg_page_verify_task
-        self.refine_classification()
-        await self.extract_reg_map()
+            print("Waiting for completion of verification task for register pages:\n")
+            await reg_page_verify_task
+
+            self.refine_classification()
+            await self.extract_reg_map()
+
+        except Exception:
+            for task in (reg_sum_verify_task, reg_page_verify_task):
+                if not task.done():
+                    task.cancel()
+
+            await asyncio.gather(
+                reg_sum_verify_task,
+                reg_page_verify_task,
+                return_exceptions=True,
+            )
+
+            raise
 
     def run_ocr(self):
         ocr_config = self.config.mistral.task.get("ocr")
@@ -425,15 +440,23 @@ class Preprocessor:
     #     if not task.has_valid_output:
     #         raise RuntimeError(f"Invalid output from {task.name}")
     #
-    async def cleanup(self):
+    async def cleanup(self) -> None:
+        cleanup_tasks = []
+
         if self.task_classification is not None:
-            await self.task_classification.cleanup()
+            cleanup_tasks.append(self.task_classification.cleanup())
 
         if self.task_reg_sum_verification is not None:
-            await self.task_reg_sum_verification.cleanup()
+            cleanup_tasks.append(self.task_reg_sum_verification.cleanup())
 
         if self.task_reg_page_verification is not None:
-            await self.task_reg_page_verification.cleanup()
+            cleanup_tasks.append(self.task_reg_page_verification.cleanup())
+
+        if cleanup_tasks:
+            await asyncio.gather(
+                *cleanup_tasks,
+                return_exceptions=True,
+            )
 
 # Helper
 def _valid_mistral_config(config:dict[str,Any]) -> bool:
