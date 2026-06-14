@@ -85,7 +85,10 @@ class Preprocessor:
         self.mistral_client = MistralClient(config.get_apikey("mistral"))
 
     async def run(self):
-        await self.pipeline()
+        try:
+            await self.pipeline()
+        except Exception:
+            self.cleanup()
 
     async def pipeline(self):
         print("-----------------------------------------------------------------------\n")
