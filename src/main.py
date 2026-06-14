@@ -15,7 +15,7 @@ if __name__ == "__main__":
     mode: Literal["single_test","multiple_test"] = "single_test"
     match mode:
         case "single_test":
-            pdf_file = PROJECT_ROOT / "tests" / "lis3dh.pdf"
+            pdf_file = PROJECT_ROOT / "data" / "input_pdf" / "lis3dh.pdf"
             pdf_name = pdf_file.name
 
             print(f"\n==============================")
