@@ -1,4 +1,5 @@
 import sys
+import asyncio
 from pathlib import Path
 from typing import Any,Literal
 
@@ -10,9 +11,9 @@ from src.preprocessing.preprocessor import Preprocessor
 
 
 MODE:Literal["single_test","multiple_test"] = "single_test"
-PDF_DIR:Path = ...  # Enter pdf dir here for multiple_test
-PDF_FILE:Path = ...  # Enter pdf path here for single_test
-ENV_FILE:Path = ...  # Enter .env path here
+PDF_DIR:Path|str = ...  # Enter pdf dir here for multiple_test
+PDF_FILE:Path|str = ...  # Enter pdf path here for single_test
+ENV_FILE:Path|str = ""  # Enter .env path here
 
 def configure_preprocessing_models(config: PreprocessingConfig) -> None:
     """Configure model settings for the current preprocessing run."""
@@ -74,13 +75,13 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
         for field_name, value in settings.items():
             setattr(task_config.model, field_name, value)
 
-async def run_preprocessor() -> None:
+async def run_preprocessor(pdf_file:Path|str) -> None:
     """Run the preprocessing pipeline for one PDF."""
 
-    pdf_path = Path(PDF_FILE)
-    env_path = Path(ENV_FILE)
+    pdf_file = Path(pdf_file)
+    env_file = Path(ENV_FILE)
 
-    config = PreprocessingConfig.load_config(pdf=pdf_path,env=env_path)
+    config = PreprocessingConfig.load_config(pdf=pdf_file,env=env_file)
     configure_preprocessing_models(config)
 
     preprocessor = Preprocessor(config)
@@ -95,17 +96,17 @@ if __name__ == "__main__":
             print(f"==============================\n")
 
             # test_without_preprocessing(pdf_name)
-            run_preprocessor()
+            asyncio.run(run_preprocessor(PDF_FILE))
 
         case "multiple_test":
-            pdf_files = sorted(PDF_DIR.glob("*.pdf"))
+            pdf_files = sorted(Path(PDF_DIR).glob("*.pdf"))
 
-            for pdf_path in pdf_files:
+            for pdf_file in pdf_files:
                 print(f"\n==============================")
-                print(f"Running tests for: {pdf_path.stem}")
+                print(f"Running tests for: {pdf_file.stem}")
                 print(f"==============================\n")
 
                 # test_without_preprocessing(pdf_name)
-                run_preprocessor()
+                asyncio.run(run_preprocessor(pdf_file))
 
 
