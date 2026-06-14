@@ -1,6 +1,9 @@
 from __future__ import annotations
 import json
 import sys
+import asyncio
+
+
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +23,7 @@ def test_preprocessor_pipeline(pdf_name:str) -> None:
     config = PreprocessingConfig.load_config(pdf=pdf_path)
     preprocessor = Preprocessor(config)
 
-    preprocessor.run()
+    asyncio.run(preprocessor.run())
 
     output_dir = config.project_path.output_path / name
 
