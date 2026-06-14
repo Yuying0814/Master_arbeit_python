@@ -87,6 +87,7 @@ class Preprocessor:
     async def run(self):
         try:
             await self.pipeline()
+            self.save_outputs()
         except Exception:
             await self.cleanup()
             raise
@@ -458,6 +459,26 @@ class Preprocessor:
                 return_exceptions=True,
             )
 
+    def save_outputs(self):
+        name = self.pdf_path.stem
+        output_dir = self.config.project_path.output_path / name
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        _write_json(
+            output_dir / f"{name}_preprocessor_snapshot.json",
+            _build_preprocessor_snapshot(self),
+        )
+
+        _write_json(
+            output_dir / f"{name}_register_map.json",
+            self.reg_map,
+        )
+
+        _write_json(
+            output_dir / f"{name}_pages.json",
+            self.pages,
+        )
+
 # Helper
 def _valid_mistral_config(config:dict[str,Any]) -> bool:
     if not config:
@@ -497,3 +518,62 @@ def _select_extraction_pages(pages:list[dict[str,Any]],page_index:list[int]) -> 
         }
         for page in selected_pages
     ]
+
+def _make_json_safe(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, dict):
+        return {
+            str(key): _make_json_safe(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, list):
+        return [
+            _make_json_safe(item)
+            for item in value
+        ]
+
+    if isinstance(value, tuple):
+        return [
+            _make_json_safe(item)
+            for item in value
+        ]
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
+    return {
+        "pdf_path": preprocessor.pdf_path,
+        "toc_page_idx": preprocessor.toc_page_idx,
+        "toc_entries": preprocessor.toc_entries,
+        "reg_page_idx_from_toc": preprocessor.reg_page_idx_from_toc,
+        "reg_page_idx_from_retrieval": preprocessor.reg_page_idx_from_retrieval,
+        "reg_page_idx_from_llm": preprocessor.reg_page_idx_from_llm,
+        "reg_page_candidate_idx": preprocessor.reg_page_candidate_idx,
+        "reg_page_idx": preprocessor.reg_page_idx,
+        "reg_sum_idx_from_toc": preprocessor.reg_sum_idx_from_toc,
+        "reg_sum_idx_from_retrieval": preprocessor.reg_sum_idx_from_retrieval,
+        "reg_sum_idx_from_llm": preprocessor.reg_sum_idx_from_llm,
+        "reg_sum_candidate_idx": preprocessor.reg_sum_candidate_idx,
+        "reg_sum_page_idx": preprocessor.reg_sum_page_idx,
+        "reg_summary": preprocessor.reg_summary,
+        "reg_map": preprocessor.reg_map,
+    }
+
+def _write_json(output_path: Path, data: Any) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    output_path.write_text(
+        json.dumps(
+            _make_json_safe(data),
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )

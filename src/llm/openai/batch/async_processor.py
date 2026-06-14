@@ -17,6 +17,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
     name:str
     status:str
     has_valid_output:bool
+    is_cleaned_up:bool
 
     input_path:Path
 
@@ -231,11 +232,15 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
 
     async def cleanup(self) -> None:
         '''try to cancel the batch(only when status is "validating" "submitted" "in progress" "") and delete uploaded file'''
+        if self.is_cleaned_up:
+            return
+
         if not self or not self.batch_job:
             return
         try:
             await self.batch_client.cancel_batch_job(self.batch_job)
             await self.batch_client.clean_up_batch_job(self.batch_job)
+            self.is_cleaned_up = True
         except RuntimeError:
             warnings.warn("Cleanup failed", RuntimeWarning)
 
