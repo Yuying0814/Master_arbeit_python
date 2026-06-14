@@ -21,7 +21,7 @@ PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "lis3dh.pdf"
 PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
 
 # Set the .env file path. Leave it as ".env" if the file is in the project root.
-ENV_FILE: Path | str = Path(".env")
+ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 
 # ============================================================
 # Model configuration
@@ -79,12 +79,16 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
             "max_tokens": 30000,
         },
     }
+# ============================================================
+# End of model configuration
+# ============================================================
 
     for task_name, settings in model_settings.items():
         task_config = getattr(config.llm_task_config, task_name)
 
         for field_name, value in settings.items():
             setattr(task_config.model, field_name, value)
+
 
 async def run_preprocessor(pdf_file:Path|str) -> None:
     """Run the preprocessing pipeline for one PDF."""
