@@ -263,6 +263,8 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         self.contents = []
         self.outputs = []
         self.records = []
+        self.final_usage = {}
+        self.total_usage = {}
 
     def update_status(self) -> None:
         if not self.batch_job:
@@ -282,17 +284,21 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             if usage:
                 usages.append(usage)
 
-        return _sum_token_usage(usages)
+        self.final_usage = {
+            self.model: _sum_token_usage(usages)
+        }
 
     def _get_total_usage(self):
         usages = []
         usages.append(self.batch_job.batch_info.get("usage",{}))
 
         for retry in self.retries:
-            usage = retry["retry_batch"].batch_info.get("usage",{})
+            usage = retry["retry_job"].batch_info.get("usage",{})
             usages.append(usage)
 
-        return _sum_token_usage(usages)
+        self.total_usage = {
+            self.model: _sum_token_usage(usages)
+        }
 
 
 

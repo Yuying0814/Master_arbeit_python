@@ -35,6 +35,7 @@ class LLMTask:
         results = await self.processor.run()
         self.results = results
         self.has_valid_output = self.processor.has_valid_output
+        self.get_token_usage()
         return results
 
     async def cleanup(self) -> None:

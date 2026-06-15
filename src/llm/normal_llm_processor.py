@@ -17,6 +17,7 @@ from src.llm.common.common import HasLangChainResultParser, ValidOutputFormat
 class LLMTaskProcessor(HasLangChainResultParser):
     user_input: str
     has_valid_output: bool
+    model_name:str
     total_usage: dict[str, Any]
     final_usage: dict[str, Any]
 
@@ -24,10 +25,12 @@ class LLMTaskProcessor(HasLangChainResultParser):
         self,
         *,
         model: BaseChatModel,
+        model_name: str,
         system: str,
         output_format: ValidOutputFormat = "text",
     ) -> None:
         self.model = model
+        self.model_name =""
         self.system = system
         self.output_format = output_format
         self.user_input = ""
@@ -54,6 +57,7 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
         return cls(
             model=model,
+            model_name=task_config.model.model_name,
             system=task_config.system,
             output_format=task_config.output_format,
         )
@@ -92,8 +96,10 @@ class LLMTaskProcessor(HasLangChainResultParser):
             result = response["parsed"]
             raw_message = response["raw"]
 
-            self.total_usage = callback.usage_metadata
-            self.final_usage = raw_message.usage_metadata or {}
+            self.total_usage = callback.usage_metadata or {}
+            self.final_usage = {
+                                   self.model_name:raw_message.usage_metadata
+                               } or {}
             self.has_valid_output = True
 
             if isinstance(result, BaseModel):
@@ -104,8 +110,10 @@ class LLMTaskProcessor(HasLangChainResultParser):
         retry_model = _with_langchain_retry(self.model)
         response = await retry_model.ainvoke(messages, **invoke_kwargs)
 
-        self.total_usage = callback.usage_metadata
-        self.final_usage = response.usage_metadata or {}
+        self.total_usage = callback.usage_metadata or {}
+        self.final_usage = {
+            self.model_name:response.usage_metadata
+                           }or {}
 
         if self.output_format == "json":
             self.has_valid_output = True
