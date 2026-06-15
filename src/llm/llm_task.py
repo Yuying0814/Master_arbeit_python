@@ -10,6 +10,8 @@ from src.llm.ollama.batch.processor import OllamaBatchTaskProcessor
 
 class TaskProcessor(Protocol):
     has_valid_output:bool
+    total_usage:dict[str,Any]
+    final_usage:dict[str,Any]
     async def run(self) -> Any:
         ...
 

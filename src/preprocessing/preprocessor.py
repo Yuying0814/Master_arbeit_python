@@ -45,6 +45,8 @@ class Preprocessor:
     task_classification: LLMTask | None
     task_reg_sum_verification:LLMTask | None
     task_reg_page_verification:LLMTask | None
+    task_reg_index_extraction:LLMTask | None
+    task_reg_map_extraction:LLMTask | None
 
     mistral_client: MistralClient
 
@@ -81,6 +83,8 @@ class Preprocessor:
         self.task_classification = None
         self.task_reg_sum_verification = None
         self.task_reg_page_verification = None
+        self.task_reg_index_extraction = None
+        self.task_reg_map_extraction = None
 
         self.mistral_client = MistralClient(config.get_apikey("mistral"))
 
@@ -322,16 +326,16 @@ class Preprocessor:
             ensure_ascii=False,
         )
 
-        task = LLMTask.load_from_task_config(
+        self.task_reg_index_extraction = LLMTask.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
 
         print("Start register index information extraction\n")
 
-        result = await task.run(user_input)
+        result = await self.task_reg_index_extraction.run(user_input)
 
-        if not getattr(task, "has_valid_output", True):
+        if not getattr(self.task_reg_index_extraction, "has_valid_output", True):
             raise RuntimeError("Invalid output from register index information extraction")
 
         self.reg_summary = result
@@ -359,16 +363,16 @@ class Preprocessor:
             ensure_ascii=False,
         )
 
-        task = LLMTask.load_from_task_config(
+        self.task_reg_map_extraction = LLMTask.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
 
         print("Start register map extraction\n")
 
-        result = await task.run(user_input)
+        result = await self.task_reg_map_extraction.run(user_input)
 
-        if not getattr(task, "has_valid_output", True):
+        if not getattr(self.task_reg_map_extraction, "has_valid_output", True):
             raise RuntimeError("Invalid output from register map extraction")
 
         self.reg_map = result
@@ -479,6 +483,11 @@ class Preprocessor:
             self.pages,
         )
 
+        _write_json(
+            output_dir / f"{name}_token_consumption.json",
+            _build_token_consumption_snapshot(self),
+        )
+
 # Helper
 def _valid_mistral_config(config:dict[str,Any]) -> bool:
     if not config:
@@ -565,6 +574,29 @@ def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
         "reg_summary": preprocessor.reg_summary,
         "reg_map": preprocessor.reg_map,
     }
+
+def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> dict[str,Any]:
+    token_consumption = {}
+
+    token_consumption["classification"] = _get_usage_from_task(preprocessor.task_classification)
+    token_consumption["reg_sum_verification"] = _get_usage_from_task(preprocessor.task_reg_sum_verification)
+    token_consumption["reg_page_verification"] = _get_usage_from_task(preprocessor.task_reg_page_verification)
+    token_consumption["reg_index_extraction"] = _get_usage_from_task(preprocessor.task_reg_index_extraction)
+    token_consumption["reg_map_extraction"] = _get_usage_from_task(preprocessor.task_reg_map_extraction)
+
+    return token_consumption
+
+def _get_usage_from_task(task:LLMTask | None) -> dict[str,Any]:
+    if task is not None:
+        return {
+        "final_usage": getattr(task, "final_usage",{}),
+        "total_usage": getattr(task, "total_usage",{}),
+    }
+    else:
+        return{
+            "final_usage": {},
+            "total_usage": {},
+        }
 
 def _write_json(output_path: Path, data: Any) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
