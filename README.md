@@ -1,3 +1,34 @@
+## External Dependencies
+
+This project requires Python 3.10 or later.
+
+Install the required external Python libraries with:
+
+```bash
+pip install openai mistralai pydantic python-dotenv langchain-core langchain-openai langchain-ollama
+```
+
+The main external dependencies are:
+
+| Library | Purpose |
+|---|---|
+| `openai` | Runs OpenAI normal LLM calls and OpenAI Batch API calls. |
+| `mistralai` | Runs Mistral OCR for PDF datasheets. |
+| `pydantic` | Defines structured output models and validates extracted data. |
+| `python-dotenv` | Loads API keys from the `.env` file. |
+| `langchain-core` | Provides common LangChain interfaces, callbacks, runnables, and message objects. |
+| `langchain-openai` | Provides the LangChain `ChatOpenAI` model wrapper. |
+| `langchain-ollama` | Provides the LangChain `ChatOllama` model wrapper. |
+
+If `provider="ollama"` is used in the model configuration, Ollama must also be installed and the selected local model must be available on the machine.
+
+The `.env` file must contain the following keys when OpenAI and Mistral OCR are used:
+
+```text
+OPENAI_API_KEY=your_openai_api_key
+MISTRALAI_API_KEY=your_mistral_api_key
+```
+
 ## Running the Preprocessor
 
 The preprocessing pipeline can be started from `src/main.py`.
