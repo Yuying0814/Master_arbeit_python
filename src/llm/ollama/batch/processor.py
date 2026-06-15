@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from typing import Any
 from langchain_ollama import ChatOllama
+from langchain_core.callbacks import UsageMetadataCallbackHandler
 
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
@@ -17,6 +18,8 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
     retries:list[dict[str,Any]]
     max_concurrency:int
     has_valid_output:bool
+    total_usage: dict
+    final_usage: dict
 
     def __init__(self, *, model: ChatOllama, system:str, output_format:ValidOutputFormat) -> None:
         self.contents = []
@@ -27,6 +30,8 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.retries = []
         self.max_concurrency = 1
         self.has_valid_output = False
+        self.total_usage = None
+        self.final_usage = None
 
     @classmethod
     def load_from_task_config(cls,task_config:TaskConfig):
@@ -48,6 +53,16 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
     async def run(self) -> list[dict[str,Any]]:
         if not self._has_user_request():
             raise ValueError("User requests must be added before starting the batch task.")
+
+        callback = UsageMetadataCallbackHandler()
+
+        config_kwargs = {
+            "config":{
+                "max_concurrency": self.max_concurrency,
+                "callback": [callback],
+            }
+        }
+
         user_inputs = []
 
         self.reset()
@@ -60,9 +75,10 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
         results = await retry_model.abatch(
             inputs=user_inputs,
-            config={"max_concurrency":self.max_concurrency},
             return_exceptions=True,
+            **config_kwargs
         )
+        self.total_usage = callback.usage_metadata
 
         contents = self._collect_results(self.user_requests,results)
         self.contents = contents

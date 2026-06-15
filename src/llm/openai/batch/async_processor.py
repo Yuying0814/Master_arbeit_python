@@ -37,6 +37,10 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
     outputs:list[dict[str,Any]]
     records:list[dict[str,Any]]
 
+    total_usage:dict[str,Any]
+    final_usage:dict[str,Any]
+
+
     def __init__(self,
                  api_key:str,
                  input_path:Path,
@@ -69,6 +73,9 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         self.outputs = []
         self.records = []
 
+        self.final_usage = {}
+        self.total_usage = {}
+
     @classmethod
     def load_from_task_config(cls,api_key:str|None,input_path:Path|str|None,task_config:TaskConfig):
         if not api_key:
@@ -92,6 +99,8 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             await self.run_with_retry_async(function=self.wait_batch)
             await self.run_with_retry_async(function=self.collect_batch_output)
             await self.retry_batch()
+            self._get_total_usage()
+            self._get_final_usage()
             return self.contents
         finally:
             await self.cleanup()
@@ -264,6 +273,31 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
     def _has_user_request(self):
         return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
 
+    def _get_final_usage(self) -> dict:
+        usages = []
+
+        for record in self.records:
+            usage = record.get("response",{}).get("body",{}).get("usage",{})
+
+            if usage:
+                usages.append(usage)
+
+        return _sum_token_usage(usages)
+
+    def _get_total_usage(self):
+        usages = []
+        usages.append(self.batch_job.batch_info.get("usage",{}))
+
+        for retry in self.retries:
+            usage = retry["retry_batch"].batch_info.get("usage",{})
+            usages.append(usage)
+
+        return _sum_token_usage(usages)
+
+
+
+
+
 # Helper
 def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,Any]]) -> None:
     result_index_map = {
@@ -279,7 +313,46 @@ def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,An
         else:
             old_items.append(new_item)
 
+def _sum_token_usage(usages: list[dict[str, Any]]) -> dict[str, Any]:
+    total_usage = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "input_tokens_details": {
+            "cached_tokens": 0,
+        },
+        "output_tokens_details": {
+            "reasoning_tokens": 0,
+        },
+    }
 
+    for usage in usages:
+        if not usage:
+            continue
+
+        input_tokens = usage.get("input_tokens", 0)
+        output_tokens = usage.get("output_tokens", 0)
+        total_tokens = usage.get("total_tokens", input_tokens + output_tokens)
+
+        cached_tokens = (
+            usage
+            .get("input_tokens_details", {})
+            .get("cached_tokens", 0)
+        )
+
+        reasoning_tokens = (
+            usage
+            .get("output_tokens_details", {})
+            .get("reasoning_tokens", 0)
+        )
+
+        total_usage["input_tokens"] += input_tokens
+        total_usage["output_tokens"] += output_tokens
+        total_usage["total_tokens"] += total_tokens
+        total_usage["input_tokens_details"]["cached_tokens"] += cached_tokens
+        total_usage["output_tokens_details"]["reasoning_tokens"] += reasoning_tokens
+
+    return total_usage
 
 
 

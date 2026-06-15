@@ -10,7 +10,7 @@ from src.llm.ollama.batch.processor import OllamaBatchTaskProcessor
 
 class TaskProcessor(Protocol):
     has_valid_output:bool
-    async def run(self):
+    async def run(self) -> Any:
         ...
 
     def add_user_inputs(self,user_inputs: str | list[UserRequest]):
@@ -19,14 +19,18 @@ class TaskProcessor(Protocol):
 class LLMTask:
     processor: TaskProcessor
     results: Any
-    has_valid_output:bool
+    has_valid_output: bool
+    total_usage: dict[str,Any]
+    final_usage: dict[str,Any]
 
     def __init__(self, processor: TaskProcessor) -> None:
         self.processor = processor
         self.results = None
         self.has_valid_output = False
+        self.token_usage = None
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
+
         self.processor.add_user_inputs(user_input)
         results = await self.processor.run()
         self.results = results
@@ -67,3 +71,7 @@ class LLMTask:
                 )
             case _:
                 raise ValueError(f"Unsupported provider {task_config.model.provider}")
+
+    def get_token_usage(self):
+        self.total_usage = self.processor.total_usage
+        self.final_usage = self.processor.final_usage
