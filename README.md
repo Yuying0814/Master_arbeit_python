@@ -125,7 +125,7 @@ Run `src/main.py` from PyCharm.
 After the preprocessing pipeline finishes successfully, the output data can be found in the project root directory under:
 
 ```text
-output/<pdf_name>/
+data/output/<pdf_name>/
 ```
 
 The generated files include:
