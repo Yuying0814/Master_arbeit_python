@@ -59,7 +59,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         config_kwargs = {
             "config":{
                 "max_concurrency": self.max_concurrency,
-                "callback": [callback],
+                "callbacks": [callback],
             }
         }
 

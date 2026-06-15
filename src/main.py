@@ -6,7 +6,7 @@ from src.preprocessing.config import PreprocessingConfig
 from src.preprocessing.preprocessor import Preprocessor
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+
 
 # ============================================================
 # User configuration
@@ -15,7 +15,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 MODE: Literal["single_test", "multiple_test"] = "single_test"
 
 # Set the input PDF path for single_test mode.
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "lis3dh.pdf"
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "lis3dh_gpt-5.4-mini.pdf"
 
 # Set the input PDF directory for multiple_test mode.
 PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
@@ -74,7 +74,7 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
         "extract_reg_map": {
             "provider": "openai",
             "is_batch": False,
-            "model_name": "gpt-5-mini",
+            "model_name": "gpt-5.4",
             "temperature": 0.0,
             "max_tokens": 30000,
         },

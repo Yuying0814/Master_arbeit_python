@@ -293,8 +293,11 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         usages.append(self.batch_job.batch_info.get("usage",{}))
 
         for retry in self.retries:
-            usage = retry["retry_job"].batch_info.get("usage",{})
-            usages.append(usage)
+            retry_job = retry.get("retry_job")
+
+            if retry_job:
+                usage = retry_job.batch_info.get("usage",{}) or {}
+                usages.append(usage)
 
         self.total_usage = {
             self.model: _sum_token_usage(usages)

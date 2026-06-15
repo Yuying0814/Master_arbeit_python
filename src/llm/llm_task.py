@@ -28,6 +28,8 @@ class LLMTask:
         self.results = None
         self.has_valid_output = False
         self.token_usage = None
+        self.final_usage = {}
+        self.total_usage = {}
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
 

@@ -30,7 +30,7 @@ class LLMTaskProcessor(HasLangChainResultParser):
         output_format: ValidOutputFormat = "text",
     ) -> None:
         self.model = model
-        self.model_name =""
+        self.model_name = model_name
         self.system = system
         self.output_format = output_format
         self.user_input = ""
@@ -98,8 +98,8 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
             self.total_usage = callback.usage_metadata or {}
             self.final_usage = {
-                                   self.model_name:raw_message.usage_metadata
-                               } or {}
+                                   self.model_name:raw_message.usage_metadata or {}
+                               }
             self.has_valid_output = True
 
             if isinstance(result, BaseModel):
@@ -112,8 +112,8 @@ class LLMTaskProcessor(HasLangChainResultParser):
 
         self.total_usage = callback.usage_metadata or {}
         self.final_usage = {
-            self.model_name:response.usage_metadata
-                           }or {}
+            self.model_name:response.usage_metadata or {}
+                           }
 
         if self.output_format == "json":
             self.has_valid_output = True
