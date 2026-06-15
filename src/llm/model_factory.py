@@ -27,7 +27,6 @@ def build_chat_model(
             api_key=api_key,
             temperature=temperature,
             max_tokens= max_output_tokens,
-            use_responses_api= use_responses_api,
         )
 
     if provider == "ollama":
