@@ -78,11 +78,13 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
             return_exceptions=True,
             **config_kwargs
         )
-        self.total_usage = callback.usage_metadata
 
         contents = self._collect_results(self.user_requests,results)
         self.contents = contents
-        return await self.retry_batch([callback])
+        
+        final_contents = await self.retry_batch([callback])
+        self.total_usage = callback.usage_metadata
+        return final_contents
 
     def add_user_inputs(self, user_requests: str| list[UserRequest]) -> None:
         if isinstance(user_requests, str):
