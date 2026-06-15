@@ -1,7 +1,5 @@
 ## External Dependencies
 
-This project requires Python 3.10 or later.
-
 Install the required external Python libraries with:
 
 ```bash
@@ -30,6 +28,11 @@ MISTRALAI_API_KEY=your_mistral_api_key
 ```
 
 ## Running the Preprocessor
+After the preprocessing pipeline finishes successfully, the output files are saved automatically under:
+
+```text
+data/output/<pdf_name>/
+```
 
 The preprocessing pipeline can be started from `src/main.py`.
 
