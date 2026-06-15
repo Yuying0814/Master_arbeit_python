@@ -30,8 +30,8 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.retries = []
         self.max_concurrency = 1
         self.has_valid_output = False
-        self.total_usage = None
-        self.final_usage = None
+        self.total_usage = {}
+        self.final_usage = {}
 
     @classmethod
     def load_from_task_config(cls,task_config:TaskConfig):
@@ -82,14 +82,14 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
 
         contents = self._collect_results(self.user_requests,results)
         self.contents = contents
-        return await self.retry_batch()
+        return await self.retry_batch([callback])
 
     def add_user_inputs(self, user_requests: str| list[UserRequest]) -> None:
         if isinstance(user_requests, str):
             raise ValueError("OllamaBatchTaskProcessor expects a list of UserRequest.")
         self.user_requests.extend(user_requests)
 
-    async def retry_batch(self,max_retries:int = 3) -> list[dict[str,Any]]:
+    async def retry_batch(self,callbacks:list[Any],max_retries:int = 3) -> list[dict[str,Any]]:
 
         for attempt in range(1,max_retries+1):
             retry_user_requests = [user_request for user_request, content in zip(self.user_requests, self.contents) if
@@ -104,12 +104,18 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
                 self.has_valid_output = True
                 return self.contents
 
-            retry_model = self._build_runnable_model()
+            config_kwargs = {
+                "config": {
+                    "max_concurrency": self.max_concurrency,
+                    "callbacks": callbacks,
+                }
+            }
 
+            retry_model = self._build_runnable_model()
             retry_results = await retry_model.abatch(
                 inputs=retry_inputs,
-                config={"max_concurrency":self.max_concurrency},
                 return_exceptions=True,
+                **config_kwargs
             )
 
             retry_contents = self._collect_results(retry_user_requests,retry_results)

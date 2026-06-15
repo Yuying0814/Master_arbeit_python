@@ -288,16 +288,28 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
             self.model: _sum_token_usage(usages)
         }
 
-    def _get_total_usage(self):
+    def _get_total_usage(self) -> None:
         usages = []
-        usages.append(self.batch_job.batch_info.get("usage",{}))
+
+        if self.batch_job:
+            batch_usage = self.batch_job.batch_info.get("usage", {}) or {}
+
+            if batch_usage:
+                usages.append(batch_usage)
+            else:
+                usages.extend(_extract_record_usages(self.records))
 
         for retry in self.retries:
             retry_job = retry.get("retry_job")
+            retry_records = retry.get("retry_records", [])
 
             if retry_job:
-                usage = retry_job.batch_info.get("usage",{}) or {}
-                usages.append(usage)
+                retry_usage = retry_job.batch_info.get("usage", {}) or {}
+
+                if retry_usage:
+                    usages.append(retry_usage)
+                else:
+                    usages.extend(_extract_record_usages(retry_records))
 
         self.total_usage = {
             self.model: _sum_token_usage(usages)
@@ -363,7 +375,21 @@ def _sum_token_usage(usages: list[dict[str, Any]]) -> dict[str, Any]:
 
     return total_usage
 
+def _extract_record_usages(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    usages = []
 
+    for record in records:
+        usage = (
+            record
+            .get("response", {})
+            .get("body", {})
+            .get("usage", {})
+        )
+
+        if usage:
+            usages.append(usage)
+
+    return usages
 
 
 
