@@ -79,9 +79,9 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
     @classmethod
     def load_from_task_config(cls,api_key:str|None,input_path:Path|str|None,task_config:TaskConfig) -> "AsyncOpenAIBatchTask":
         if not api_key:
-            raise ValueError("OpenAIBatchTaskProcessor expects a valid API key.")
+            raise ValueError("AsyncOpenAIBatchTask expects a valid API key.")
         if not input_path:
-            raise ValueError("OpenAIBatchTaskProcessor expects a valid input path.")
+            raise ValueError("AsyncOpenAIBatchTask expects a valid input path.")
 
         return cls(
             api_key=api_key,
@@ -114,7 +114,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
         }
         """
         if isinstance(user_requests, str):
-            raise TypeError("OpenAIBatchTaskProcessor expects a list of UserRequest.")
+            raise TypeError("AsyncOpenAIBatchTask    expects a list of UserRequest.")
 
         custom_ids = []
         user_inputs = []
