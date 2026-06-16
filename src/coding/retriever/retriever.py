@@ -45,7 +45,7 @@ class PageRetriever:
             ],
         )
 
-    def _get_page_by_index(self,page_index:list[int]) -> list[dict[str,Any]]:
+    def _get_page_by_position(self,page_index:list[int]) -> list[dict[str,Any]]:
         return [self.pages[index] for index in page_index]
 
     @classmethod
