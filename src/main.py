@@ -74,9 +74,9 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
         "extract_reg_map": {
             "provider": "openai",
             "is_batch": False,
-            "model_name": "gpt-5-mini",
+            "model_name": "gpt-5.4",
             "temperature": 0.0,
-            "max_tokens": 60000,
+            "max_tokens": 100000,
         },
     }
 # ============================================================

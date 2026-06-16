@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from src.models.page_output import PageClassification
-from src.llm.llm_task import LLMTask
+from src.llm.llm_task_runner import LLMTaskRunner
 from src.preprocessing.page.build_page_request import build_page_requests
 from src.preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
 from src.preprocessing.toc.resolve_toc_entries import resolve_toc_entries
@@ -42,11 +42,11 @@ class Preprocessor:
     reg_summary: dict[str,Any]
     reg_map: dict[str,Any]
 
-    task_classification: LLMTask | None
-    task_reg_sum_verification:LLMTask | None
-    task_reg_page_verification:LLMTask | None
-    task_reg_index_extraction:LLMTask | None
-    task_reg_map_extraction:LLMTask | None
+    classifier: LLMTaskRunner | None
+    reg_sum_verifier:LLMTaskRunner | None
+    reg_page_verifier:LLMTaskRunner | None
+    reg_index_extractor:LLMTaskRunner | None
+    reg_map_extractor:LLMTaskRunner | None
 
     mistral_client: MistralClient
 
@@ -80,11 +80,11 @@ class Preprocessor:
         self.reg_summary = {}
         self.reg_map = {}
 
-        self.task_classification = None
-        self.task_reg_sum_verification = None
-        self.task_reg_page_verification = None
-        self.task_reg_index_extraction = None
-        self.task_reg_map_extraction = None
+        self.classifier = None
+        self.reg_sum_verifier = None
+        self.reg_page_verifier = None
+        self.reg_index_extractor = None
+        self.reg_map_extractor = None
 
         self.mistral_client = MistralClient(config.get_apikey("mistral"))
 
@@ -206,7 +206,7 @@ class Preprocessor:
             print("No pages for classification task\n")
             return
 
-        self.task_classification = LLMTask.load_from_task_config(
+        self.classifier = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=input_Path,
@@ -214,9 +214,9 @@ class Preprocessor:
         print("Classification task created\n")
         print("Waiting for completion of classification task for all pages:\n")
 
-        contents = await self.task_classification.run(user_requests)
+        contents = await self.classifier.run(user_requests)
 
-        if not getattr(self.task_classification, "has_valid_output", True):
+        if not getattr(self.classifier, "has_valid_output", True):
             raise RuntimeError("Task classification failed\n")
 
         parse_classification_content(
@@ -244,7 +244,7 @@ class Preprocessor:
             candidate_pages = candidate_pages,
         )
 
-        self.task_reg_sum_verification = LLMTask.load_from_task_config(
+        self.reg_sum_verifier = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=input_path,
@@ -252,9 +252,9 @@ class Preprocessor:
 
         print("Task for verification of register summary pages created\n")
 
-        contents = await self.task_reg_sum_verification.run(user_requests)
+        contents = await self.reg_sum_verifier.run(user_requests)
 
-        if not getattr(self.task_reg_sum_verification, "has_valid_output", True):
+        if not getattr(self.reg_sum_verifier, "has_valid_output", True):
             raise RuntimeError("Invalid output from register summary page verification")
 
         self.reg_sum_page_idx = parse_verification_contents(
@@ -284,7 +284,7 @@ class Preprocessor:
             candidate_pages = page_candidates,
         )
 
-        self.task_reg_page_verification = LLMTask.load_from_task_config(
+        self.reg_page_verifier = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=inputPath,
@@ -292,9 +292,9 @@ class Preprocessor:
 
         print("Task for verification of register pages created\n")
 
-        contents = await self.task_reg_page_verification.run(user_requests)
+        contents = await self.reg_page_verifier.run(user_requests)
 
-        if not getattr(self.task_reg_page_verification, "has_valid_output", True):
+        if not getattr(self.reg_page_verifier, "has_valid_output", True):
             raise RuntimeError("Invalid output from register page verification")
 
         self.reg_page_idx = parse_verification_contents(
@@ -326,16 +326,16 @@ class Preprocessor:
             ensure_ascii=False,
         )
 
-        self.task_reg_index_extraction = LLMTask.load_from_task_config(
+        self.reg_index_extractor = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
 
         print("Start register index information extraction\n")
 
-        result = await self.task_reg_index_extraction.run(user_input)
+        result = await self.reg_index_extractor.run(user_input)
 
-        if not getattr(self.task_reg_index_extraction, "has_valid_output", True):
+        if not getattr(self.reg_index_extractor, "has_valid_output", True):
             raise RuntimeError("Invalid output from register index information extraction")
 
         self.reg_summary = result
@@ -363,16 +363,16 @@ class Preprocessor:
             ensure_ascii=False,
         )
 
-        self.task_reg_map_extraction = LLMTask.load_from_task_config(
+        self.reg_map_extractor = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
 
         print("Start register map extraction\n")
 
-        result = await self.task_reg_map_extraction.run(user_input)
+        result = await self.reg_map_extractor.run(user_input)
 
-        if not getattr(self.task_reg_map_extraction, "has_valid_output", True):
+        if not getattr(self.reg_map_extractor, "has_valid_output", True):
             raise RuntimeError("Invalid output from register map extraction")
 
         self.reg_map = result
@@ -448,14 +448,14 @@ class Preprocessor:
     async def cleanup(self) -> None:
         cleanup_tasks = []
 
-        if self.task_classification is not None:
-            cleanup_tasks.append(self.task_classification.cleanup())
+        if self.classifier is not None:
+            cleanup_tasks.append(self.classifier.cleanup())
 
-        if self.task_reg_sum_verification is not None:
-            cleanup_tasks.append(self.task_reg_sum_verification.cleanup())
+        if self.reg_sum_verifier is not None:
+            cleanup_tasks.append(self.reg_sum_verifier.cleanup())
 
-        if self.task_reg_page_verification is not None:
-            cleanup_tasks.append(self.task_reg_page_verification.cleanup())
+        if self.reg_page_verifier is not None:
+            cleanup_tasks.append(self.reg_page_verifier.cleanup())
 
         if cleanup_tasks:
             await asyncio.gather(
@@ -578,15 +578,15 @@ def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
 def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> dict[str,Any]:
     token_consumption = {}
 
-    token_consumption["classification"] = _get_usage_from_task(preprocessor.task_classification)
-    token_consumption["reg_sum_verification"] = _get_usage_from_task(preprocessor.task_reg_sum_verification)
-    token_consumption["reg_page_verification"] = _get_usage_from_task(preprocessor.task_reg_page_verification)
-    token_consumption["reg_index_extraction"] = _get_usage_from_task(preprocessor.task_reg_index_extraction)
-    token_consumption["reg_map_extraction"] = _get_usage_from_task(preprocessor.task_reg_map_extraction)
+    token_consumption["classification"] = _get_usage_from_task(preprocessor.classifier)
+    token_consumption["reg_sum_verification"] = _get_usage_from_task(preprocessor.reg_sum_verifier)
+    token_consumption["reg_page_verification"] = _get_usage_from_task(preprocessor.reg_page_verifier)
+    token_consumption["reg_index_extraction"] = _get_usage_from_task(preprocessor.reg_index_extractor)
+    token_consumption["reg_map_extraction"] = _get_usage_from_task(preprocessor.reg_map_extractor)
 
     return token_consumption
 
-def _get_usage_from_task(task:LLMTask | None) -> dict[str,Any]:
+def _get_usage_from_task(task:LLMTaskRunner | None) -> dict[str,Any]:
     if task is not None:
         return {
         "final_usage": getattr(task, "final_usage",{}),
