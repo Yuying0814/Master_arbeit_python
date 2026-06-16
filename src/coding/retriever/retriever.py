@@ -40,7 +40,7 @@ class PageRetriever:
             results=[
                 RetrievalResult(
                     topic=topic,
-                    pages = self._get_page_by_index(page_index)
+                    pages = self._get_page_by_position(page_index)
                 ) for page_index,topic in zip(page_indices, topics)
             ],
         )
