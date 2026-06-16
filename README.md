@@ -125,7 +125,7 @@ If the extraction step fails with `max_output_tokens`, increase `max_tokens` for
 
 Run `src/main.py` from PyCharm.
 
-After the preprocessing pipeline finishes successfully, the output files are saved automatically under:
+After the preprocessing pipeline finishes successfully, the output data can be found in the project root directory under:
 
 ```text
 data/output/<pdf_name>/
