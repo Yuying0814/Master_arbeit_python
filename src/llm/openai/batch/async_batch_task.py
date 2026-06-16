@@ -13,7 +13,7 @@ from src.llm.openai.batch.input_file import BatchInputFile
 
 T = TypeVar("T")
 
-class OpenAIBatchTaskProcessor(HasRunWithRetry):
+class AsyncOpenAIBatchTask(HasRunWithRetry):
     name:str
     status:str
     has_valid_output:bool
@@ -77,7 +77,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
         self.total_usage = {}
 
     @classmethod
-    def load_from_task_config(cls,api_key:str|None,input_path:Path|str|None,task_config:TaskConfig):
+    def load_from_task_config(cls,api_key:str|None,input_path:Path|str|None,task_config:TaskConfig) -> "AsyncOpenAIBatchTask":
         if not api_key:
             raise ValueError("OpenAIBatchTaskProcessor expects a valid API key.")
         if not input_path:

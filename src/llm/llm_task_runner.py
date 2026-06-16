@@ -3,12 +3,12 @@ from pathlib import Path
 
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
-from src.llm.normal_llm_processor import LLMTaskProcessor
-from src.llm.openai.batch.async_processor import OpenAIBatchTaskProcessor
-from src.llm.ollama.batch.processor import OllamaBatchTaskProcessor
+from src.llm.llm_single_task import LLMSingleTask
+from src.llm.openai.batch.async_batch_task import AsyncOpenAIBatchTask
+from src.llm.ollama.batch.ollama_batch_task import OllamaBatchTask
 
 
-class TaskProcessor(Protocol):
+class LLMTask(Protocol):
     has_valid_output:bool
     total_usage:dict[str,Any]
     final_usage:dict[str,Any]
@@ -18,15 +18,15 @@ class TaskProcessor(Protocol):
     def add_user_inputs(self,user_inputs: str | list[UserRequest]):
         ...
 
-class LLMTask:
-    processor: TaskProcessor
+class LLMTaskRunner:
+    task: LLMTask
     results: Any
     has_valid_output: bool
     total_usage: dict[str,Any]
     final_usage: dict[str,Any]
 
-    def __init__(self, processor: TaskProcessor) -> None:
-        self.processor = processor
+    def __init__(self, task: LLMTask) -> None:
+        self.task = task
         self.results = None
         self.has_valid_output = False
         self.token_usage = None
@@ -35,48 +35,48 @@ class LLMTask:
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
 
-        self.processor.add_user_inputs(user_input)
-        results = await self.processor.run()
+        self.task.add_user_inputs(user_input)
+        results = await self.task.run()
         self.results = results
-        self.has_valid_output = self.processor.has_valid_output
+        self.has_valid_output = self.task.has_valid_output
         self.get_token_usage()
         return results
 
     async def cleanup(self) -> None:
-        if isinstance(self.processor, OpenAIBatchTaskProcessor):
-            await self.processor.cleanup()
+        if isinstance(self.task, OpenAIBatchTaskProcessor):
+            await self.task.cleanup()
 
     @classmethod
-    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "LLMTask":
-        processor = cls.build_task_processor(
+    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "LLMTaskRunner":
+        task = cls.build_task(
             task_config = task_config,
             api_key = api_key,
             input_path = Path(input_path) if input_path else None,
         )
-        return cls(processor)
+        return cls(task)
 
     @staticmethod
-    def build_task_processor(task_config:TaskConfig, api_key:str|None ,input_path:Path|None) -> TaskProcessor:
+    def build_task(task_config:TaskConfig, api_key:str|None ,input_path:Path|None) -> LLMTask:
         if not task_config.model.is_batch:
-            return LLMTaskProcessor.load_from_task_config(
+            return LLMSingleTask.load_from_task_config(
                 task_config = task_config,
                 api_key = api_key,
             )
 
         match task_config.model.provider:
             case "openai":
-                return OpenAIBatchTaskProcessor.load_from_task_config(
+                return AsyncOpenAIBatchTask.load_from_task_config(
                     api_key = api_key,
                     input_path = input_path,
                     task_config = task_config,
                 )
             case "ollama":
-                return OllamaBatchTaskProcessor.load_from_task_config(
+                return OllamaBatchTask.load_from_task_config(
                     task_config = task_config,
                 )
             case _:
                 raise ValueError(f"Unsupported provider {task_config.model.provider}")
 
     def get_token_usage(self):
-        self.total_usage = self.processor.total_usage
-        self.final_usage = self.processor.final_usage
+        self.total_usage = self.task.total_usage
+        self.final_usage = self.task.final_usage

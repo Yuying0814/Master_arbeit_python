@@ -1,6 +1,3 @@
-import json
-
-from pathlib import Path
 from typing import Any
 from langchain_ollama import ChatOllama
 from langchain_core.callbacks import UsageMetadataCallbackHandler
@@ -10,7 +7,7 @@ from src.models.task_config import TaskConfig
 from src.llm.common.common import HasLangChainResultParser,ValidOutputFormat
 
 
-class OllamaBatchTaskProcessor(HasLangChainResultParser):
+class OllamaBatchTask(HasLangChainResultParser):
     contents: list[dict[str,Any]]
     model: ChatOllama
     user_requests: list[UserRequest]
@@ -34,7 +31,7 @@ class OllamaBatchTaskProcessor(HasLangChainResultParser):
         self.final_usage = {}
 
     @classmethod
-    def load_from_task_config(cls,task_config:TaskConfig):
+    def load_from_task_config(cls,task_config:TaskConfig) -> "OllamaBatchTask":
         model = ChatOllama(
             model=task_config.model.model_name,
             temperature=task_config.model.temperature,

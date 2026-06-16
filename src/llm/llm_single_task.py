@@ -14,7 +14,7 @@ from src.llm.model_factory import build_chat_model
 from src.llm.common.common import HasLangChainResultParser, ValidOutputFormat
 
 
-class LLMTaskProcessor(HasLangChainResultParser):
+class LLMSingleTask(HasLangChainResultParser):
     user_input: str
     has_valid_output: bool
     model_name:str
@@ -43,9 +43,9 @@ class LLMTaskProcessor(HasLangChainResultParser):
         cls,
         task_config: TaskConfig,
         api_key: str | None = None,
-    ) -> "LLMTaskProcessor":
+    ) -> "LLMSingleTask":
         if task_config.model.provider != "ollama" and not api_key:
-            raise ValueError("LLMTaskProcessor expects a valid API key.")
+            raise ValueError(f"{task_config.model.provider} expects a valid API key.")
 
         model = build_chat_model(
             api_key=api_key,
