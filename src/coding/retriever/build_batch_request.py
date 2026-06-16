@@ -26,7 +26,7 @@ def build_user_requests(
 
         custom_id = f"{request_id}_{page['index']}"
         context = {
-            "topics": [item.model_dump_json() for item in topics],
+            "topics": [item.model_dump() for item in topics],
             "current_page":page,
             "previous_content":previous_content,
         }
