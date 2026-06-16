@@ -58,5 +58,5 @@ def build_custom_id_output_map(contents: list[dict[str, Any]]) -> dict[str, Any]
     return {
         item["custom_id"]: item.get("content")
         for item in contents
-        if "custom_id" in item
+        if item.get("custom_id") and item.get("completed", False)
     }
