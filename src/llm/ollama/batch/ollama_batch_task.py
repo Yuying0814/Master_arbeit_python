@@ -130,6 +130,8 @@ class OllamaBatchTask(HasLangChainResultParser):
         self.contents = []
         self.retries = []
         self.has_valid_output = False
+        self.total_usage = {}
+        self.final_usage = {}
 
     def cleanup_user_requests(self) -> None:
         self.user_requests = []
