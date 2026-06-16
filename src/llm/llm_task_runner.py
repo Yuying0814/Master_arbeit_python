@@ -43,7 +43,7 @@ class LLMTaskRunner:
         return results
 
     async def cleanup(self) -> None:
-        if isinstance(self.task, OpenAIBatchTaskProcessor):
+        if isinstance(self.task, AsyncOpenAIBatchTask):
             await self.task.cleanup()
 
     @classmethod
