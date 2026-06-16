@@ -12,6 +12,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
     retrieval = TaskConfig(
         model = ModelConfig(
             provider = "openai",
+            is_batch=True,
             model_name="gpt-5-mini",
             temperature=0.0,
             max_tokens=2000,
