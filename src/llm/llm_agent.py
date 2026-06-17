@@ -22,8 +22,7 @@ class LLMAgent:
     check_pointer:Any
     is_structured_output:bool
     total_tokens:dict[str,Any]
-    usage_callback = UsageMetadataCallbackHandler()
-    log:list
+    usage_callback:Any
 
     def __init__(self,
                  model:BaseChatModel,
@@ -42,7 +41,7 @@ class LLMAgent:
             response_format = _build_response_format(output_format)
 
         self.task_name = task_name
-
+        self.usage_callback = UsageMetadataCallbackHandler()
         self.check_pointer = InMemorySaver()
 
         self.agent = create_agent(
@@ -79,7 +78,7 @@ class LLMAgent:
             output_format=task_config.output_format,
         )
 
-    def run(self,user_input:str) -> dict[str, Any]:
+    def run(self,user_input:str) -> Any:
         config = {
             "configurable": {
                 "thread_id": self.task_name
@@ -96,7 +95,7 @@ class LLMAgent:
 
         return self._parse_response(response)
 
-    def run_with_retry(self,user_input:str) -> dict[str, Any]:
+    def run_with_retry(self,user_input:str) -> Any:
 
         config = {
             "configurable": {
@@ -125,8 +124,8 @@ class LLMAgent:
                 return response["structured_response"]
             else:
                 return response["messages"][-1].content
-        except Exception:
-            raise RuntimeError("Failed to parse response")
+        except Exception as e:
+            raise RuntimeError("Failed to parse response") from e
 
     def _update_total_tokens(self):
         self.total_tokens = self.usage_callback.usage_metadata
