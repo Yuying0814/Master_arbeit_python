@@ -127,7 +127,7 @@ class LLMSingleTask(HasLangChainResultParser):
 
     def add_user_inputs(self, user_inputs: str | list[UserRequest]) -> None:
         if not isinstance(user_inputs, str):
-            self.user_input = user_request_to_str(user_inputs)
+            self.user_input = _user_request_to_str(user_inputs)
         else:
             self.user_input = user_inputs
 
@@ -152,7 +152,7 @@ def _raise_if_structured_output_invalid(response: dict[str, Any]) -> dict[str, A
     return response
 
 
-def user_request_to_str(user_requests: list[UserRequest]) -> str:
+def _user_request_to_str(user_requests: list[UserRequest]) -> str:
     data = {
         "requests": [
             request.model_dump()
