@@ -91,6 +91,7 @@ class RejectionReason(StructuredOutputModel):
 # inner execution verifier
 class ExecutionVerifierInput(StructuredOutputModel):
     verification_plan:list[FilePlan] = Field(
+        default_factory=list,
         description="verification plan for the candidate files",
     )
 
@@ -147,7 +148,8 @@ class RejectedFunction(StructuredOutputModel):
 
 # inner test coder input
 class TestCoderInput(StructuredOutputModel):
-    verification_plan: str = Field(
+    verification_plan:list[FilePlan] = Field(
+        default_factory=list,
         description="verification plan for the candidate files",
     )
 

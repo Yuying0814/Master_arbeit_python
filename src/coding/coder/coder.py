@@ -10,7 +10,7 @@ class Coder:
     log:list
 
     def __init__(self,coder:LLMAgent):
-        self.coder = coder
+        self.coder_agent = coder
         self.log = []
 
     @classmethod

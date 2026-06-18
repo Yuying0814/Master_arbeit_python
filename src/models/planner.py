@@ -4,7 +4,8 @@ from pydantic import Field
 from typing import Literal
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.coding_common import CodeFile,VerificationPlan,ProgrammingPlan,VerifierFeedback
+from src.models.coding_common import CodeFile,VerificationPlan,ProgrammingPlan
+from src.models.verifier import VerifierOutput
 from src.models.retriever import RetrievalTopic
 from src.models.register_output import RegisterMapOutput
 
@@ -16,7 +17,7 @@ class PlannerInput(StructuredOutputModel):
         description="enable test coder",
     )
     user_request:str = Field(
-        default="Generate C driver",
+        default="Generate an Arduino Wire.h-based C++ driver library with one .h file and one .cpp file.",
         description="user request for coding",
     )
     register_map:RegisterMapOutput = Field(
@@ -31,7 +32,7 @@ class PlannerInput(StructuredOutputModel):
         default_factory=list,
         description="previous accepted code files",
     )
-    verifier_feedback: VerifierFeedback|None   = Field(
+    verifier_feedback: VerifierOutput|None   = Field(
         default=None,
         description="feedback from verifier agent",
     )

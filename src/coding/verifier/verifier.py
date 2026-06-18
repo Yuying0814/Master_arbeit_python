@@ -13,13 +13,11 @@ from src.coding.verifier.execution_verifier import ExecutionVerifier
 class Verifier:
     semantic_verifier:LLMAgent
     execution_verifier: ExecutionVerifier
-    enable_test_coder:bool
     logs:list
 
-    def __init__(self,semantic_verifier:LLMAgent,execution_verifier:Any,enable_test_coder:bool) -> None:
+    def __init__(self,semantic_verifier:LLMAgent,execution_verifier:Any) -> None:
         self.semantic_verifier = semantic_verifier
         self.execution_verifier = execution_verifier
-        self.enable_test_coder = enable_test_coder
 
     @classmethod
     def load_from_task_config(cls,

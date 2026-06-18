@@ -9,7 +9,7 @@ from src.coding.verifier.verifier import Verifier
 
 from src.models.coding_common import ProgrammingPlan,VerificationPlan,CodeFile
 from src.models.register_output import RegisterMapOutput
-from src.models.planner import PlannerInput,PlannerOutput
+from src.models.planner import PlannerInput
 from src.models.retriever import RetrievalResult
 from src.models.coder import CoderInput,CoderOutput
 from src.models.verifier import VerifierInput,VerifierOutput
@@ -52,7 +52,7 @@ class Controller:
             retrieval_results = retrieval_response.results
 
             coder_input = self._build_coder_input(programming_plan,retrieval_results)
-            coder_output = self.coder.run(coder_input)
+            coder_output = self.coder.create_code_file(coder_input)
 
             self._update_candidate_files(coder_output)
 
@@ -60,11 +60,11 @@ class Controller:
             verifier_output = self.verifier.run(verifier_input)
 
             if verifier_output.passed:
-                self.accepted_files.extend(coder_output.files)
+                self.accepted_files.extend(coder_output.candidate_files)
                 self._update_logs()
                 break
             else:
-                self.candidate_files.extend(coder_output.files)
+                self.candidate_files.extend(coder_output.candidate_files)
             verifier_feedback = verifier_output
 
         if len(self.accepted_files) > 0:
@@ -93,7 +93,15 @@ class Controller:
             tools=None,
         )
 
-        self.verifier = Verifier
+        self.verifier = Verifier.load_from_task_config(
+            semantic_config=task_configs.verification_semantic,
+            execution_config=task_configs.verification_test_coder,
+            enable_test_coder=self.config.enable_test_coder,
+            cli_path=self.config.project_path.cli_path,
+            fqbn=self._build_fqbn(),
+            semantic_tools=None,
+            execution_tools=None,
+        )
 
     def _build_planner_input(self,user_request:str|None,verifier_feedback:VerifierOutput|None) -> PlannerInput:
         if user_request is None:
@@ -141,6 +149,9 @@ class Controller:
         pass
 
     def _check_valid_client(self):
+        pass
+
+    def _build_fqbn(self):
         pass
 
     def _check_valid_fqbn(self):

@@ -59,6 +59,7 @@ class ExecutionVerifier:
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
         try:
+            _write_basic_test_sketch(self.test_dir)
             files = execution_verifier_input.candidate_files
             FileWriter.write_to_files(
                 code_files=files,

@@ -3,8 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.config import BaseConfig,BaseProjectPath
-from src.models.retriever import RetrievalResponse
+from src.models.retriever import BinaryClassifierOutput
+from src.models.coder import CoderOutput
 from src.models.planner import PlannerOutput
+from src.models.verifier import SemanticVerifierOutput,TestCoderOutput
 from src.models.task_config import TaskConfig,ModelConfig,CodingTaskConfigs
 
 
@@ -18,7 +20,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
             max_tokens=2000,
         ),
         system = _read_instructions(prompt_path/"prompt_retriever.txt"),
-        output_format = RetrievalResponse,
+        output_format = BinaryClassifierOutput,
     )
 
     planning = TaskConfig(
@@ -40,26 +42,39 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
             temperature=0.0,
             max_tokens=10000,
         ),
-        system=_read_instructions(prompt_path / "prompt_planner.txt"),
-        output_format=PlannerOutput,
+        system=_read_instructions(prompt_path / "prompt_coder.txt"),
+        output_format=CoderOutput,
     )
 
-    verification = TaskConfig(
+    verification_semantic = TaskConfig(
         model=ModelConfig(
             provider="openai",
             model_name="gpt-5-mini",
             temperature=0.0,
             max_tokens=10000,
         ),
-        system=_read_instructions(prompt_path / "prompt_planner.txt"),
-        output_format=PlannerOutput,
+        system=_read_instructions(prompt_path / "prompt_semantic_verifier.txt"),
+        output_format=SemanticVerifierOutput,
+    )
+
+    verification_test_coder = TaskConfig(
+        model=ModelConfig(
+            provider="openai",
+            model_name="gpt-5-mini",
+            temperature=0.0,
+            max_tokens=10000,
+        ),
+        system=_read_instructions(prompt_path / "prompt_test_coder.txt"),
+        output_format=TestCoderOutput,
+        memory_enabled=True
     )
 
     return CodingTaskConfigs(
         retrieval=retrieval,
         planning = planning,
         coding = coding,
-        verification = verification,
+        verification_semantic = verification_semantic,
+        verification_test_coder = verification_test_coder
     )
 
 def _read_instructions(prompt_path:str|Path|None) -> str:

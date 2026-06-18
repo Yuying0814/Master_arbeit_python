@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import Field
 from typing import Literal
 
@@ -12,7 +13,7 @@ class CodeFile(StructuredOutputModel):
         description="name of the current code file",
     )
     file_type: str = Field(
-        description="type of the current code file, .cpp or .h",
+        description="type of the current code file, .ino, .cpp or .h",
     )
     description: str = Field(
         description="short functional description of the current code file",
@@ -58,7 +59,7 @@ class TargetFile(StructuredOutputModel):
         description="name of the current target file",
     )
     file_type: str = Field(
-        description="type of the current target file, .c or .h",
+        description="type of the current target file, .ino, .cpp or .h",
     )
     operation: Operation = Field(
         description="operation of the current target file."
@@ -141,6 +142,3 @@ class VerificationPlan(StructuredOutputModel):
         default_factory=list,
         description="execution verification plan",
     )
-
-class VerifierFeedback(VerifierOutput):
-    pass

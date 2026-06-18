@@ -22,4 +22,5 @@ class CodingTaskConfigs(BaseModel):
     retrieval: TaskConfig
     planning:TaskConfig
     coding:TaskConfig
-    verification:TaskConfig
+    verification_semantic:TaskConfig
+    verification_test_coder:TaskConfig
