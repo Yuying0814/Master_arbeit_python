@@ -1,10 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-from pydantic import BaseModel
 
 from src.config import BaseConfig,BaseProjectPath
 from src.models.retriever import RetrievalResponse
+from src.models.planner import PlannerOutput
 from src.models.task_config import TaskConfig,ModelConfig,CodingTaskConfigs
 
 
@@ -21,8 +21,45 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
         output_format = RetrievalResponse,
     )
 
+    planning = TaskConfig(
+        model=ModelConfig(
+            provider="openai",
+            model_name="gpt-5-mini",
+            temperature=0.0,
+            max_tokens=10000,
+        ),
+        system=_read_instructions(prompt_path / "prompt_planner.txt"),
+        output_format=PlannerOutput,
+        memory_enabled=True,
+    )
+
+    coding = TaskConfig(
+        model=ModelConfig(
+            provider="openai",
+            model_name="gpt-5-mini",
+            temperature=0.0,
+            max_tokens=10000,
+        ),
+        system=_read_instructions(prompt_path / "prompt_planner.txt"),
+        output_format=PlannerOutput,
+    )
+
+    verification = TaskConfig(
+        model=ModelConfig(
+            provider="openai",
+            model_name="gpt-5-mini",
+            temperature=0.0,
+            max_tokens=10000,
+        ),
+        system=_read_instructions(prompt_path / "prompt_planner.txt"),
+        output_format=PlannerOutput,
+    )
+
     return CodingTaskConfigs(
-        Retrieval=retrieval,
+        retrieval=retrieval,
+        planning = planning,
+        coding = coding,
+        verification = verification,
     )
 
 def _read_instructions(prompt_path:str|Path|None) -> str:
@@ -35,17 +72,27 @@ def _read_instructions(prompt_path:str|Path|None) -> str:
 @dataclass(frozen=True)
 class CodingProjectPath(BaseProjectPath):
     code_dir: Path
+    cli_path: Path
 
 class CodingConfig(BaseConfig):
     project_path: CodingProjectPath
     task_configs: CodingTaskConfigs
+    enable_test_coder: bool
+    core:str
+    board:str
 
-    def __init__(self,project_path:BaseProjectPath,task_configs:CodingTaskConfigs) -> None:
+    def __init__(self,project_path:BaseProjectPath,task_configs:CodingTaskConfigs,enable_test_coder:bool,core:str,board:str) -> None:
         super().__init__(project_path)
         self.task_configs = task_configs
+        self.enable_test_coder = enable_test_coder
+        self.core = core
+        self.board = board
 
     @classmethod
-    def load_config(cls,code_dir:str|Path,env:str|Path=""):
+    def load_config(cls,code_dir:str|Path, cli_path:str|Path, env:str|Path="",*,
+                    enable_test_coder:bool=False,
+                    core:str = "",
+                    board:str = "") -> CodingConfig:
         code_dir = Path(code_dir)
         code_dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,6 +110,7 @@ class CodingConfig(BaseConfig):
             raise FileNotFoundError(f"No such .env file: {env}")
 
         env_path = env
+        cli_path = Path(cli_path)
 
         project_path = CodingProjectPath(
             root_path=root_path,
@@ -73,11 +121,15 @@ class CodingConfig(BaseConfig):
             env_path=env_path,
             tests_dir=root_path / "tests",
             code_dir = code_dir,
+            cli_path= cli_path,
         )
 
         return cls(
             project_path = project_path,
             task_configs = _build_task_config(project_path.prompt_path),
+            enable_test_coder = enable_test_coder,
+            core=core,
+            board=board,
         )
 
 
