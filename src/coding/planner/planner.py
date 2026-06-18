@@ -1,27 +1,43 @@
-from models.controller import WorkFlowLog
-from src.models.planner import PlannerOutput,ProgrammingPlan,PlannerLog
-from src.models.retriever import RetrievalRequest,RetrievalTopic
+from collections.abc import Callable
+from langchain_core.tools import BaseTool
+
+from models.task_config import TaskConfig
+from src.models.planner import PlannerOutput,PlannerInput
+
+from src.llm.llm_agent import LLMAgent
 
 class Planner:
-    logs = list[PlannerLog]
+    planner_agent: LLMAgent
+    logs = list
 
-    def __init__(self,api_key:str):
-        pass
+    def __init__(self,planner_agent: LLMAgent):
+        self.planner_agent = planner_agent
+        self.logs = []
 
-    def create_plan(self,user_request:str):
-        pass
-
-    def create_log(self,plans:PlannerOutput):
-        self.logs.append(
-            PlannerLog(
-                plans= PlannerOutput(
-                    ProgrammingPlans=plans.ProgrammingPlans,
-                    retrieval_requests= plans.retrieval_requests
-                )
-            )
+    @classmethod
+    def load_from_task_config(
+            cls,
+            task_config:TaskConfig,
+            *,
+            api_key:str = None,
+            tools:list[Callable | BaseTool | dict]=None,
+    ):
+        planner = LLMAgent.load_from_task_config(
+            task_config = task_config,
+            api_key=api_key,
+            tools = tools,
+            thread_id="planner",
         )
 
-    def create_workflow_log(self,plans:PlannerLog) -> WorkFlowLog:
-        pass
+        return cls(planner)
+
+    def create_plan(self,planer_input:PlannerInput) -> PlannerOutput:
+        user_input = planer_input.model_dump_json()
+        plan = self.planner_agent.run(user_input)
+        self.update_logs()
+        return plan
+
+    def update_logs(self):
+        ...
 
 
