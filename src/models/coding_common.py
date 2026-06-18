@@ -1,0 +1,146 @@
+from pydantic import Field
+from typing import Literal
+
+from src.models.structuredOutputModel import StructuredOutputModel
+from src.models.verifier import VerifierOutput
+
+class CodeFile(StructuredOutputModel):
+    file_id: str = Field(
+        description="identifier of the current code file",
+    )
+    name: str = Field(
+        description="name of the current code file",
+    )
+    file_type: str = Field(
+        description="type of the current code file, .cpp or .h",
+    )
+    description: str = Field(
+        description="short functional description of the current code file",
+    )
+    content: str = Field(
+        description="content of the current code file",
+    )
+
+class Operation(StructuredOutputModel):
+    operation: Literal["delete", "modify", "create"] = Field(
+        description="Operation type.",
+    )
+    description: str = Field(
+        description="Short description of the current operation.",
+    )
+
+class ProgrammingPlan(StructuredOutputModel):
+    programming_instructions: str|None = Field(
+        default = None,
+        description="an brief instruction to the following coder",
+    )
+
+    file_plans: list[FilePlan] = Field(
+        default_factory=list,
+        description="file plan for creating new code files, deleting existing files or modifying target files",
+    )
+
+class FilePlan(StructuredOutputModel):
+    description: str = Field(
+        description="short description of the current file plan",
+    )
+    target_files: list[TargetFile] = Field(
+        default_factory=list,
+        description="files to be modified in current file plan",
+    )
+
+class TargetFile(StructuredOutputModel):
+    file_id: str = Field(
+        description="identifier of the target file. when target file is a existing file, use the file id of the existing file. "
+                    "otherwise create a new file id",
+    )
+    name: str = Field(
+        description="name of the current target file",
+    )
+    file_type: str = Field(
+        description="type of the current target file, .c or .h",
+    )
+    operation: Operation = Field(
+        description="operation of the current target file."
+                    "the field 'operation' of this value must be one of 'delete', 'modify', or 'create'."
+                    "Files not listed in target_files must remain unchanged."
+    )
+    description: str = Field(
+        description="short functional description of this current target file",
+    )
+    sections: list[FileSection] = Field(
+        default_factory=list,
+        description="major content sections that should appear in the target file",
+    )
+    functions: list[FunctionSpec] = Field(
+        default_factory=list,
+        description="functions to be modified in current target file",
+    )
+
+class FileSection(StructuredOutputModel):
+    name: str = Field(
+        description="name of the planned file section",
+    )
+    description: str = Field(
+        description="purpose of this file section",
+    )
+    required: bool = Field(
+        description="whether this section must be generated",
+    )
+
+class FunctionSpec(StructuredOutputModel):
+    name:str = Field(
+        description="name of the current target function",
+    )
+    description:str = Field(
+        description="short functional description of this current target function",
+    )
+    operation: Operation = Field(
+        description="operation of the current target function, "
+                    " the field 'operation' of this value must be one of 'delete', 'modify', 'create' " ,
+    )
+    parameters:list[DataType] = Field(
+        default_factory=list,
+        description="input parameters for the target function",
+    )
+    return_type:ReturnType = Field(
+        description="return type of the target function",
+    )
+
+class DataType(StructuredOutputModel):
+    name:str = Field(
+        description="name of the current parameter or output",
+    )
+    data_type:str = Field(
+        description="data type of the current parameter or output",
+    )
+    direction: Literal["input", "output", "inout"] = Field(
+        description="data flow direction of the parameter",
+    )
+    description:str = Field(
+        description="short description of the current parameter or output",
+    )
+    nullable:bool = Field(
+        description="whether the current parameter or output is optional",
+    )
+
+class ReturnType(StructuredOutputModel):
+    data_type: str = Field(
+        description="C return type of the function."
+    )
+    description: str = Field(
+        description="Meaning of the return value."
+    )
+
+class VerificationPlan(StructuredOutputModel):
+    semantic_plan: str = Field(
+        description="semantic verification plan",
+    )
+
+    execution_plan: list[FilePlan] = Field(
+        default_factory=list,
+        description="execution verification plan",
+    )
+
+class VerifierFeedback(VerifierOutput):
+    pass
