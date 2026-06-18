@@ -27,6 +27,11 @@ class PageRetriever:
         self.request_id += 1
         return result
 
+    @classmethod
+    def load_from_task_config(cls,pages:list[dict[str,Any]] ,task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "PageRetriever":
+        classifier = LLMTaskRunner.load_from_task_config(task_config, api_key, input_path)
+        return cls(binary_classifier=classifier,pages=pages)
+
     async def _run_classification_llm_task(self,retrieval_requests:list[UserRequest],len_topics:int) -> list[list[int]]:
         contents = await self._run_classifier(retrieval_requests)
         return parse_binary_classifier_output(contents,retrieval_requests,len_topics)
@@ -47,8 +52,3 @@ class PageRetriever:
 
     def _get_page_by_position(self,page_index:list[int]) -> list[dict[str,Any]]:
         return [self.pages[index] for index in page_index]
-
-    @classmethod
-    def load_from_task_config(cls,pages:list[dict[str,Any]] ,task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "PageRetriever":
-        classifier = LLMTaskRunner.load_from_task_config(task_config, api_key, input_path)
-        return cls(binary_classifier=classifier,pages=pages)
