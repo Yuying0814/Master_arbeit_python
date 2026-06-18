@@ -1,59 +1,40 @@
-from models.coder import CodeFile
-from src.models.coder import CoderInput,CodeFile,FilePlannerInput,FilePlan,FileCoderInput,FileCoderOutput
-from src.models.planner import ProgrammingPlan
-from src.models.retriever import RetrievalResponse
-from src.models.verifier import VerificationRequest, VerifierOutput
-from src.coding.coder.file_coder import FileCoder
-from src.coding.coder.file_planner import FilePlanner
+from collections.abc import Callable
+from langchain.tools import BaseTool
 
-
+from src.models.task_config import TaskConfig
+from src.models.coder import CoderInput
+from src.llm.llm_agent import LLMAgent
 
 class Coder:
-    # unchanged after run()
-    planner: FilePlanner
-    coder: FileCoder
-    programming_plan: ProgrammingPlan | None
-    retrieval_result: RetrievalResponse | None
-    accepted_files: list[CodeFile]
+    coder_agent: LLMAgent
+    log:list
 
-    # can change after run()
-    current_file_plan_id: int
-    candidate_files: list[CodeFile] | None
-    feedback: VerifierOutput | None
-    code_passed: bool = False
+    def __init__(self,coder:LLMAgent):
+        self.coder = coder
+        self.log = []
 
-    def __init__(self,api_key:str):
-        self.planner = FilePlanner(api_key=api_key)
-        self.coder = FileCoder(api_key=api_key)
-        self.reset()
-
-    def reset(self):
-        self.programming_plan = None
-        self.retrieval_result = None
-        self.candidate_files = []
-        self.accepted_files = []
-        self.current_file_plan_id = 0
-        self.feedback = None
-
-    def start_plan(self,coder_input:CoderInput):
-        self.programming_plan = coder_input.programming_plan
-        self.retrieval_result = coder_input.retrieval_result
-        self.accepted_files = coder_input.accepted_files
-
-    def run(self):
-        self.candidate_files = []
-
-    def send_verification_request(self):
-        return VerificationRequest(
-            programming_plan=self.programming_plan,
-            retrieval_result=self.retrieval_result,
-            candidate_files=self.candidate_files,
-            accepted_files=self.accepted_files,
+    @classmethod
+    def load_from_task_config(
+            cls,
+            task_config: TaskConfig,
+            *,
+            api_key: str = None,
+            tools: list[Callable | BaseTool | dict] = None,
+    ):
+        coder_agent = LLMAgent.load_from_task_config(
+            task_config=task_config,
+            api_key=api_key,
+            tools=tools,
+            thread_id="coder",
         )
 
-    def receive_feedback(self,feedback:VerifierOutput):
-        self.feedback = feedback
-        self.code_passed = feedback.passed
+        return cls(coder_agent)
 
-    def get_output(self):
-        return
+    def create_code_file(self,coder_input:CoderInput):
+        user_input = coder_input.model_dump_json()
+        candidate_files = self.coder_agent.run(user_input)
+        self.update_logs()
+        return candidate_files
+
+    def update_logs(self):
+        ...
