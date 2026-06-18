@@ -1,23 +1,87 @@
-from src.models.verifier import VerificationRequest,VerifierOutput
+from pathlib import Path
+from typing import Any
+from collections.abc import Callable
+from langchain.tools import BaseTool
 
-class Verifier():
-    api_key: str
-    request: VerificationRequest | None
+from src.models.task_config import TaskConfig
+from src.models.verifier import VerifierInput, VerifierOutput, SemanticVerifierInput, ExecutionVerifierInput
 
-    def __init__(self,api_key: str):
-        self.api_key = api_key
+from src.llm.llm_agent import LLMAgent
 
-    def receive_request(self,verification_request:VerificationRequest):
-        self.request = verification_request
+from src.coding.verifier.execution_verifier import ExecutionVerifier
 
-    def run(self):
-        pass
+class Verifier:
+    semantic_verifier:LLMAgent
+    execution_verifier: ExecutionVerifier
+    enable_test_coder:bool
+    logs:list
 
-    def write_test_code(self,test_code:str):
-        pass
+    def __init__(self,semantic_verifier:LLMAgent,execution_verifier:Any,enable_test_coder:bool) -> None:
+        self.semantic_verifier = semantic_verifier
+        self.execution_verifier = execution_verifier
+        self.enable_test_coder = enable_test_coder
 
-    def get_feedback(self) -> VerifierOutput:
-        return VerifierOutput()
+    @classmethod
+    def load_from_task_config(cls,
+                              semantic_config:TaskConfig,
+                              execution_config:TaskConfig,
+                              *,
+                              enable_test_coder:bool,
+                              cli_path: Path,
+                              fqbn: str,
+                              api_key:str = None,
+                              semantic_tools :list[Callable | BaseTool | dict]=None,
+                              execution_tools :list[Callable | BaseTool | dict]=None,
+                              ) -> "Verifier":
 
-    def reset(self):
-        self.request = None
+        semantic_verifier= LLMAgent.load_from_task_config(
+            task_config=semantic_config,
+            api_key=api_key,
+            tools = semantic_tools,
+            thread_id="semantic_verifier",
+        )
+
+        execution_verifier = ExecutionVerifier.load_from_task_config(
+            task_config = execution_config,
+            api_key = api_key,
+            tools = execution_tools,
+            thread_id = "execution_verifier",
+            enable_test_coder=enable_test_coder,
+            cli_path=cli_path,
+            fqbn=fqbn,
+
+        )
+        return cls(
+            semantic_verifier=semantic_verifier,
+            execution_verifier=execution_verifier,
+        )
+
+    def run(self,verifier_input:VerifierInput) -> VerifierOutput:
+        semantic_input = _build_semantic_input(verifier_input)
+        semantic_output = self.semantic_verifier.run(semantic_input)
+
+        execution_input = _build_execution_input(verifier_input)
+        execution_output = self.execution_verifier.run(execution_input)
+
+        return VerifierOutput(
+            passed= semantic_output.passed and execution_output.passed,
+            semantic_result=semantic_output,
+            execution_result=execution_output,
+        )
+
+# Helper
+def _build_semantic_input(verifier_input:VerifierInput):
+    return SemanticVerifierInput(
+        verification_plan=verifier_input.verification_plan.semantic_plan,
+        register_map=verifier_input.register_map,
+        retrieval_results=verifier_input.retrieval_results,
+        candidate_files=verifier_input.candidate_files,
+        accepted_files=verifier_input.accepted_files,
+    ).model_dump_json()
+
+def _build_execution_input(verifier_input:VerifierInput):
+   return ExecutionVerifierInput(
+       verification_plan=verifier_input.verification_plan.execution_plan,
+       candidate_files=verifier_input.candidate_files,
+       accepted_files=verifier_input.accepted_files,
+   )
