@@ -64,11 +64,9 @@ class LLMAgent:
     def load_from_task_config(
         cls,
         task_config: TaskConfig,
-        task_name: str,
         *,
         api_key: str | None = None,
         tools: list[Callable | BaseTool | dict] | None = None,
-        memory_enabled: bool = False,
         thread_id: str | None = None,
     ) -> "LLMAgent":
         model = build_chat_model(
@@ -84,7 +82,7 @@ class LLMAgent:
             tools=tools,
             system_prompt=task_config.system,
             output_format=task_config.output_format,
-            memory_enabled=memory_enabled,
+            memory_enabled=task_config.memory_enabled,
             thread_id=thread_id,
         )
 
