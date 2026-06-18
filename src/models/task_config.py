@@ -15,8 +15,11 @@ class TaskConfig(BaseModel):
     model: ModelConfig = Field(default_factory=ModelConfig)
     system: str = "You are a helpful assistant"
     output_format: ValidOutputFormat = "text"
+    memory_enabled: bool = False
 
 @dataclass(frozen=True)
 class CodingTaskConfigs(BaseModel):
-    Retrieval: TaskConfig
-
+    retrieval: TaskConfig
+    planning:TaskConfig
+    coding:TaskConfig
+    verification:TaskConfig

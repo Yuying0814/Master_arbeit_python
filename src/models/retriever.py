@@ -1,6 +1,5 @@
 from typing import Any
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.register_output import RegisterMapItem
 
 # retriever input
 class RetrievalTopic(StructuredOutputModel):
@@ -19,7 +18,7 @@ class BinaryClassifierOutput(StructuredOutputModel):
 class RetrievalResult(StructuredOutputModel):
     topic: RetrievalTopic
     pages:list[dict[str,Any]]
-    
+
 class RetrievalResponse(StructuredOutputModel):
     request_id: int
     results:list[RetrievalResult]
