@@ -35,10 +35,10 @@ class Controller:
         self.pages = pages
         self.register_map = register_map
 
-        self._load_agents()
-
         self._check_valid_client()
         self._check_valid_fqbn()
+
+        self._load_agents()
 
     async def run(self,user_request:str = None):
         verifier_feedback = None
@@ -186,7 +186,7 @@ class Controller:
         if result.returncode != 0:
             raise RuntimeError(
                 "Arduino CLI is not available or returned an error.\n"
-                f"Command: {cli_path} version\n"
+                f"Command: {cli_path} --version\n"
                 f"STDOUT:\n{result.stdout}\n"
                 f"STDERR:\n{result.stderr}"
             )

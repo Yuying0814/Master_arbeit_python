@@ -26,7 +26,7 @@ class ExecutionVerifier:
 
     def __init__(self,test_coder_config:dict[str,Any],enable_test_coder:bool,cli_path:Path,fqbn:str):
         self.test_coder_config = test_coder_config
-        self.test_dir = cli_path.parent/"temp"/"verification_test"
+        self.test_dir = ""
         self.enable_test_coder = enable_test_coder
         self.cli_path = cli_path
         self.fqbn = fqbn
