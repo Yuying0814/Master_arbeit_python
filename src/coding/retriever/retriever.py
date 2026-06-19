@@ -20,6 +20,14 @@ class PageRetriever:
         self.request_id = 0
 
     async def run(self,topics: list[RetrievalTopic]) -> RetrievalResponse:
+        if not topics:
+            response = RetrievalResponse(
+                request_id=self.request_id,
+                results=[],
+            )
+            self.request_id += 1
+            return response
+
         retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, pages=self.pages)
 
         page_indices = await self._run_classification_llm_task(retrieval_requests,len(topics))
