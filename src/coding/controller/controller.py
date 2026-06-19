@@ -60,7 +60,7 @@ class Controller:
             verifier_output = self.verifier.run(verifier_input)
 
             if verifier_output.passed:
-                self.accepted_files.extend(coder_output.candidate_files)
+                self.accepted_files = self.candidate_files
                 self._update_logs()
                 break
             else:
@@ -107,7 +107,10 @@ class Controller:
 
     def _build_planner_input(self,user_request:str|None,verifier_feedback:VerifierOutput|None) -> PlannerInput:
         if user_request is None:
-            user_request = "Generate C driver"
+            user_request = (
+                "Generate an Arduino Wire.h-based sensor driver library. "
+                "Create the required .h and .cpp driver files and an .ino sketch file for compilation verification."
+            )
 
         return PlannerInput(
             user_request=user_request,

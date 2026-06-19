@@ -8,7 +8,7 @@ from src.llm.llm_agent import LLMAgent
 
 class Planner:
     planner_agent: LLMAgent
-    logs = list
+    logs: list
 
     def __init__(self,planner_agent: LLMAgent):
         self.planner_agent = planner_agent
