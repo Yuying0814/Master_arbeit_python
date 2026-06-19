@@ -72,6 +72,7 @@ class Controller:
             verifier_feedback = verifier_output
 
         if len(self.accepted_files) > 0:
+            self.clear_dir()
             FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/self.driver_name)
 
         return len(self.accepted_files) > 0
