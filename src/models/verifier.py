@@ -95,6 +95,17 @@ class RejectionReason(StructuredOutputModel):
         description= "description of the rejected reason",
     )
 
+# Compiler message
+class CompilerMsg(StructuredOutputModel):
+    passed: bool = Field(
+        default=False,
+        description= "whether the code passed or not",
+    )
+    compiler_message: str = Field(
+        default="",
+        description="compiler message. None if compilation passed",
+    )
+
 # inner execution verifier
 class ExecutionVerifierInput(StructuredOutputModel):
     verification_plan:list[FilePlan] = Field(
@@ -129,7 +140,7 @@ class ExecutionVerifierOutput(StructuredOutputModel):
     )
 
     compiler_message: CompilerMsg = Field(
-        default= "",
+        default_factory = CompilerMsg,
         description= "compiler messages",
     )
 #
@@ -148,7 +159,7 @@ class RejectedTarget(StructuredOutputModel):
     )
 
     functions: list[RejectedFunction] = Field(
-        default=list,
+        default_factory=list,
         description= "rejected functions",
     )
 
@@ -207,15 +218,6 @@ class TestCoderOutput(StructuredOutputModel):
     )
 
     compiler_message: CompilerMsg = Field(
+        default_factory=CompilerMsg,
         description="compiler message",
-    )
-
-class CompilerMsg(StructuredOutputModel):
-    passed: bool = Field(
-        default=False,
-        description= "whether the code passed or not",
-    )
-    compiler_message: str = Field(
-        default="",
-        description="compiler message. None if compilation passed",
     )
