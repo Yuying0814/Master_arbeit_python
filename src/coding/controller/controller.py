@@ -21,13 +21,14 @@ class Controller:
     logs: list
     config:CodingConfig
 
-    def __init__(self,config:CodingConfig,pages:list[dict[str,Any]],register_map:RegisterMapOutput):
+    def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:RegisterMapOutput):
         self.logs = []
         self.candidate_files = []
         self.accepted_files = []
         self.config = config
         self.not_accepted_files = []
 
+        self.driver_name = driver_name
         self.pages = pages
         self.register_map = register_map
 
@@ -60,7 +61,7 @@ class Controller:
             verifier_output = self.verifier.run(verifier_input)
 
             if verifier_output.passed:
-                self.accepted_files = self.candidate_files
+                self.accepted_files = list(self.candidate_files)
                 self._update_logs()
                 break
             else:
@@ -68,7 +69,7 @@ class Controller:
             verifier_feedback = verifier_output
 
         if len(self.accepted_files) > 0:
-            FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir)
+            FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/f"{self.driver_name}")
 
 
 

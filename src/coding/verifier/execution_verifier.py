@@ -60,7 +60,7 @@ class ExecutionVerifier:
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
         with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
             self.test_dir = Path(temp_root) / "verification_test"
-            
+
             files = execution_verifier_input.candidate_files
             FileWriter.write_to_files(
                 code_files=files,
@@ -117,21 +117,32 @@ class ExecutionVerifier:
             )
         pass
 
-    def _compiler_run(self):
-        compile_result = _run_command(
-            [
-                str(self.cli_path),
-                "compile",
-                "--fqbn",
-                self.fqbn,
-                str(self.test_dir),
-            ],
-        )
+    def _compiler_run(self) -> CompilerMsg:
+        try:
+            compile_result = _run_command(
+                [
+                    str(self.cli_path),
+                    "compile",
+                    "--fqbn",
+                    self.fqbn,
+                    str(self.test_dir),
+                ],
+            )
+        except subprocess.TimeoutExpired as exc:
+            return CompilerMsg(
+                passed=False,
+                compiler_message=f"Arduino CLI compilation timed out.\n{exc}",
+            )
+
         return CompilerMsg(
             passed=compile_result.returncode == 0,
-            compiler_message= f"Arduino CLI failed to compile the basic test sketch.\n"\
-                      f"STDOUT:\n{compile_result.stdout}\n"\
-                      f"STDERR:\n{compile_result.stderr}" if compile_result.returncode != 0 else ""
+            compiler_message=(
+                f"Arduino CLI failed to compile the candidate sketch.\n"
+                f"STDOUT:\n{compile_result.stdout}\n"
+                f"STDERR:\n{compile_result.stderr}"
+                if compile_result.returncode != 0
+                else ""
+            ),
         )
 
 
@@ -151,4 +162,5 @@ def _run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=60,
     )
