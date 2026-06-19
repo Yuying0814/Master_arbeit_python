@@ -74,7 +74,7 @@ class SemanticVerifierOutput(StructuredOutputModel):
     )
 
     rejection_reasons: list[RejectionReason] = Field(
-        default=list,
+        default_factory=list,
         description= "reasons for semantic rejection. None if verification passed.",
     )
 

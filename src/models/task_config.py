@@ -17,7 +17,6 @@ class TaskConfig(BaseModel):
     output_format: ValidOutputFormat = "text"
     memory_enabled: bool = False
 
-@dataclass(frozen=True)
 class CodingTaskConfigs(BaseModel):
     retrieval: TaskConfig
     planning:TaskConfig

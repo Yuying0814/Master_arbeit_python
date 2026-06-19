@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from src.models.coder import CodeFile
+from src.models.coding_common import CodeFile
 
 class FileWriter:
 
