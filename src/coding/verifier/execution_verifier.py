@@ -58,7 +58,9 @@ class ExecutionVerifier:
         )
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
-        try:
+        with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
+            self.test_dir = Path(temp_root) / "verification_test"
+            
             files = execution_verifier_input.candidate_files
             FileWriter.write_to_files(
                 code_files=files,
@@ -79,11 +81,6 @@ class ExecutionVerifier:
                 candidate_code_passed=True,
                 compiler_message=compiler_message,
             )
-
-        except Exception as e:
-            raise e
-        finally:
-            self._clean_up()
 
     def run_test_coder(self,execution_verifier_input:ExecutionVerifierInput) -> TestCoderOutput:
         files = []
@@ -136,9 +133,6 @@ class ExecutionVerifier:
                       f"STDOUT:\n{compile_result.stdout}\n"\
                       f"STDERR:\n{compile_result.stderr}" if compile_result.returncode != 0 else ""
         )
-
-    def _clean_up(self):
-        pass
 
 
 #Helper
