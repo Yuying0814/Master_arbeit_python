@@ -55,6 +55,6 @@ class PlannerOutput(StructuredOutputModel):
         description="programming plan for generating code",
     )
 
-    verification_plan: VerificationPlan | None = Field(
-        description="verification plan for the candidate files. If enable_test_coder is set to false, leave this field empty",
+    verification_plan: VerificationPlan = Field(
+        description="verification plan for the candidate files.",
     )

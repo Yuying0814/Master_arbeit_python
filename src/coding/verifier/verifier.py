@@ -27,21 +27,22 @@ class Verifier:
                               enable_test_coder:bool,
                               cli_path: Path,
                               fqbn: str,
-                              api_key:str = None,
+                              api_key_semantic:str = None,
+                              api_key_test_coder:str = None,
                               semantic_tools :list[Callable | BaseTool | dict]=None,
                               execution_tools :list[Callable | BaseTool | dict]=None,
                               ) -> "Verifier":
 
         semantic_verifier= LLMAgent.load_from_task_config(
             task_config=semantic_config,
-            api_key=api_key,
+            api_key=api_key_semantic,
             tools = semantic_tools,
             thread_id="semantic_verifier",
         )
 
         execution_verifier = ExecutionVerifier.load_from_task_config(
             task_config = execution_config,
-            api_key = api_key,
+            api_key = api_key_test_coder,
             tools = execution_tools,
             thread_id = "execution_verifier",
             enable_test_coder=enable_test_coder,
@@ -61,8 +62,15 @@ class Verifier:
         execution_input = _build_execution_input(verifier_input)
         execution_output = self.execution_verifier.run(execution_input)
 
+        passed = semantic_output.passed and execution_output.candidate_code_passed
+        if execution_output.test_code_passed is not None:
+            passed = passed and execution_output.test_code_passed
+
+        if execution_output.test_passed is not None:
+            passed = passed and execution_output.test_passed
+
         return VerifierOutput(
-            passed= semantic_output.passed and execution_output.passed,
+            passed= passed,
             semantic_result=semantic_output,
             execution_result=execution_output,
         )

@@ -64,7 +64,7 @@ class Controller:
                 self._update_logs()
                 break
             else:
-                self.candidate_files.extend(coder_output.candidate_files)
+                self._update_logs()
             verifier_feedback = verifier_output
 
         if len(self.accepted_files) > 0:
@@ -99,6 +99,8 @@ class Controller:
             enable_test_coder=self.config.enable_test_coder,
             cli_path=self.config.project_path.cli_path,
             fqbn=self._build_fqbn(),
+            api_key_semantic=self.config.get_apikey(task_configs.verification_semantic.model.provider),
+            api_key_test_coder = self.config.get_apikey(task_configs.verification_test_coder.model.provider),
             semantic_tools=None,
             execution_tools=None,
         )
@@ -152,7 +154,7 @@ class Controller:
         pass
 
     def _build_fqbn(self):
-        pass
+        return f"arduino:{self.config.core}:{self.config.board}"
 
     def _check_valid_fqbn(self):
         pass

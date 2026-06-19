@@ -59,7 +59,6 @@ class ExecutionVerifier:
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
         try:
-            _write_basic_test_sketch(self.test_dir)
             files = execution_verifier_input.candidate_files
             FileWriter.write_to_files(
                 code_files=files,
@@ -68,16 +67,16 @@ class ExecutionVerifier:
 
             if not compiler_message.passed:
                 return ExecutionVerifierOutput(
-                    passed=False,
+                    candidate_code_passed=False,
                     compiler_message=compiler_message,
                 )
 
             if self.enable_test_coder:
                 test_coder_output = self.run_test_coder(execution_verifier_input)
-                return self.run_test(test_coder_output.files)
+                return self.run_test(test_coder_output)
 
             return ExecutionVerifierOutput(
-                passed=True,
+                candidate_code_passed=True,
                 compiler_message=compiler_message,
             )
 
@@ -88,10 +87,13 @@ class ExecutionVerifier:
 
     def run_test_coder(self,execution_verifier_input:ExecutionVerifierInput) -> TestCoderOutput:
         files = []
-        compiler_messages = []
+        compiler_message = CompilerMsg(
+            passed=False,
+            compiler_message="",
+        )
         for attempt in range(self.max_coding_retries +1):
             test_coder = LLMAgent.load_from_task_config(**self.test_coder_config)
-            test_coder_input = _build_test_coder_input(execution_verifier_input,compiler_messages)
+            test_coder_input = _build_test_coder_input(execution_verifier_input,compiler_message)
             test_coder_output = test_coder.run(test_coder_input.model_dump_json())
             files = test_coder_output.files
 
@@ -101,21 +103,21 @@ class ExecutionVerifier:
             compiler_message = self._compiler_run()
 
             if compiler_message.passed:
-                return TestCoderOutput(
-                    files=files,
-                )
+                break
 
-        if len(compiler_messages) == 0:
-            return TestCoderOutput(
-                files = [],
-            )
-
-        id_passed_map = _id_passed_map(compiler_messages)
         return TestCoderOutput(
-            files = [file for file in files if file.file_id in id_passed_map],
+            passed=compiler_message.passed,
+            files=files,
+            compiler_message = compiler_message,
         )
 
-    def run_test(self,test_files:list[CodeFile]) -> ExecutionVerifierOutput:
+    def run_test(self,test_coder_output) -> ExecutionVerifierOutput:
+        if not test_coder_output.passed:
+            return ExecutionVerifierOutput(
+                test_code_passed=False,
+                test_passed=False,
+                compiler_message=test_coder_output.compiler_message,
+            )
         pass
 
     def _compiler_run(self):
@@ -156,29 +158,3 @@ def _run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
         encoding="utf-8",
         errors="replace",
     )
-
-
-def _id_passed_map(compiler_messages:list[CompilerMsg]) -> dict[str,Any]:
-    return {
-        msg.file_id:msg.passed for msg in compiler_messages if msg.passed
-    }
-
-def _write_basic_test_sketch(test_dir:Path) -> None:
-    basic_ino_sketch = CodeFile(
-        file_id= "1",
-        name = "verification_test",
-        file_type = ".ino",
-        description = "Basic test sketch",
-        content = """\
-        #include <Arduino.h>
-        #include <Wire.h>
-        
-        void setup() {
-            Wire.begin();
-        }
-        
-        void loop() {
-        }
-        """,
-    )
-    FileWriter.write_to_file(basic_ino_sketch, test_dir)

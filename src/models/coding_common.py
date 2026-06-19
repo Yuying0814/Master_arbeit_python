@@ -3,7 +3,6 @@ from pydantic import Field
 from typing import Literal
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.verifier import VerifierOutput
 
 class CodeFile(StructuredOutputModel):
     file_id: str = Field(
@@ -140,5 +139,5 @@ class VerificationPlan(StructuredOutputModel):
 
     execution_plan: list[FilePlan] = Field(
         default_factory=list,
-        description="execution verification plan",
+        description="execution verification plan.Leave this field empty if enable_test_coder is set to false",
     )

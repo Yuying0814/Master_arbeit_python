@@ -2,7 +2,7 @@ from collections.abc import Callable
 from langchain.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.coder import CoderInput
+from src.models.coder import CoderInput,CoderOutput
 from src.llm.llm_agent import LLMAgent
 
 class Coder:
@@ -30,7 +30,7 @@ class Coder:
 
         return cls(coder_agent)
 
-    def create_code_file(self,coder_input:CoderInput):
+    def create_code_file(self,coder_input:CoderInput)-> CoderOutput:
         user_input = coder_input.model_dump_json()
         candidate_files = self.coder_agent.run(user_input)
         self.update_logs()

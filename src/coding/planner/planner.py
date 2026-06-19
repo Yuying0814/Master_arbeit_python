@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from langchain_core.tools import BaseTool
 
-from models.task_config import TaskConfig
+from src.models.task_config import TaskConfig
 from src.models.planner import PlannerOutput,PlannerInput
 
 from src.llm.llm_agent import LLMAgent
