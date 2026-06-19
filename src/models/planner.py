@@ -51,7 +51,6 @@ class PlannerOutput(StructuredOutputModel):
     )
 
     programming_plan: ProgrammingPlan = Field(
-        default = None,
         description="programming plan for generating code",
     )
 
