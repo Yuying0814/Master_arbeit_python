@@ -18,6 +18,7 @@ class VerifierInput(StructuredOutputModel):
     )
 
     retrieval_results:list[RetrievalResult] = Field(
+        default_factory=list,
         description="required infos for realisation of the programming plan",
     )
 
@@ -54,6 +55,7 @@ class SemanticVerifierInput(StructuredOutputModel):
     )
 
     retrieval_results: list[RetrievalResult] = Field(
+        default_factory=list,
         description="required infos for realisation of the programming plan",
     )
 
@@ -85,6 +87,7 @@ class SemanticVerifierOutput(StructuredOutputModel):
 
 class RejectionReason(StructuredOutputModel):
     targets: list[RejectedTarget] = Field(
+        default_factory=list,
         description= "target of rejected file, code section, function",
     )
 
@@ -126,6 +129,7 @@ class ExecutionVerifierOutput(StructuredOutputModel):
     )
 
     compiler_message: CompilerMsg = Field(
+        default= "",
         description= "compiler messages",
     )
 #
@@ -134,31 +138,38 @@ class RejectedTarget(StructuredOutputModel):
         description= "identifier of the file",
     )
     rejection_summary: str = Field(
+        default="",
         description= "short rejection summary of the file with file_id. None if verification passed.",
     )
 
     rejected_sections: list[RejectedSection] = Field(
+        default_factory=list,
         description= "rejected code sections",
     )
 
     functions: list[RejectedFunction] = Field(
+        default=list,
         description= "rejected functions",
     )
 
 class RejectedSection(StructuredOutputModel):
     section_name: str = Field(
+        default= "",
         description= "name of the rejected section",
     )
 
     rejection_reason: str = Field(
+        default="",
         description="reason for rejection of this function. None if verification passed.",
     )
 
 class RejectedFunction(StructuredOutputModel):
     function_name: str = Field(
+        default="",
         description= "name of the rejected function",
     )
     rejection_reason: str = Field(
+        default="",
         description= "reason for rejection of this function. None if verification passed.",
     )
 
@@ -180,11 +191,13 @@ class TestCoderInput(StructuredOutputModel):
     )
 
     compiler_message: CompilerMsg = Field(
+        default="",
         description="compiler messages",
     )
 
 class TestCoderOutput(StructuredOutputModel):
     passed:bool = Field(
+        default=False,
         description= "true if the code has no syntax errors",
     )
 
@@ -199,8 +212,10 @@ class TestCoderOutput(StructuredOutputModel):
 
 class CompilerMsg(StructuredOutputModel):
     passed: bool = Field(
+        default=False,
         description= "whether the code passed or not",
     )
     compiler_message: str = Field(
+        default="",
         description="compiler message. None if compilation passed",
     )

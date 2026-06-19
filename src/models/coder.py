@@ -16,7 +16,6 @@ from src.models.register_output import RegisterMapOutput
 # communicate with controller
 class CoderInput(StructuredOutputModel):
     programming_plan: ProgrammingPlan = Field(
-        default = None,
         description="programming plan for generating code",
     )
 
