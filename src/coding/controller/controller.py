@@ -1,4 +1,7 @@
+import shutil
+import subprocess
 from typing import Any
+from pathlib import Path
 
 from src.coding.config import CodingConfig
 from src.coding.planner.planner import Planner
@@ -69,7 +72,9 @@ class Controller:
             verifier_feedback = verifier_output
 
         if len(self.accepted_files) > 0:
-            FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/f"{self.driver_name}")
+            FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/self.driver_name)
+
+        return len(self.accepted_files) > 0
 
 
 
@@ -151,14 +156,78 @@ class Controller:
 
         self.candidate_files = list(candidate_files_by_id.values())
 
+    def clear_dir(self):
+        path = Path(self.config.project_path.code_dir/self.driver_name)
+        path.mkdir(parents=True, exist_ok=True)
+
+        for item in path.iterdir():
+            if item.is_file() or item.is_symlink():
+                item.unlink()
+            elif item.is_dir():
+                shutil.rmtree(item)
+
     def _update_logs(self) -> None:
         pass
 
-    def _check_valid_client(self):
-        pass
+    def _check_valid_client(self) -> None:
+        cli_path = Path(self.config.project_path.cli_path).expanduser()
 
-    def _build_fqbn(self):
-        return f"arduino:{self.config.core}:{self.config.board}"
+        if not cli_path.is_file():
+            raise FileNotFoundError(f"Arduino CLI executable not found: {cli_path}")
 
-    def _check_valid_fqbn(self):
-        pass
+        try:
+            result = _run_command([str(cli_path), "--version"])
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutError(f"Arduino CLI version check timed out: {cli_path}") from exc
+        except OSError as exc:
+            raise RuntimeError(f"Failed to execute Arduino CLI: {cli_path}") from exc
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                "Arduino CLI is not available or returned an error.\n"
+                f"Command: {cli_path} version\n"
+                f"STDOUT:\n{result.stdout}\n"
+                f"STDERR:\n{result.stderr}"
+            )
+
+    def _build_fqbn(self) -> str:
+        core = self.config.core.strip()
+        board = self.config.board.strip()
+
+        if not core:
+            raise ValueError("Arduino core must not be empty.")
+
+        if not board:
+            raise ValueError("Arduino board must not be empty.")
+
+        return f"arduino:{core}:{board}"
+
+    def _check_valid_fqbn(self) -> None:
+        cli_path = Path(self.config.project_path.cli_path).expanduser()
+        fqbn = self._build_fqbn()
+
+        try:
+            result = _run_command([str(cli_path), "board", "details", "--fqbn", fqbn])
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutError(f"Arduino FQBN validation timed out: {fqbn}") from exc
+        except OSError as exc:
+            raise RuntimeError(f"Failed to execute Arduino CLI for FQBN validation: {cli_path}") from exc
+
+        if result.returncode != 0:
+            raise ValueError(
+                "Invalid or unavailable Arduino FQBN.\n"
+                f"FQBN: {fqbn}\n"
+                "Please check whether the required Arduino core is installed.\n"
+                f"STDOUT:\n{result.stdout}\n"
+                f"STDERR:\n{result.stderr}"
+            )
+
+def _run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+    )
