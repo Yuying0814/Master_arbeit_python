@@ -104,7 +104,7 @@ class BatchInputFile:
             )
 
     def write_to_file(self) -> None:
-        self.path.mkdir(parents=True, exist_ok=True)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
 
         with self.path.open("w",encoding="utf-8") as file:
             for item in self.JSONLs:
