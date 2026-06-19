@@ -202,7 +202,7 @@ class TestCoderInput(StructuredOutputModel):
     )
 
     compiler_message: CompilerMsg = Field(
-        default="",
+        default_factory=CompilerMsg,
         description="compiler messages",
     )
 
