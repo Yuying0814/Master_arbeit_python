@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import copy
 from typing import Any
 from pathlib import Path
 
@@ -167,32 +168,41 @@ class Controller:
             elif item.is_dir():
                 shutil.rmtree(item)
 
-    def _update_logs(self,attempt:int) -> None:
+    def _update_logs(self, attempt: int) -> None:
+        planner_log = self.planner.logs[-1].model_copy(deep=True)
+        coder_log = self.coder.logs[-1].model_copy(deep=True)
+        retriever_log = self.retriever.logs[-1].model_copy(deep=True)
+        verifier_log = self.verifier.logs[-1].model_copy(deep=True)
+
         self.logs.append(
             ControllerLog(
                 driver_name=self.driver_name,
-                attempt = attempt,
+                attempt=attempt,
                 snapshot=Snapshot(
-                    programming_plan=self.planner.logs[-1].planner_output.programming_plan,
-                    verification_plan=self.planner.logs[-1].planner_output.verification_plan,
-                    retrieval_topics=self.planner.logs[-1].planner_output.retrieval_topics,
-                    candidate_files=self.candidate_files,
-                    accepted_files=self.accepted_files,
-                    verifier_feedback=self.verifier.logs[-1].verifier_output,
-                    passed=self.verifier.logs[-1].verifier_output.passed,
+                    programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan),
+                    verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan),
+                    retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics),
+                    candidate_files=[
+                        file.model_copy(deep=True) for file in self.candidate_files
+                    ],
+                    accepted_files=[
+                        file.model_copy(deep=True) for file in self.accepted_files
+                    ],
+                    verifier_feedback=verifier_log.verifier_output.model_copy(deep=True),
+                    passed=verifier_log.verifier_output.passed,
                 ),
-                details = SubLogs(
-                    planner_log=self.planner.logs[-1],
-                    coder_log=self.coder.logs[-1],
-                    retriever_log=self.retriever.logs[-1],
-                    verifier_log=self.verifier.logs[-1],
+                details=SubLogs(
+                    planner_log=planner_log,
+                    coder_log=coder_log,
+                    retriever_log=retriever_log,
+                    verifier_log=verifier_log,
                 ),
                 token_consumption=TokenConsumption(
-                    planner=self.planner.logs[-1].token_consumption,
-                    retriever=self.retriever.logs[-1].token_consumption,
-                    coder=self.coder.logs[-1].token_consumption,
-                    verifier=self.verifier.logs[-1].token_consumption,
-                )
+                    planner=copy.deepcopy(planner_log.token_consumption),
+                    retriever=copy.deepcopy(retriever_log.token_consumption),
+                    coder=copy.deepcopy(coder_log.token_consumption),
+                    verifier=copy.deepcopy(verifier_log.token_consumption),
+                ),
             )
         )
 

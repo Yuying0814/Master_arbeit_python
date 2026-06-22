@@ -215,7 +215,7 @@ class ExecutionVerifier:
         return CompilerMsg(
             passed=compile_result.returncode == 0,
             compiler_message=(
-                f"Arduino CLI failed to compile the candidate sketch.\n"
+                f"Arduino CLI failed to compile the verification sketch.\n"
                 f"STDOUT:\n{compile_result.stdout}\n"
                 f"STDERR:\n{compile_result.stderr}"
                 if compile_result.returncode != 0
