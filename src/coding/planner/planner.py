@@ -1,3 +1,5 @@
+import copy
+
 from collections.abc import Callable
 from langchain_core.tools import BaseTool
 
@@ -37,12 +39,12 @@ class Planner:
         self._update_logs(planer_input,plan)
         return plan
 
-    def _update_logs(self,planer_input:PlannerInput,planner_output:PlannerOutput):
+    def _update_logs(self, planner_input: PlannerInput, planner_output: PlannerOutput) -> None:
         self.logs.append(
             PlannerLog(
-                planner_input = planer_input,
-                planner_output = planner_output,
-                token_consumption=self.planner_agent.total_tokens
+                planner_input=planner_input.model_copy(deep=True),
+                planner_output=planner_output.model_copy(deep=True),
+                token_consumption=copy.deepcopy(self.planner_agent.total_tokens),
             )
         )
 

@@ -1,3 +1,5 @@
+import copy
+
 from pathlib import Path
 from typing import Any
 
@@ -64,15 +66,21 @@ class PageRetriever:
     def _get_page_by_position(self,page_index:list[int]) -> list[dict[str,Any]]:
         return [self.pages[index] for index in page_index]
 
-    def _update_logs(self,topics:list[RetrievalTopic],retrieval_results:list[RetrievalResult]) -> None:
+    def _update_logs(
+            self,
+            topics: list[RetrievalTopic],
+            retrieval_results: list[RetrievalResult],
+    ) -> None:
         self.logs.append(
             RetrieverLog(
                 request_id=self.request_id,
-                topics=topics,
-                retrieval_results=retrieval_results,
+                topics=[topic.model_copy(deep=True) for topic in topics],
+                retrieval_results=[
+                    result.model_copy(deep=True) for result in retrieval_results
+                ],
                 token_consumption={
-                    "total_usage":self.binary_classifier.total_usage,
-                    "final_usage":self.binary_classifier.final_usage,
-                }
+                    "total_usage": copy.deepcopy(self.binary_classifier.total_usage),
+                    "final_usage": copy.deepcopy(self.binary_classifier.final_usage),
+                },
             )
         )

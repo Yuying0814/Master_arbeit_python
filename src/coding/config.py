@@ -96,7 +96,7 @@ class CodingConfig(BaseConfig):
     core:str
     board:str
 
-    def __init__(self,project_path:BaseProjectPath,task_configs:CodingTaskConfigs,enable_test_coder:bool,core:str,board:str) -> None:
+    def __init__(self,project_path:CodingProjectPath,task_configs:CodingTaskConfigs,enable_test_coder:bool,core:str,board:str) -> None:
         super().__init__(project_path)
         self.task_configs = task_configs
         self.enable_test_coder = enable_test_coder

@@ -226,20 +226,25 @@ class ExecutionVerifier:
     def _update_log(
             self,
             *,
-            test_coder_logs:list[TestCoderLog] = None,
-            execution_input:ExecutionVerifierInput = None,
-            execution_output:ExecutionVerifierOutput = None,
-            total_tokens:dict[str,Any] = None
+            test_coder_logs: list[TestCoderLog] | None = None,
+            execution_input: ExecutionVerifierInput | None = None,
+            execution_output: ExecutionVerifierOutput | None = None,
+            total_tokens: dict[str, Any] | None = None,
     ) -> None:
         if test_coder_logs is not None:
-            self.log.test_coder_logs = test_coder_logs
+            self.log.test_coder_logs = [
+                log.model_copy(deep=True) for log in test_coder_logs
+            ]
+
         if execution_input is not None:
-            self.log.execution_input = execution_input
+            self.log.execution_input = execution_input.model_copy(deep=True)
+
         if execution_output is not None:
-            self.log.execution_output = execution_output
+            self.log.execution_output = execution_output.model_copy(deep=True)
+
         if total_tokens is not None:
-            self.log.token_consumption = total_tokens
-            self.total_tokens = total_tokens
+            self.log.token_consumption = copy.deepcopy(total_tokens)
+            self.total_tokens = copy.deepcopy(total_tokens)
 
     def _reset_log(self,execution_verifier_input: ExecutionVerifierInput) -> None:
         self.total_tokens = {}

@@ -1,3 +1,5 @@
+import copy
+
 from collections.abc import Callable
 from langchain.tools import BaseTool
 
@@ -36,11 +38,11 @@ class Coder:
         self._update_logs(coder_input,coder_output)
         return coder_output
 
-    def _update_logs(self,coder_input:CoderInput,coder_output:CoderOutput)-> None:
+    def _update_logs(self, coder_input: CoderInput, coder_output: CoderOutput) -> None:
         self.logs.append(
             CoderLog(
-                coder_input=coder_input,
-                coder_output=coder_output,
-                token_consumption=self.coder_agent.total_tokens
+                coder_input=coder_input.model_copy(deep=True),
+                coder_output=coder_output.model_copy(deep=True),
+                token_consumption=copy.deepcopy(self.coder_agent.total_tokens),
             )
         )
