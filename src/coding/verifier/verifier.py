@@ -4,7 +4,8 @@ from collections.abc import Callable
 from langchain.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.verifier import VerifierInput, VerifierOutput, SemanticVerifierInput, ExecutionVerifierInput
+from src.models.verifier import VerifierInput, VerifierOutput, SemanticVerifierInput, ExecutionVerifierInput, \
+    VerifierLog
 
 from src.llm.llm_agent import LLMAgent
 
@@ -18,6 +19,7 @@ class Verifier:
     def __init__(self,semantic_verifier:LLMAgent,execution_verifier:Any) -> None:
         self.semantic_verifier = semantic_verifier
         self.execution_verifier = execution_verifier
+        self.logs = []
 
     @classmethod
     def load_from_task_config(cls,
@@ -69,10 +71,26 @@ class Verifier:
         if execution_output.test_passed is not None:
             passed = passed and execution_output.test_passed
 
-        return VerifierOutput(
-            passed= passed,
+        verifier_output = VerifierOutput(
+            passed=passed,
             semantic_result=semantic_output,
             execution_result=execution_output,
+        )
+
+        self._update_logs(verifier_input,verifier_output)
+        return verifier_output
+
+    def _update_logs(self,verifier_input:VerifierInput,verifier_output:VerifierOutput) -> None:
+        self.logs.append(
+            VerifierLog(
+                verifier_input=verifier_input,
+                verifier_output=verifier_output,
+                execution_verifier_log=self.execution_verifier.log,
+                token_consumption={
+                    "semantic":self.semantic_verifier.total_tokens,
+                    "execution":self.execution_verifier.total_tokens
+                }
+            )
         )
 
 # Helper

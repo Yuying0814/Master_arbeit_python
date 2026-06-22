@@ -1,5 +1,7 @@
 from __future__ import annotations
 from pydantic import Field
+from typing import Any
+
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding_common import Operation,CodeFile,ProgrammingPlan
 from src.models.retriever import RetrievalResult
@@ -43,33 +45,8 @@ class CoderOutput(StructuredOutputModel):
         description="code files for realisation of the programming plan",
     )
 
-    # log: list[CoderLog] = Field(
-    #     default_factory=list,
-    #     description="coder log",
-    # )
-
-# class FileChangeMsg(StructuredOutputModel):
-#     file_id: str = Field(
-#         description="identifier of the modified file",
-#     )
-#     operation: Operation = Field(
-#         description="operation of the modified file, the field 'operation' of this value must not be 'keep'",
-#     )
-#     added: str = Field(
-#         description="short description of what was added into the modified file",
-#     )
-#     deleted: str = Field(
-#         description="short description of what was deleted in the modified file",
-#     )
-#     modified: str = Field(
-#         description="short description of what was modified in the modified file",
-#     )
-#
-# class CoderLog(StructuredOutputModel):
-#     file_plan: FilePlan = Field(
-#         description="file plan created by inner file planner",
-#     )
-#     log: list[FileChangeMsg] = Field(
-#         default_factory=list,
-#         description="output commit message from inner file coder",
-#     )
+# Log
+class CoderLog(StructuredOutputModel):
+    coder_input: CoderInput
+    coder_output: list[CodeFile]
+    token_consumption: dict[str,Any]

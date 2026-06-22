@@ -2,7 +2,7 @@ from collections.abc import Callable
 from langchain_core.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.planner import PlannerOutput,PlannerInput
+from src.models.planner import PlannerOutput,PlannerInput,PlannerLog
 
 from src.llm.llm_agent import LLMAgent
 
@@ -34,10 +34,16 @@ class Planner:
     def create_plan(self,planer_input:PlannerInput) -> PlannerOutput:
         user_input = planer_input.model_dump_json()
         plan = self.planner_agent.run(user_input)
-        self.update_logs()
+        self._update_logs(planer_input,plan)
         return plan
 
-    def update_logs(self):
-        ...
+    def _update_logs(self,planer_input:PlannerInput,planner_output:PlannerOutput):
+        self.logs.append(
+            PlannerLog(
+                planner_input = planer_input,
+                planner_output = planner_output,
+                token_consumption=self.planner_agent.total_tokens
+            )
+        )
 
 

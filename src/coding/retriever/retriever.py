@@ -3,7 +3,7 @@ from typing import Any
 
 from src.llm.llm_task_runner import LLMTaskRunner
 from src.models.task_config import TaskConfig
-from src.models.retriever import RetrievalTopic, RetrievalRequest, RetrievalResponse, RetrievalResult,BinaryClassifierOutput
+from src.models.retriever import RetrievalTopic, RetrievalResponse, RetrievalResult, RetrieverLog
 from src.models.batch import UserRequest
 from src.coding.retriever.build_batch_request import build_user_requests
 from src.coding.retriever.parse_binary_classifier_output import parse_binary_classifier_output
@@ -12,7 +12,7 @@ class PageRetriever:
     binary_classifier:LLMTaskRunner
     pages: list[dict[str,Any]]
     request_id:int
-    log: list
+    logs: list
 
     def __init__(self,binary_classifier:LLMTaskRunner, pages:list[dict[str,Any]]) -> None:
         self.binary_classifier = binary_classifier
@@ -25,6 +25,7 @@ class PageRetriever:
                 request_id=self.request_id,
                 results=[],
             )
+            self._update_logs(topics,[])
             self.request_id += 1
             return response
 
@@ -32,6 +33,7 @@ class PageRetriever:
 
         page_indices = await self._run_classification_llm_task(retrieval_requests,len(topics))
         result = self._generate_retrieval_response(page_indices, topics)
+        self._update_logs(topics, result.results)
         self.request_id += 1
         return result
 
@@ -60,3 +62,16 @@ class PageRetriever:
 
     def _get_page_by_position(self,page_index:list[int]) -> list[dict[str,Any]]:
         return [self.pages[index] for index in page_index]
+
+    def _update_logs(self,topics:list[RetrievalTopic],retrieval_results:list[RetrievalResult]) -> None:
+        self.logs.append(
+            RetrieverLog(
+                request_id=self.request_id,
+                topics=topics,
+                retrieval_results=retrieval_results,
+                token_consumption={
+                    "total_usage":self.binary_classifier.total_usage,
+                    "final_usage":self.binary_classifier.final_usage,
+                }
+            )
+        )

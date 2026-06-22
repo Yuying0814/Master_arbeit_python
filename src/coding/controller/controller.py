@@ -77,8 +77,6 @@ class Controller:
 
         return len(self.accepted_files) > 0
 
-
-
     def _load_agents(self):
         task_configs = self.config.task_configs
         self.planner = Planner.load_from_task_config(

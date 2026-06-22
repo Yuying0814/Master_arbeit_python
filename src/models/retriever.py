@@ -23,3 +23,9 @@ class RetrievalResponse(StructuredOutputModel):
     request_id: int
     results:list[RetrievalResult]
 
+# log
+class RetrieverLog(StructuredOutputModel):
+    request_id: int
+    topics:list[RetrievalTopic]
+    retrieval_results:list[RetrievalResult]
+    token_consumption:dict[str, Any]

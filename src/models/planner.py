@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
 from pydantic import Field
-from typing import Literal
 
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding_common import CodeFile,VerificationPlan,ProgrammingPlan
@@ -57,3 +57,9 @@ class PlannerOutput(StructuredOutputModel):
     verification_plan: VerificationPlan = Field(
         description="verification plan for the candidate files.",
     )
+
+## log
+class PlannerLog(StructuredOutputModel):
+    planner_input: PlannerInput
+    planner_output: PlannerOutput
+    token_consumption:dict[str,Any]

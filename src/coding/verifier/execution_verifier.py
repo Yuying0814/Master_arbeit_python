@@ -2,6 +2,7 @@
 - Arduino CLI
 - Arduino core for the target board
 - Target board FQBN """
+import json
 import subprocess
 import tempfile
 from pathlib import Path
@@ -9,9 +10,8 @@ from typing import Any
 from collections.abc import Callable
 from langchain.tools import BaseTool
 
-from src.models.coding_common import CodeFile
 from src.models.task_config import TaskConfig
-from src.models.verifier import TestCoderInput,TestCoderOutput,ExecutionVerifierInput,ExecutionVerifierOutput,CompilerMsg
+from src.models.verifier import TestCoderInput,TestCoderOutput,ExecutionVerifierInput,ExecutionVerifierOutput,CompilerMsg,ExecutionVerifierLog,TestCoderLog
 from src.llm.llm_agent import LLMAgent
 from src.coding.filewriter.filewriter import FileWriter
 
@@ -23,6 +23,8 @@ class ExecutionVerifier:
     fqbn:str
     temp_dir:Path
     max_coding_retries: int = 10
+    total_tokens: dict[str,Any]
+    log:ExecutionVerifierLog
 
     def __init__(self,test_coder_config:dict[str,Any],enable_test_coder:bool,cli_path:Path,fqbn:str):
         self.test_coder_config = test_coder_config
@@ -30,6 +32,13 @@ class ExecutionVerifier:
         self.enable_test_coder = enable_test_coder
         self.cli_path = cli_path
         self.fqbn = fqbn
+        self.total_tokens = {}
+        self.log = ExecutionVerifierLog(
+            enable_test_coder=self.enable_test_coder,
+            execution_input=ExecutionVerifierInput(),
+            execution_output=ExecutionVerifierOutput(),
+            test_coder_logs=[]
+        )
 
     @classmethod
     def load_from_task_config(
@@ -58,6 +67,10 @@ class ExecutionVerifier:
         )
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
+        self._update_log(
+            execution_input=execution_verifier_input,
+        )
+
         with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
             self.test_dir = Path(temp_root) / "verification_test"
 
@@ -68,54 +81,96 @@ class ExecutionVerifier:
             compiler_message = self._compiler_run()
 
             if not compiler_message.passed:
-                return ExecutionVerifierOutput(
+                test_result = ExecutionVerifierOutput(
                     candidate_code_passed=False,
                     compiler_message=compiler_message,
                 )
+                self._update_log(
+                    execution_verifier_output=test_result,
+                )
+
+                return test_result
 
             if self.enable_test_coder:
                 test_coder_output = self.run_test_coder(execution_verifier_input)
-                return self.run_test(test_coder_output)
+                test_result =  self.run_test(test_coder_output)
+                self._update_log(
+                    execution_verifier_output=test_result,
+                )
+                return test_result
 
-            return ExecutionVerifierOutput(
+            test_result = ExecutionVerifierOutput(
                 candidate_code_passed=True,
                 compiler_message=compiler_message,
             )
+            self._update_log(
+                execution_verifier_output=test_result,
+            )
+
+            return test_result
 
     def run_test_coder(self,execution_verifier_input:ExecutionVerifierInput) -> TestCoderOutput:
-        files = []
-        compiler_message = CompilerMsg(
-            passed=False,
-            compiler_message="",
-        )
+        logs = []
+        compiler_msg = CompilerMsg()
+        test_coder_output = TestCoderOutput()
+
+        self._add_input_to_system(execution_verifier_input)
+        test_coder = LLMAgent.load_from_task_config(**self.test_coder_config)
+
         for attempt in range(self.max_coding_retries +1):
-            test_coder = LLMAgent.load_from_task_config(**self.test_coder_config)
-            test_coder_input = _build_test_coder_input(execution_verifier_input,compiler_message)
-            test_coder_output = test_coder.run(test_coder_input.model_dump_json())
-            files = test_coder_output.files
+            test_coder_input = _build_test_coder_input(compiler_msg)
+            test_code = test_coder.run(test_coder_input.model_dump_json())
+            files = test_code.files
 
             FileWriter.write_to_files(
                 code_files=files,
                 output_dir=self.test_dir)
-            compiler_message = self._compiler_run()
 
-            if compiler_message.passed:
+            compiler_msg = self._compiler_run()
+
+            test_coder_output = TestCoderOutput(
+                passed = compiler_msg.passed,
+                files = files,
+                compiler_message = compiler_msg,
+            )
+
+            logs.append(
+                TestCoderLog(
+                    attempt=attempt,
+                    test_coder_input=test_coder_input,
+                    test_coder_output=test_coder_output,
+                )
+            )
+            if test_coder_output.passed:
                 break
 
-        return TestCoderOutput(
-            passed=compiler_message.passed,
-            files=files,
-            compiler_message = compiler_message,
+        self._update_log(
+            test_coder_logs= logs
         )
 
-    def run_test(self,test_coder_output) -> ExecutionVerifierOutput:
+        return test_coder_output
+
+    def run_test(self,test_coder_output:TestCoderOutput) -> ExecutionVerifierOutput:
         if not test_coder_output.passed:
             return ExecutionVerifierOutput(
                 test_code_passed=False,
+                test_coder_history=self.log.test_coder_logs,
                 test_passed=False,
-                compiler_message=test_coder_output.compiler_message,
+                compiler_message=CompilerMsg(),
             )
         pass
+
+    def _add_input_to_system(self,execution_verifier_input:ExecutionVerifierInput) -> None:
+        additional_system = {
+            "verification_plan":execution_verifier_input.verification_plan,
+            "candidate_files":execution_verifier_input.candidate_files,
+            "accepted_files":execution_verifier_input.accepted_files,
+        }
+
+        self.test_coder_config["task_config"].system += (f"\n Below are the verification plan, the candidate_files to be verified,"
+                                                         f" and the accepted_files that have already passed verification. "
+                                                         f"The accepted_files are provided for reference only and should not be verified again."
+                                                         f"\n {json.dumps(additional_system)}")
 
     def _compiler_run(self) -> CompilerMsg:
         try:
@@ -145,13 +200,25 @@ class ExecutionVerifier:
             ),
         )
 
+    def _update_log(
+            self,
+            *,
+            test_coder_logs:list[TestCoderLog] = None,
+            execution_input:ExecutionVerifierInput = None,
+            execution_verifier_output:ExecutionVerifierOutput = None,
+    ) -> None:
+        if test_coder_logs is not None:
+            self.log.test_coder_logs = test_coder_logs
+        if execution_input is not None:
+            self.log.execution_verifier_input = execution_input
+        if execution_verifier_output is not None:
+            self.log.execution_verifier_output = execution_verifier_output
+
+
 
 #Helper
-def _build_test_coder_input(execution_verifier_input:ExecutionVerifierInput,compiler_message:CompilerMsg) -> TestCoderInput:
+def _build_test_coder_input(compiler_message:CompilerMsg) -> TestCoderInput:
     return TestCoderInput(
-        verification_plan=execution_verifier_input.verification_plan,
-        candidate_files=execution_verifier_input.candidate_files,
-        accepted_files=execution_verifier_input.accepted_files,
         compiler_message=compiler_message,
     )
 
