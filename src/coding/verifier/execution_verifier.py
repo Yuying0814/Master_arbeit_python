@@ -37,7 +37,8 @@ class ExecutionVerifier:
             enable_test_coder=self.enable_test_coder,
             execution_input=ExecutionVerifierInput(),
             execution_output=ExecutionVerifierOutput(),
-            test_coder_logs=[]
+            test_coder_logs=[],
+            token_consumption={}
         )
 
     @classmethod
@@ -216,6 +217,7 @@ class ExecutionVerifier:
         if execution_verifier_output is not None:
             self.log.execution_verifier_output = execution_verifier_output
         if total_tokens is not None:
+            self.log.total_tokens = total_tokens
             self.total_tokens = total_tokens
 
 

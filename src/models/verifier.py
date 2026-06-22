@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from langsmith.sandbox import ExecutionResult
 from pydantic import Field
 
 from src.models.structuredOutputModel import StructuredOutputModel
@@ -232,9 +231,10 @@ class ExecutionVerifierLog(StructuredOutputModel):
     enable_test_coder: bool = Field(
         default=False,
     )
-    test_coder_logs: list[TestCoderLog]
     execution_input: ExecutionVerifierInput
     execution_output: ExecutionVerifierOutput
+    test_coder_logs: list[TestCoderLog]
+    token_consumption: dict[str,Any]
 
 class TestCoderLog(StructuredOutputModel):
     attempt:int = Field(
