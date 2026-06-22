@@ -121,6 +121,7 @@ class Controller:
             )
 
         return PlannerInput(
+            enable_test_coder=self.config.enable_test_coder,
             user_request=user_request,
             register_map=self.register_map,
             candidate_files=self.candidate_files,
