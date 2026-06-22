@@ -70,9 +70,7 @@ class ExecutionVerifier:
         )
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
-        self._update_log(
-            execution_input=execution_verifier_input,
-        )
+        self._reset_log(execution_verifier_input)
 
         with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
             self.test_dir = Path(temp_root) / "verification_test"
@@ -157,29 +155,44 @@ class ExecutionVerifier:
     def run_test(self,test_coder_output:TestCoderOutput) -> ExecutionVerifierOutput:
         if not test_coder_output.passed:
             return ExecutionVerifierOutput(
+                candidate_code_passed=True,
                 test_code_passed=False,
                 test_coder_history=self.log.test_coder_logs,
-                test_passed=False,
-                compiler_message=CompilerMsg(),
+                test_passed=None,
+                compiler_message=test_coder_output.compiler_message,
             )
+
         pass
 
-    def _build_test_coder_config(self,execution_verifier_input:ExecutionVerifierInput) -> dict[str,Any]:
+    def _build_test_coder_config(
+            self,
+            execution_verifier_input: ExecutionVerifierInput,
+    ) -> dict[str, Any]:
         additional_system = TestCoderConfig(
             verification_plan=execution_verifier_input.verification_plan,
             candidate_files=execution_verifier_input.candidate_files,
-            accepted_files=execution_verifier_input.accepted_files
+            accepted_files=execution_verifier_input.accepted_files,
         )
 
-        context = additional_system.model_dump_json(indent = 2)
+        context = additional_system.model_dump_json(indent=2)
+        task_config = self.test_coder_config["task_config"]
 
-        new_test_coder_config = copy.deepcopy(self.test_coder_config)
-        new_test_coder_config["task_config"].system += (f"\n Below are the verification plan, the candidate_files to be verified,"
-                                                         f" and the accepted_files that have already passed verification. "
-                                                         f"The accepted_files are provided for reference only and should not be verified again."
-                                                         f"\n {context}")
+        system_context = (
+            "\n\nBelow are the verification plan, the candidate_files to be verified, "
+            "and the accepted_files that have already passed verification. "
+            "The accepted_files are provided for reference only and should not be verified again."
+            f"\n{context}"
+        )
 
-        return new_test_coder_config
+        return {
+            **self.test_coder_config,
+            "task_config": task_config.model_copy(
+                deep=True,
+                update={
+                    "system": task_config.system + system_context,
+                },
+            ),
+        }
 
 
     def _compiler_run(self) -> CompilerMsg:
@@ -228,6 +241,15 @@ class ExecutionVerifier:
             self.log.token_consumption = total_tokens
             self.total_tokens = total_tokens
 
+    def _reset_log(self,execution_verifier_input: ExecutionVerifierInput) -> None:
+        self.total_tokens = {}
+        self.log = ExecutionVerifierLog(
+            enable_test_coder=self.enable_test_coder,
+            execution_input=execution_verifier_input,
+            execution_output=ExecutionVerifierOutput(),
+            test_coder_logs=[],
+            token_consumption={},
+        )
 
 #Helper
 def _build_test_coder_input(compiler_message:CompilerMsg) -> TestCoderInput:

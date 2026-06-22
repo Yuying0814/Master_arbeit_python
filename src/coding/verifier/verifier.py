@@ -83,9 +83,9 @@ class Verifier:
     def _update_logs(self,verifier_input:VerifierInput,verifier_output:VerifierOutput) -> None:
         self.logs.append(
             VerifierLog(
-                verifier_input=verifier_input,
-                verifier_output=verifier_output,
-                execution_verifier_log=self.execution_verifier.log,
+                verifier_input=verifier_input.model_copy(deep=True),
+                verifier_output=verifier_output.model_copy(deep=True),
+                execution_verifier_log=self.execution_verifier.log.model_copy(deep=True),
                 token_consumption={
                     "semantic":self.semantic_verifier.total_tokens,
                     "execution":self.execution_verifier.total_tokens
