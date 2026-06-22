@@ -18,6 +18,7 @@ class PageRetriever:
         self.binary_classifier = binary_classifier
         self.pages = pages
         self.request_id = 0
+        self.logs = []
 
     async def run(self,topics: list[RetrievalTopic]) -> RetrievalResponse:
         if not topics:
