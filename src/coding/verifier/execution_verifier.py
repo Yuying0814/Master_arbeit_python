@@ -145,7 +145,8 @@ class ExecutionVerifier:
                 break
 
         self._update_log(
-            test_coder_logs= logs
+            test_coder_logs= logs,
+            total_tokens=test_coder.total_tokens
         )
 
         return test_coder_output
@@ -206,6 +207,7 @@ class ExecutionVerifier:
             test_coder_logs:list[TestCoderLog] = None,
             execution_input:ExecutionVerifierInput = None,
             execution_verifier_output:ExecutionVerifierOutput = None,
+            total_tokens:dict[str,Any] = None
     ) -> None:
         if test_coder_logs is not None:
             self.log.test_coder_logs = test_coder_logs
@@ -213,7 +215,8 @@ class ExecutionVerifier:
             self.log.execution_verifier_input = execution_input
         if execution_verifier_output is not None:
             self.log.execution_verifier_output = execution_verifier_output
-
+        if total_tokens is not None:
+            self.total_tokens = total_tokens
 
 
 #Helper
