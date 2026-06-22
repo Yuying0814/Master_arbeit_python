@@ -2,7 +2,7 @@
 - Arduino CLI
 - Arduino core for the target board
 - Target board FQBN """
-import json
+import copy
 import subprocess
 import tempfile
 from pathlib import Path
@@ -11,7 +11,9 @@ from collections.abc import Callable
 from langchain.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.verifier import TestCoderInput,TestCoderOutput,ExecutionVerifierInput,ExecutionVerifierOutput,CompilerMsg,ExecutionVerifierLog,TestCoderLog
+from src.models.verifier import (TestCoderInput,TestCoderOutput,
+                                 ExecutionVerifierInput,ExecutionVerifierOutput,
+                                 CompilerMsg,ExecutionVerifierLog,TestCoderLog,TestCoderConfig)
 from src.llm.llm_agent import LLMAgent
 from src.coding.filewriter.filewriter import FileWriter
 
@@ -87,7 +89,7 @@ class ExecutionVerifier:
                     compiler_message=compiler_message,
                 )
                 self._update_log(
-                    execution_verifier_output=test_result,
+                    execution_output=test_result,
                 )
 
                 return test_result
@@ -96,7 +98,7 @@ class ExecutionVerifier:
                 test_coder_output = self.run_test_coder(execution_verifier_input)
                 test_result =  self.run_test(test_coder_output)
                 self._update_log(
-                    execution_verifier_output=test_result,
+                    execution_output=test_result,
                 )
                 return test_result
 
@@ -105,7 +107,7 @@ class ExecutionVerifier:
                 compiler_message=compiler_message,
             )
             self._update_log(
-                execution_verifier_output=test_result,
+                execution_output=test_result,
             )
 
             return test_result
@@ -115,10 +117,10 @@ class ExecutionVerifier:
         compiler_msg = CompilerMsg()
         test_coder_output = TestCoderOutput()
 
-        self._add_input_to_system(execution_verifier_input)
-        test_coder = LLMAgent.load_from_task_config(**self.test_coder_config)
+        test_coder_config = self._build_test_coder_config(execution_verifier_input)
+        test_coder = LLMAgent.load_from_task_config(**test_coder_config)
 
-        for attempt in range(self.max_coding_retries +1):
+        for attempt in range(1,self.max_coding_retries +1):
             test_coder_input = _build_test_coder_input(compiler_msg)
             test_code = test_coder.run(test_coder_input.model_dump_json())
             files = test_code.files
@@ -162,17 +164,23 @@ class ExecutionVerifier:
             )
         pass
 
-    def _add_input_to_system(self,execution_verifier_input:ExecutionVerifierInput) -> None:
-        additional_system = {
-            "verification_plan":execution_verifier_input.verification_plan,
-            "candidate_files":execution_verifier_input.candidate_files,
-            "accepted_files":execution_verifier_input.accepted_files,
-        }
+    def _build_test_coder_config(self,execution_verifier_input:ExecutionVerifierInput) -> dict[str,Any]:
+        additional_system = TestCoderConfig(
+            verification_plan=execution_verifier_input.verification_plan,
+            candidate_files=execution_verifier_input.candidate_files,
+            accepted_files=execution_verifier_input.accepted_files
+        )
 
-        self.test_coder_config["task_config"].system += (f"\n Below are the verification plan, the candidate_files to be verified,"
+        context = additional_system.model_dump_json(indent = 2)
+
+        new_test_coder_config = copy.deepcopy(self.test_coder_config)
+        new_test_coder_config["task_config"].system += (f"\n Below are the verification plan, the candidate_files to be verified,"
                                                          f" and the accepted_files that have already passed verification. "
                                                          f"The accepted_files are provided for reference only and should not be verified again."
-                                                         f"\n {json.dumps(additional_system)}")
+                                                         f"\n {context}")
+
+        return new_test_coder_config
+
 
     def _compiler_run(self) -> CompilerMsg:
         try:
@@ -207,17 +215,17 @@ class ExecutionVerifier:
             *,
             test_coder_logs:list[TestCoderLog] = None,
             execution_input:ExecutionVerifierInput = None,
-            execution_verifier_output:ExecutionVerifierOutput = None,
+            execution_output:ExecutionVerifierOutput = None,
             total_tokens:dict[str,Any] = None
     ) -> None:
         if test_coder_logs is not None:
             self.log.test_coder_logs = test_coder_logs
         if execution_input is not None:
-            self.log.execution_verifier_input = execution_input
-        if execution_verifier_output is not None:
-            self.log.execution_verifier_output = execution_verifier_output
+            self.log.execution_input = execution_input
+        if execution_output is not None:
+            self.log.execution_output = execution_output
         if total_tokens is not None:
-            self.log.total_tokens = total_tokens
+            self.log.token_consumption = total_tokens
             self.total_tokens = total_tokens
 
 

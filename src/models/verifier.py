@@ -192,6 +192,16 @@ class RejectedFunction(StructuredOutputModel):
     )
 
 # inner test coder input
+class TestCoderConfig(StructuredOutputModel):
+    verification_plan: list[FilePlan] = Field(
+        default_factory=list,
+    )
+    candidate_files: list[CodeFile] = Field(
+        default_factory=list,
+    )
+    accepted_files: list[CodeFile] = Field(
+        default_factory=list,
+    )
 class TestCoderInput(StructuredOutputModel):
     compiler_message: CompilerMsg = Field(
         default_factory=CompilerMsg,
