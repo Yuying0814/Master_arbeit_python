@@ -16,12 +16,14 @@ from src.models.planner import PlannerInput
 from src.models.retriever import RetrievalResult
 from src.models.coder import CoderInput,CoderOutput
 from src.models.verifier import VerifierInput,VerifierOutput
+from src.models.controller import ControllerLog, Snapshot, SubLogs, TokenConsumption
+
 
 class Controller:
     candidate_files: list[CodeFile]
     accepted_files: list[CodeFile]
     max_tries: int = 10
-    logs: list
+    logs: list[ControllerLog]
     config:CodingConfig
 
     def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:RegisterMapOutput):
@@ -65,10 +67,10 @@ class Controller:
 
             if verifier_output.passed:
                 self.accepted_files = list(self.candidate_files)
-                self._update_logs()
+                self._update_logs(attempt)
                 break
-            else:
-                self._update_logs()
+
+            self._update_logs(attempt)
             verifier_feedback = verifier_output
 
         if len(self.accepted_files) > 0:
@@ -165,8 +167,34 @@ class Controller:
             elif item.is_dir():
                 shutil.rmtree(item)
 
-    def _update_logs(self) -> None:
-        pass
+    def _update_logs(self,attempt:int) -> None:
+        self.logs.append(
+            ControllerLog(
+                driver_name=self.driver_name,
+                attempt = attempt,
+                snapshot=Snapshot(
+                    programming_plan=self.planner.logs[-1].planner_output.programming_plan,
+                    verification_plan=self.planner.logs[-1].planner_output.verification_plan,
+                    retrieval_topics=self.planner.logs[-1].planner_output.retrieval_topics,
+                    candidate_files=self.candidate_files,
+                    accepted_files=self.accepted_files,
+                    verifier_feedback=self.verifier.logs[-1].verifier_output,
+                    passed=self.verifier.logs[-1].verifier_output.passed,
+                ),
+                details = SubLogs(
+                    planner_log=self.planner.logs[-1],
+                    coder_log=self.coder.logs[-1],
+                    retriever_log=self.retriever.logs[-1],
+                    verifier_log=self.verifier.logs[-1],
+                ),
+                token_consumption=TokenConsumption(
+                    planner=self.planner.logs[-1].token_consumption,
+                    retriever=self.retriever.logs[-1].token_consumption,
+                    coder=self.coder.logs[-1].token_consumption,
+                    verifier=self.verifier.logs[-1].token_consumption,
+                )
+            )
+        )
 
     def _check_valid_client(self) -> None:
         cli_path = Path(self.config.project_path.cli_path).expanduser()
