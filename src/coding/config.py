@@ -6,7 +6,7 @@ from src.config import BaseConfig,BaseProjectPath
 from src.models.retriever import BinaryClassifierOutput
 from src.models.coder import CoderOutput
 from src.models.planner import PlannerOutput
-from src.models.verifier import SemanticVerifierOutput,TestCoderOutput
+from src.models.verifier import SemanticVerifierOutput,TestCode
 from src.models.task_config import TaskConfig,ModelConfig,CodingTaskConfigs
 
 
@@ -65,7 +65,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
             max_tokens=10000,
         ),
         system=_read_instructions(prompt_path / "prompt_test_coder.txt"),
-        output_format=TestCoderOutput,
+        output_format=TestCode,
         memory_enabled=True
     )
 
