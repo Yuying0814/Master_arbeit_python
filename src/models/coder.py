@@ -48,5 +48,5 @@ class CoderOutput(StructuredOutputModel):
 # Log
 class CoderLog(StructuredOutputModel):
     coder_input: CoderInput
-    coder_output: list[CodeFile]
+    coder_output: CoderOutput
     token_consumption: dict[str,Any]

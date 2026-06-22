@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from langchain.tools import BaseTool
 
-from models.coding_common import ProgrammingPlan, CodeFile
 from src.models.task_config import TaskConfig
 from src.models.coder import CoderInput,CoderOutput,CoderLog
 from src.llm.llm_agent import LLMAgent
@@ -33,15 +32,15 @@ class Coder:
 
     def create_code_file(self,coder_input:CoderInput)-> CoderOutput:
         user_input = coder_input.model_dump_json()
-        candidate_files = self.coder_agent.run(user_input)
-        self._update_logs(coder_input,candidate_files)
-        return candidate_files
+        coder_output = self.coder_agent.run(user_input)
+        self._update_logs(coder_input,coder_output)
+        return coder_output
 
-    def _update_logs(self,coder_input:CoderInput,candidate_files:list[CodeFile])-> None:
+    def _update_logs(self,coder_input:CoderInput,coder_output:CoderOutput)-> None:
         self.logs.append(
             CoderLog(
                 coder_input=coder_input,
-                coder_output=candidate_files,
+                coder_output=coder_output,
                 token_consumption=self.coder_agent.total_tokens
             )
         )
