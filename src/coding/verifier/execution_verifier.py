@@ -250,7 +250,7 @@ class ExecutionVerifier:
         self.total_tokens = {}
         self.log = ExecutionVerifierLog(
             enable_test_coder=self.enable_test_coder,
-            execution_input=execution_verifier_input,
+            execution_input=execution_verifier_input.model_copy(deep=True),
             execution_output=ExecutionVerifierOutput(),
             test_coder_logs=[],
             token_consumption={},
