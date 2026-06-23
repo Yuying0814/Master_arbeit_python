@@ -42,6 +42,7 @@ class ProgrammingPlan(StructuredOutputModel):
 
 class FilePlan(StructuredOutputModel):
     description: str = Field(
+        default=None,
         description="short description of the current file plan",
     )
     target_files: list[TargetFile] = Field(
@@ -134,6 +135,7 @@ class ReturnType(StructuredOutputModel):
 
 class VerificationPlan(StructuredOutputModel):
     semantic_plan: str = Field(
+        default=None,
         description="semantic verification plan",
     )
 
