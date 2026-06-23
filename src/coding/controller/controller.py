@@ -147,14 +147,16 @@ class Controller:
             accepted_files=self.accepted_files,
         )
 
-    def _update_candidate_files(self, coder_output:CoderOutput) -> None:
-        files = coder_output.candidate_files
+    def _update_candidate_files(self, coder_output: CoderOutput) -> None:
         candidate_files_by_id = {
             candidate_file.file_id: candidate_file
             for candidate_file in self.candidate_files
         }
 
-        for code_file in files:
+        for file_id in coder_output.deleted_file_ids:
+            candidate_files_by_id.pop(file_id, None)
+
+        for code_file in coder_output.candidate_files:
             candidate_files_by_id[code_file.file_id] = code_file
 
         self.candidate_files = list(candidate_files_by_id.values())

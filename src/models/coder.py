@@ -44,6 +44,10 @@ class CoderOutput(StructuredOutputModel):
     candidate_files: list[CodeFile] = Field(
         description="code files for realisation of the programming plan",
     )
+    deleted_file_ids: list[str] = Field(
+        default_factory=list,
+        description="Identifiers of candidate files that should be removed."
+    )
 
 # Log
 class CoderLog(StructuredOutputModel):
