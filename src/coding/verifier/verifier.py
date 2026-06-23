@@ -21,6 +21,7 @@ class Verifier:
         self.semantic_verifier = semantic_verifier
         self.execution_verifier = execution_verifier
         self.logs = []
+        print(f"verifier created")
 
     @classmethod
     def load_from_task_config(cls,
@@ -60,7 +61,9 @@ class Verifier:
 
     def run(self,verifier_input:VerifierInput) -> VerifierOutput:
         semantic_input = _build_semantic_input(verifier_input)
+        print(f"semantic verification started")
         semantic_output = self.semantic_verifier.run(semantic_input)
+        print(f"semantic verification completed:{semantic_output.model_dump_json()}")
 
         execution_input = _build_execution_input(verifier_input)
         execution_output = self.execution_verifier.run(execution_input)

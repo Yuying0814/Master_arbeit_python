@@ -21,6 +21,7 @@ class PageRetriever:
         self.pages = pages
         self.request_id = 0
         self.logs = []
+        print("retriever created")
 
     async def run(self,topics: list[RetrievalTopic]) -> RetrievalResponse:
         if not topics:
@@ -33,11 +34,14 @@ class PageRetriever:
             return response
 
         retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, pages=self.pages)
-
+        print(f"start retrieving pages related to {[topic.model_dump_json for topic in topics]}")
         page_indices = await self._run_classification_llm_task(retrieval_requests,len(topics))
+        print(f"retrieving pages complete:\n{page_indices}")
+
         result = self._generate_retrieval_response(page_indices, topics)
         self._update_logs(topics, result.results)
         self.request_id += 1
+
         return result
 
     @classmethod

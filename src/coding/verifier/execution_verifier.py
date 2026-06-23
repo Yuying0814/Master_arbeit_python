@@ -71,6 +71,7 @@ class ExecutionVerifier:
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
         self._reset_log(execution_verifier_input)
+        print("execution verification started")
 
         with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
             self.test_dir = Path(temp_root) / "verification_test"
@@ -89,8 +90,9 @@ class ExecutionVerifier:
                 self._update_log(
                     execution_output=test_result,
                 )
-
+                print(f"candidate code failed to compile:\n{compiler_message.compiler_message}")
                 return test_result
+            print(f"candidate code compiled successfully")
 
             if self.enable_test_coder:
                 test_coder_output = self.run_test_coder(execution_verifier_input)
@@ -100,6 +102,7 @@ class ExecutionVerifier:
                 )
                 return test_result
 
+            print(f"test coder disabled, therefore no test code generated and no test for candidate code")
             test_result = ExecutionVerifierOutput(
                 candidate_code_passed=True,
                 compiler_message=compiler_message,
@@ -117,10 +120,16 @@ class ExecutionVerifier:
 
         test_coder_config = self._build_test_coder_config(execution_verifier_input)
         test_coder = LLMAgent.load_from_task_config(**test_coder_config)
+        print(f"test coder enabled, start generating test code")
 
         for attempt in range(1,self.max_coding_retries +1):
+            print(f"attempt {attempt}")
             test_coder_input = _build_test_coder_input(compiler_msg)
+
+            print(f"test code generation started")
             test_code = test_coder.run(test_coder_input.model_dump_json())
+            print(f"test code generated")
+
             files = test_code.files
 
             FileWriter.write_to_files(
@@ -143,8 +152,10 @@ class ExecutionVerifier:
                 )
             )
             if test_coder_output.passed:
+                print(f"test code compilation passed")
                 break
 
+        print(f"test code compilation failed:\nEnd with{compiler_msg.compiler_message}")
         self._update_log(
             test_coder_logs= logs,
             total_tokens=test_coder.total_tokens

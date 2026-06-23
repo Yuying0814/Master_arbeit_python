@@ -14,6 +14,7 @@ class Coder:
     def __init__(self,coder:LLMAgent):
         self.coder_agent = coder
         self.logs = []
+        print(f"coder created")
 
     @classmethod
     def load_from_task_config(
@@ -34,7 +35,11 @@ class Coder:
 
     def create_code_file(self,coder_input:CoderInput)-> CoderOutput:
         user_input = coder_input.model_dump_json()
+
+        print(f"start creating code file")
         coder_output = self.coder_agent.run(user_input)
+        print(f"coding completed:\n{coder_output.model_dump_json()}")
+
         self._update_logs(coder_input,coder_output)
         return coder_output
 

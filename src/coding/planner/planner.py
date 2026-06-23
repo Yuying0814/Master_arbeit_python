@@ -15,6 +15,7 @@ class Planner:
     def __init__(self,planner_agent: LLMAgent):
         self.planner_agent = planner_agent
         self.logs = []
+        print("planner created")
 
     @classmethod
     def load_from_task_config(
@@ -35,8 +36,10 @@ class Planner:
 
     def create_plan(self,planer_input:PlannerInput) -> PlannerOutput:
         user_input = planer_input.model_dump_json()
+        print("start creating new plan")
         plan = self.planner_agent.run(user_input)
         self._update_logs(planer_input,plan)
+        print(f"plan created:\n{plan.model_dump_json()}")
         return plan
 
     def _update_logs(self, planner_input: PlannerInput, planner_output: PlannerOutput) -> None:
