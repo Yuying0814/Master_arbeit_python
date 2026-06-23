@@ -123,7 +123,7 @@ class ExecutionVerifier:
         print(f"test coder enabled, start generating test code")
 
         for attempt in range(1,self.max_coding_retries +1):
-            print(f"attempt {attempt}")
+            print(f"attempt {attempt/self.max_coding_retries}")
             test_coder_input = _build_test_coder_input(compiler_msg)
 
             print(f"test code generation started")
@@ -152,10 +152,16 @@ class ExecutionVerifier:
                 )
             )
             if test_coder_output.passed:
-                print(f"test code compilation passed")
                 break
 
-        print(f"test code compilation failed:\nEnd with{compiler_msg.compiler_message}")
+        if test_coder_output.passed:
+            print("test code compilation passed")
+        else:
+            print(
+                "test code compilation failed:\n"
+                f"End with: {compiler_msg.compiler_message}"
+            )
+
         self._update_log(
             test_coder_logs= logs,
             total_tokens=test_coder.total_tokens

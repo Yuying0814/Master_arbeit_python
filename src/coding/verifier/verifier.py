@@ -63,7 +63,7 @@ class Verifier:
         semantic_input = _build_semantic_input(verifier_input)
         print(f"semantic verification started")
         semantic_output = self.semantic_verifier.run(semantic_input)
-        print(f"semantic verification completed:{semantic_output.model_dump_json()}")
+        print(f"semantic verification completed:{semantic_output.model_dump_json(indent=2)}")
 
         execution_input = _build_execution_input(verifier_input)
         execution_output = self.execution_verifier.run(execution_input)

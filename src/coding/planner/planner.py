@@ -39,7 +39,7 @@ class Planner:
         print("start creating new plan")
         plan = self.planner_agent.run(user_input)
         self._update_logs(planer_input,plan)
-        print(f"plan created:\n{plan.model_dump_json()}")
+        print(f"plan created:\n{plan.model_dump_json(indent=2)}")
         return plan
 
     def _update_logs(self, planner_input: PlannerInput, planner_output: PlannerOutput) -> None:

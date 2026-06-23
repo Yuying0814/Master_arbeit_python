@@ -34,7 +34,8 @@ class PageRetriever:
             return response
 
         retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, pages=self.pages)
-        print(f"start retrieving pages related to {[topic.model_dump_json for topic in topics]}")
+        print(f"start retrieving pages related to"
+              f"{[topic.topic_keywords for topic in topics]}")
         page_indices = await self._run_classification_llm_task(retrieval_requests,len(topics))
         print(f"retrieving pages complete:\n{page_indices}")
 
