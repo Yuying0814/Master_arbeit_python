@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
@@ -87,8 +88,8 @@ class Verifier:
                 verifier_output=verifier_output.model_copy(deep=True),
                 execution_verifier_log=self.execution_verifier.log.model_copy(deep=True),
                 token_consumption={
-                    "semantic":self.semantic_verifier.total_tokens,
-                    "execution":self.execution_verifier.total_tokens
+                    "semantic": copy.deepcopy(self.semantic_verifier.total_tokens),
+                    "execution": copy.deepcopy(self.execution_verifier.total_tokens),
                 }
             )
         )
