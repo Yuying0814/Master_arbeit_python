@@ -267,7 +267,7 @@ The files, sections, or functions affected by this rejection reason.
 Use at least one target when `passed` is `false`.
 Prefer precise targets.
 If the problem affects a specific section, fill `rejected_sections`.
-If the problem affects a specific function, fill `functions`.
+If the problem affects a specific function, fill `rejected_functions`.
 Each `RejectedTarget` contains the following fields:
 
 ###### 2.1.1 `file_id`: String
