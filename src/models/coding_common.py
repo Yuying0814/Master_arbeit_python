@@ -6,7 +6,7 @@ from src.models.structuredOutputModel import StructuredOutputModel
 class IncompleteImplementation(StructuredOutputModel):
 
     target_section: str = Field(
-        description="Name of the incomplete target section. Use an empty string if the issue is not section-specific.",
+        description="Name of the incomplete target section.",
     )
 
     target_function: str = Field(
