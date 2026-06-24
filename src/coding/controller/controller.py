@@ -43,6 +43,16 @@ class Controller:
 
         self._load_agents()
 
+    @classmethod
+    def load_controller(
+            cls,
+            driver_name:str,
+            config:CodingConfig,
+            pages:list[dict[str,Any]],
+            register_map:RegisterMapOutput
+    ) -> "Controller":
+        return Controller(driver_name,config,pages,register_map)
+
     async def run(self,user_request:str = None):
         verifier_feedback = None
 
@@ -133,7 +143,7 @@ class Controller:
         return CoderInput(
             programming_plan=programming_plan,
             register_map=self.register_map,
-            retrieval_result=retrieval_results,
+            retrieval_results=retrieval_results,
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,
         )
