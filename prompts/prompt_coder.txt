@@ -132,9 +132,6 @@ Return type of the function.
 ######### 1.2.2.6.3.5.2 `description`: String
 Meaning of the return value.
 
-####### 1.2.2.6.4 `required`: Boolean
-Whether this section must be generated.
-
 ### 2. `register_map`: RegisterMapOutput
 The extracted structured register map.
 The top-level JSON key inside this object is usually `registers`.
