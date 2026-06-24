@@ -1,0 +1,108 @@
+The Wire library implementation uses a 32 byte buffer, therefore any communication should be within this limit. Exceeding bytes in a single transmission will just be dropped.
+
+The Wire library provides the following Wire API calls:
+
+Initialization
+- Wire.begin()
+    description: begin() initializes the Wire library and joins the I2C bus as a controller or a peripheral. This function should normally be called only once.
+    syntax: Wire.begin(), Wire.begin(address)
+    parameters: address (optional): the 7-bit peripheral address. If not specified, the device joins the bus as a controller.
+    returns: nothing
+
+- Wire.end()
+    description: end() disables the Wire library and reverses the effect of Wire.begin(). To use the Wire library again after this, Wire.begin() must be called again.
+    syntax: Wire.end()
+    parameters: none
+    returns: nothing
+
+- Wire.setClock()
+    description: setClock() modifies the clock frequency for I2C communication. I2C peripheral devices have no minimum working clock frequency, however 100 kHz is usually the baseline.
+    syntax: Wire.setClock(clockFrequency)
+    parameters: clockFrequency(uint32_t): the desired I2C communication clock in Hertz. parameters: clockFrequency(uint32_t): the desired I2C communication clock in Hertz. Common portable values are 100000 for standard mode and 400000 for fast mode. Some processors may also support 10000, 1000000, or 3400000. The generated driver should not assume that these extended modes are supported on all boards.
+    returns: nothing
+
+Controller transmitter
+- Wire.beginTransmission()
+    description: beginTransmission() begins a transmission to the I2C peripheral device with the given address. Bytes can then be queued with Wire.write() and transmitted by calling Wire.endTransmission().
+    syntax: Wire.beginTransmission(address)
+    parameters: address: the 7-bit address of the peripheral device to transmit to.
+    returns: nothing
+
+- Wire.write()
+    description: write() writes data from a peripheral device in response to a request from a controller, or queues bytes for transmission from a controller to a peripheral between Wire.beginTransmission() and Wire.endTransmission().
+    syntax: Wire.write(value), Wire.write(string), Wire.write(data, length)
+    parameters:
+        value: a value to send as a single byte. Allowed data types: byte
+        string: a string to send as a series of bytes. Allowed data types: char*
+        data: an array of data to send as bytes. Allowed data types: byte[]
+        length: the number of bytes to transmit. Allowed data types: size_t
+    returns: the number of bytes written. Reading this return value is optional(Data type: size_t).
+
+- Wire.endTransmission()
+    description: endTransmission() ends a transmission to a peripheral device that was started by Wire.beginTransmission() and transmits the bytes queued by Wire.write(). The optional stop parameter specifies whether to release the I2C bus after transmission. If true (default), a stop message is sent, releasing the bus. If false, a restart message is sent instead, keeping the connection active.
+    syntax: Wire.endTransmission(), Wire.endTransmission(stop)
+    parameters: stop (optional): true sends a stop message and releases the bus after transmission, false sends a restart message, keeping the connection active. Default is true. Allowed data types: bool.
+    returns: A byte value indicating the status of the transmission:
+        0: success.
+        1: data too long to fit in transmit buffer.
+        2: received NACK on transmit of address.
+        3: received NACK on transmit of data.
+        4: other error.
+        5: timeout.
+
+Controller receiver
+- Wire.requestFrom()
+    description: requestFrom() is used by the controller device to request bytes from a peripheral device. The bytes may then be retrieved with the available() and read() functions. The optional stop parameter specifies whether to release the I2C bus after the request. If true (default), a stop message is sent, releasing the bus. If false, a restart message is sent instead, keeping the connection active. This prevents another controller device from requesting between messages, allowing one controller to send multiple requests while maintaining control of the bus.
+    syntax: Wire.requestFrom(address, quantity), Wire.requestFrom(address, quantity, stop)
+    parameters:
+        address: the 7-bit address of the peripheral device to request bytes from.
+        quantity: the number of bytes to request.
+        stop (optional): true sends a stop message and releases the bus after the request. false sends a restart message, keeping the connection active. Default is true. Allowed data types: bool.
+    returns: The number of bytes returned from the peripheral device. Data type: byte.
+
+- Wire.available()
+    description: available() returns the number of bytes available for retrieval with Wire.read().This function should be called on a controller device after a call to requestFrom(), or on a peripheral inside the onReceive() handler.
+    syntax: Wire.available()
+    parameters: none
+    returns: The number of bytes available for reading, or 0 if none are available. Data type: int.
+
+- Wire.read()
+    description: read() reads one byte that was transmitted from a peripheral device to a controller device after Wire.requestFrom(), or transmitted from a controller device to a peripheral device (inside the onReceive() handler).
+    syntax: Wire.read()
+    parameters: none
+    returns: The next byte received, or -1 if none is available. Data type: int.
+
+Peripheral Callback
+- Wire.onReceive()
+    description: onReceive() registers a function to be called when a peripheral device receives a transmission from a controller device.
+    syntax: Wire.onReceive(handler)
+    parameters: handler: the function to be called when the peripheral device receives data. The handler should take one int parameter, which is the number of bytes received, and return nothing.
+    returns: nothing
+
+- Wire.onRequest()
+    description: onRequest() registers a function to be called when a controller device requests data from a peripheral device.
+    syntax: Wire.onRequest(handler)
+    parameters: handler: the function to be called. The handler should take no parameters and return nothing.
+    returns: nothing
+
+Timeout configuration
+Timeout-related functions are platform-dependent. Portable code can check the WIRE_HAS_TIMEOUT macro. If WIRE_HAS_TIMEOUT is defined, this Wire implementation supports Wire timeout configuration functions. The generated driver should still compile when WIRE_HAS_TIMEOUT is not defined.
+- Wire.setWireTimeout()
+    description: setWireTimeout() sets the timeout for Wire transmissions in controller mode. When called without parameters, a default timeout is configured that should be sufficient to prevent lockups in a typical single-controller configuration.
+    syntax: Wire.setWireTimeout(timeout, reset_on_timeout), Wire.setWireTimeout()
+    parameters:
+        timeout: timeout in microseconds. If set to 0, timeout checking is disabled. Allowed data types: uint32_t.
+        reset_on_timeout: if true, the Wire hardware is automatically reset on timeout when supported by the platform. Allowed data types: bool.
+    returns: nothing
+
+- Wire.clearWireTimeoutFlag()
+    description: clearWireTimeoutFlag() clears the Wire timeout flag. Timeouts might not be enabled by default and should be configured with Wire.setWireTimeout().
+    syntax: Wire.clearWireTimeoutFlag()
+    parameters: none
+    returns: nothing
+
+- Wire.getWireTimeoutFlag()
+    description: getWireTimeoutFlag() checks whether a timeout has occurred since the last time the timeout flag was cleared. The flag is set whenever a timeout occurs and is cleared by Wire.clearWireTimeoutFlag() or when the timeout is changed using Wire.setWireTimeout().
+    syntax: Wire.getWireTimeoutFlag()
+    parameters: none
+    returns: bool: the current value of the timeout flag.
