@@ -194,7 +194,24 @@ Allowed practical values are:
 Short functional description of the current code file.
 
 #### 4.5 `content`: String
-Content of the current code file.
+Full content of the current code file.
+
+#### 4.6 `incomplete_implementation`: Array<IncompleteImplementation>
+Planned target operations that could not be fully implemented in previous coding iteration. Direct feedback from coder.
+
+Each `IncompleteImplementation` item contains the following fields:
+
+##### 4.6.1 `target_section`: String
+Name of the incomplete target section.
+
+##### 4.6.2 `target_function`: String
+Name of the incomplete target function.
+
+##### 4.6.3 `description`: String
+Description of what has been implemented so far in this item and what remains unimplemented.
+
+##### 4.6.4 `reason`: String
+Reason why the planned operation could not be fully implemented.
 
 ### 5. `accepted_files`: Array<CodeFile>
 Previously accepted candidate files.
