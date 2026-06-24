@@ -202,7 +202,7 @@ Planned target operations that could not be fully implemented in previous coding
 Each `IncompleteImplementation` item contains the following fields:
 
 ##### 4.6.1 `target_section`: String
-Name of the incomplete target section.
+Name of the incomplete target section location.
 
 ##### 4.6.2 `target_function`: String
 Name of the incomplete target function.
