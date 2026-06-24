@@ -56,7 +56,7 @@ class Controller:
     ) -> "Controller":
         return Controller(driver_name,config,pages,register_map)
 
-    async def run(self,user_request:str = None):
+    async def run(self, user_request: str = None):
         print("==================")
         print("running controller")
         print("==================")
@@ -74,9 +74,9 @@ class Controller:
             },
         )
         try:
-            for attempt in range(1,self.max_tries+1):
+            for attempt in range(1, self.max_tries + 1):
                 print("==================")
-                print(f"attempt {attempt+1}/{self.max_tries}")
+                print(f"attempt {attempt + 1}/{self.max_tries}")
                 print("==================")
 
                 self.event_recorder.emit(
@@ -87,7 +87,7 @@ class Controller:
                 )
 
                 with self.event_recorder.step("planner", "create_plan", attempt=attempt):
-                    planner_input = self._build_planner_input(user_request,verifier_feedback)
+                    planner_input = self._build_planner_input(user_request, verifier_feedback)
                     planner_output = self.planner.create_plan(planner_input)
 
                 programming_plan = planner_output.programming_plan
@@ -99,12 +99,12 @@ class Controller:
                     retrieval_results = retrieval_response.results
 
                 with self.event_recorder.step("coder", "create_code_file", attempt=attempt):
-                    coder_input = self._build_coder_input(programming_plan,retrieval_results)
+                    coder_input = self._build_coder_input(programming_plan, retrieval_results)
                     coder_output = self.coder.create_code_file(coder_input)
 
                 self._update_candidate_files(coder_output)
                 with self.event_recorder.step("verifier", "run", attempt=attempt):
-                    verifier_input = self._build_verifier_input(verification_plan,retrieval_results)
+                    verifier_input = self._build_verifier_input(verification_plan, retrieval_results)
                     verifier_output = self.verifier.run(verifier_input)
 
                 if verifier_output.passed:
@@ -117,7 +117,7 @@ class Controller:
 
             if len(self.accepted_files) > 0:
                 self.clear_dir()
-                FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/self.driver_name)
+                FileWriter.write_to_files(self.accepted_files, self.config.project_path.code_dir / self.driver_name)
 
             return len(self.accepted_files) > 0
         except Exception as exc:
@@ -176,14 +176,14 @@ class Controller:
             cli_path=self.config.project_path.cli_path,
             fqbn=self._build_fqbn(),
             api_key_semantic=self.config.get_apikey(task_configs.verification_semantic.model.provider),
-            api_key_test_coder = self.config.get_apikey(task_configs.verification_test_coder.model.provider),
+            api_key_test_coder=self.config.get_apikey(task_configs.verification_test_coder.model.provider),
             semantic_tools=None,
             execution_tools=None,
         )
 
         self.event_recorder = EventRecorder(
             driver_name=self.driver_name,
-            output_dir=self.config.project_path.root_path/ "data" / self.driver_name,
+            output_dir=self.config.project_path.root_path / "data" / self.driver_name,
         )
 
     def _build_planner_input(self,user_request:str|None,verifier_feedback:VerifierOutput|None) -> PlannerInput:
@@ -294,6 +294,7 @@ class Controller:
             json.dumps(output, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
 
     def _check_valid_client(self) -> None:
 
