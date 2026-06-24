@@ -25,6 +25,7 @@ class Verifier:
 
     @classmethod
     def load_from_task_config(cls,
+                              driver_name:str,
                               semantic_config:TaskConfig,
                               execution_config:TaskConfig,
                               *,
@@ -45,6 +46,7 @@ class Verifier:
         )
 
         execution_verifier = ExecutionVerifier.load_from_task_config(
+            driver_name = driver_name,
             task_config = execution_config,
             api_key = api_key_test_coder,
             tools = execution_tools,

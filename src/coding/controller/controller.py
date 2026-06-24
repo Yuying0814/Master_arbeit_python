@@ -119,6 +119,7 @@ class Controller:
         )
 
         self.verifier = Verifier.load_from_task_config(
+            driver_name=self.driver_name,
             semantic_config=task_configs.verification_semantic,
             execution_config=task_configs.verification_test_coder,
             enable_test_coder=self.config.enable_test_coder,

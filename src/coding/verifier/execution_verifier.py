@@ -19,6 +19,7 @@ from src.coding.filewriter.filewriter import FileWriter
 
 
 class ExecutionVerifier:
+    driver_name:str
     test_coder_config: dict[str,Any]
     enable_test_coder:bool
     cli_path: Path
@@ -28,7 +29,8 @@ class ExecutionVerifier:
     total_tokens: dict[str,Any]
     log:ExecutionVerifierLog
 
-    def __init__(self,test_coder_config:dict[str,Any],enable_test_coder:bool,cli_path:Path,fqbn:str):
+    def __init__(self,driver_name:str,test_coder_config:dict[str,Any],enable_test_coder:bool,cli_path:Path,fqbn:str):
+        self.driver_name = driver_name
         self.test_coder_config = test_coder_config
         self.test_dir = ""
         self.enable_test_coder = enable_test_coder
@@ -46,6 +48,7 @@ class ExecutionVerifier:
     @classmethod
     def load_from_task_config(
             cls,
+            driver_name:str,
             task_config: TaskConfig,
             *,
             api_key:str = None,
@@ -63,6 +66,7 @@ class ExecutionVerifier:
             "thread_id" : thread_id
         }
         return cls(
+            driver_name = driver_name,
             test_coder_config = test_coder_config,
             enable_test_coder = enable_test_coder,
             cli_path = cli_path,
@@ -74,7 +78,7 @@ class ExecutionVerifier:
         print("execution verification started")
 
         with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
-            self.test_dir = Path(temp_root) / "verification_test"
+            self.test_dir = Path(temp_root) / self.driver_name
 
             files = execution_verifier_input.candidate_files
             FileWriter.write_to_files(
