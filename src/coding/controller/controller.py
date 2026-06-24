@@ -36,6 +36,7 @@ class Controller:
         self.accepted_files = []
         self.config = config
         self.not_accepted_files = []
+        self.attempted_log = False
 
         self.driver_name = driver_name
         self.pages = pages
@@ -75,6 +76,7 @@ class Controller:
         )
         try:
             for attempt in range(1, self.max_tries + 1):
+                self.attempted_log = False
                 print("==================")
                 print(f"attempt {attempt}/{self.max_tries}")
                 print("==================")
@@ -247,42 +249,56 @@ class Controller:
                 shutil.rmtree(item)
 
     def _update_logs(self, attempt: int) -> None:
-        planner_log = _get_log(self.planner, attempt)
-        coder_log = _get_log(self.coder, attempt)
-        retriever_log = _get_log(self.retriever, attempt)
-        verifier_log = _get_log(self.verifier, attempt)
+        if attempt <= 0:
+            return
+        if self.accepted_files:
+            return
+        try:
+            planner_log = _get_log(self.planner, attempt)
+            coder_log = _get_log(self.coder, attempt)
+            retriever_log = _get_log(self.retriever, attempt)
+            verifier_log = _get_log(self.verifier, attempt)
 
-        self.logs.append(
-            ControllerLog(
-                driver_name=self.driver_name,
-                attempt=attempt,
-                snapshot=Snapshot(
-                    programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan) if planner_log is not None else None,
-                    verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan) if planner_log is not None else None,
-                    retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics) if planner_log is not None else None,
-                    candidate_files=[
-                        file.model_copy(deep=True) for file in self.candidate_files if self.candidate_files
-                    ],
-                    accepted_files=[
-                        file.model_copy(deep=True) for file in self.accepted_files if self.candidate_files
-                    ],
-                    verifier_feedback=verifier_log.verifier_output.model_copy(deep=True) if verifier_log is not None else None,
-                    passed=verifier_log.verifier_output.passed if verifier_log is not None else False,
-                ),
-                details=SubLogs(
-                    planner_log=planner_log,
-                    coder_log=coder_log,
-                    retriever_log=retriever_log,
-                    verifier_log=verifier_log,
-                ),
-                token_consumption=TokenConsumption(
-                    planner=copy.deepcopy(getattr(planner_log,"token_consumption",{})),
-                    retriever=copy.deepcopy(getattr(retriever_log,"token_consumption",{})),
-                    coder=copy.deepcopy(getattr(coder_log,"token_consumption",{})),
-                    verifier=copy.deepcopy(getattr(verifier_log,"token_consumption",{})),
-                ),
+            self.logs.append(
+                ControllerLog(
+                    driver_name=self.driver_name,
+                    attempt=attempt,
+                    snapshot=Snapshot(
+                        programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan) if planner_log is not None else None,
+                        verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan) if planner_log is not None else None,
+                        retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics) if planner_log is not None else None,
+                        candidate_files=[
+                            file.model_copy(deep=True) for file in self.candidate_files
+                        ],
+                        accepted_files=[
+                            file.model_copy(deep=True) for file in self.accepted_files
+                        ],
+                        verifier_feedback=verifier_log.verifier_output.model_copy(deep=True) if verifier_log is not None else None,
+                        passed=verifier_log.verifier_output.passed if verifier_log is not None else False,
+                    ),
+                    details=SubLogs(
+                        planner_log=planner_log,
+                        coder_log=coder_log,
+                        retriever_log=retriever_log,
+                        verifier_log=verifier_log,
+                    ),
+                    token_consumption=TokenConsumption(
+                        planner=copy.deepcopy(getattr(planner_log,"token_consumption",{})),
+                        retriever=copy.deepcopy(getattr(retriever_log,"token_consumption",{})),
+                        coder=copy.deepcopy(getattr(coder_log,"token_consumption",{})),
+                        verifier=copy.deepcopy(getattr(verifier_log,"token_consumption",{})),
+                    ),
+                )
             )
-        )
+            self.attempted_log = True
+        except Exception as exc:
+            self.event_recorder.emit(
+                agent="controller",
+                action="update_logs",
+                status="error",
+                attempt=attempt,
+                error=exc,
+            )
 
     def _save_logs(self) -> None:
         log_dir = self.config.project_path.root_path / "data" / self.driver_name
