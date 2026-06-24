@@ -74,10 +74,10 @@ Multiple indexes may be comma-separated.
 
 Return exactly one top-level JSON object with the following field:
 
-### 1. `Registers`: Array<Register>
+### 1. `registers`: Array<RegisterMapItem>
 
 The final array of extracted logical register objects.
-Each `Register` represents exactly one logical register and contains the following fields:
+Each `RegisterMapItem` represents exactly one logical register and contains the following fields:
 
 #### 1.1 `index`: Integer
 
@@ -336,7 +336,7 @@ Use an empty string if unavailable.
 4. Do not create duplicate register entries for the same address unless the source explicitly requires separate logical registers.
 5. Do not omit required schema fields.
 6. Use only the fixed output fields defined above. Never add extra fields.
-7. `Registers`, `physical_address`, `field_parts`, `bit_field`, `values`, and `source` must always be arrays.
+7. `registers`, `physical_address`, `field_parts`, `bit_field`, `values`, and `source` must always be arrays.
 8. For unavailable fields, use:
 
    * missing string: `""`
@@ -344,8 +344,8 @@ Use an empty string if unavailable.
    * missing integer: `null`
    * missing boolean `is_reserved`: `false`
    * missing boolean `is_multi_address`: `false`
-9. Each `Registers.physical_address(i)` object must represent exactly one physical address.
-10. Each `Registers.field_parts(i).physical_address` object must represent exactly one physical address and must not be an array.
+9. Each `registers.physical_address(i)` object must represent exactly one physical address.
+10. Each `registers.field_parts(i).physical_address` object must represent exactly one physical address and must not be an array.
 11. For a single-address register, include exactly one `physical_address` object and exactly one `field_parts` object.
 12. For a multi-address logical register, include all explicitly supported physical addresses in order and one `field_parts` object for each supported physical address, byte segment, or sub-register.
 13. The final `physical_address` array determines `is_multi_address`.

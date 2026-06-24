@@ -68,4 +68,4 @@ class RegisterMapItem(StructuredOutputModel):
 
 
 class RegisterMapOutput(StructuredOutputModel):
-    registers: list[RegisterMapItem] = Field(alias="Registers")
+    registers: list[RegisterMapItem]

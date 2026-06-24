@@ -40,9 +40,9 @@ Use this request as the highest-level functional goal, unless it conflicts with 
 
 ### 3. `register_map`: RegisterMapOutput
 The extracted structured register map.
-The top-level field is usually `Registers`.
+The top-level field is usually `registers`.
 
-#### 3.1 `Registers`: Array<Register>
+#### 3.1 `registers`: Array<Register>
 The final array of extracted logical register objects.
 Each `Register` represents exactly one logical register and contains the following fields:
 
