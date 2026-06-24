@@ -257,17 +257,17 @@ class Controller:
                 driver_name=self.driver_name,
                 attempt=attempt,
                 snapshot=Snapshot(
-                    programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan),
-                    verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan),
-                    retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics),
+                    programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan) if planner_log is not None else None,
+                    verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan) if planner_log is not None else None,
+                    retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics) if planner_log is not None else None,
                     candidate_files=[
-                        file.model_copy(deep=True) for file in self.candidate_files
+                        file.model_copy(deep=True) for file in self.candidate_files if self.candidate_files
                     ],
                     accepted_files=[
-                        file.model_copy(deep=True) for file in self.accepted_files
+                        file.model_copy(deep=True) for file in self.accepted_files if self.candidate_files
                     ],
-                    verifier_feedback=verifier_log.verifier_output.model_copy(deep=True),
-                    passed=verifier_log.verifier_output.passed,
+                    verifier_feedback=verifier_log.verifier_output.model_copy(deep=True) if verifier_log is not None else None,
+                    passed=verifier_log.verifier_output.passed if verifier_log is not None else False,
                 ),
                 details=SubLogs(
                     planner_log=planner_log,
@@ -276,10 +276,10 @@ class Controller:
                     verifier_log=verifier_log,
                 ),
                 token_consumption=TokenConsumption(
-                    planner=copy.deepcopy(planner_log.token_consumption),
-                    retriever=copy.deepcopy(retriever_log.token_consumption),
-                    coder=copy.deepcopy(coder_log.token_consumption),
-                    verifier=copy.deepcopy(verifier_log.token_consumption),
+                    planner=copy.deepcopy(getattr(planner_log,"token_consumption",{})),
+                    retriever=copy.deepcopy(getattr(retriever_log,"token_consumption",{})),
+                    coder=copy.deepcopy(getattr(coder_log,"token_consumption",{})),
+                    verifier=copy.deepcopy(getattr(verifier_log,"token_consumption",{})),
                 ),
             )
         )

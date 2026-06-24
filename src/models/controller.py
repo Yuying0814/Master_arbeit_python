@@ -18,13 +18,13 @@ class ControllerLog(StructuredOutputModel):
     token_consumption:TokenConsumption
 
 class Snapshot(StructuredOutputModel):
-    programming_plan:ProgrammingPlan
-    verification_plan:VerificationPlan
-    retrieval_topics:list[RetrievalTopic]
-    candidate_files:list[CodeFile]
-    accepted_files:list[CodeFile]
-    verifier_feedback:VerifierOutput
-    passed:bool
+    programming_plan:ProgrammingPlan | None
+    verification_plan:VerificationPlan | None
+    retrieval_topics:list[RetrievalTopic] | None
+    candidate_files:list[CodeFile] | None
+    accepted_files:list[CodeFile] | None
+    verifier_feedback:VerifierOutput | None
+    passed:bool = Field(default=False)
 
 class SubLogs(StructuredOutputModel):
     planner_log:PlannerLog|None = Field(default=None)
