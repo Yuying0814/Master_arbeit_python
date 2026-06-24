@@ -1,10 +1,14 @@
 from __future__ import annotations
 from typing import Any
 
-from src.models.retriever import RetrievalTopic
+from pydantic import Field
+
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding_common import CodeFile, ProgrammingPlan, VerificationPlan
-from src.models.verifier import VerifierOutput
+from src.models.planner import PlannerLog
+from src.models.coder import CoderLog
+from src.models.verifier import VerifierOutput,VerifierLog
+from src.models.retriever import RetrievalTopic,RetrieverLog
 
 class ControllerLog(StructuredOutputModel):
     driver_name: str
@@ -23,10 +27,10 @@ class Snapshot(StructuredOutputModel):
     passed:bool
 
 class SubLogs(StructuredOutputModel):
-    planner_log:Any
-    retriever_log:Any
-    coder_log:Any
-    verifier_log:Any
+    planner_log:PlannerLog|None = Field(default=None)
+    retriever_log:RetrieverLog|None = Field(default=None)
+    coder_log:CoderLog|None = Field(default=None)
+    verifier_log:VerifierLog|None = Field(default=None)
 
 class TokenConsumption(StructuredOutputModel):
     planner:dict[str, Any]

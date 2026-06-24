@@ -1,9 +1,11 @@
 import shutil
 import subprocess
 import copy
+import json
 from typing import Any
 from pathlib import Path
 
+from src.coding.controller.event_recorder import EventRecorder
 from src.coding.config import CodingConfig
 from src.coding.planner.planner import Planner
 from src.coding.retriever.retriever import PageRetriever
@@ -50,7 +52,7 @@ class Controller:
             driver_name:str,
             config:CodingConfig,
             pages:list[dict[str,Any]],
-            register_map:RegisterMapOutput
+            register_map:dict[str,Any]
     ) -> "Controller":
         return Controller(driver_name,config,pages,register_map)
 
@@ -59,43 +61,91 @@ class Controller:
         print("running controller")
         print("==================")
         verifier_feedback = None
+        run_status = "failed"
+        attempt = 0
 
-        for attempt in range(1,self.max_tries+1):
-            print("==================")
-            print(f"attempt {attempt/self.max_tries}")
-            print("==================")
+        self.event_recorder.emit(
+            agent="controller",
+            action="run",
+            status="started",
+            payload={
+                "user_request": user_request,
+                "max_tries": self.max_tries,
+            },
+        )
+        try:
+            for attempt in range(1,self.max_tries+1):
+                print("==================")
+                print(f"attempt {attempt+1}/{self.max_tries}")
+                print("==================")
 
-            planner_input = self._build_planner_input(user_request,verifier_feedback)
-            planner_output = self.planner.create_plan(planner_input)
+                self.event_recorder.emit(
+                    agent="controller",
+                    action="attempt",
+                    status="started",
+                    attempt=attempt,
+                )
 
-            programming_plan = planner_output.programming_plan
-            topics = planner_output.retrieval_topics
-            verification_plan = planner_output.verification_plan
+                with self.event_recorder.step("planner", "create_plan", attempt=attempt):
+                    planner_input = self._build_planner_input(user_request,verifier_feedback)
+                    planner_output = self.planner.create_plan(planner_input)
 
-            retrieval_response = await self.retriever.run(topics)
-            retrieval_results = retrieval_response.results
+                programming_plan = planner_output.programming_plan
+                topics = planner_output.retrieval_topics
+                verification_plan = planner_output.verification_plan
 
-            coder_input = self._build_coder_input(programming_plan,retrieval_results)
-            coder_output = self.coder.create_code_file(coder_input)
+                with self.event_recorder.step("retriever", "run", attempt=attempt):
+                    retrieval_response = await self.retriever.run(topics)
+                    retrieval_results = retrieval_response.results
 
-            self._update_candidate_files(coder_output)
+                with self.event_recorder.step("coder", "create_code_file", attempt=attempt):
+                    coder_input = self._build_coder_input(programming_plan,retrieval_results)
+                    coder_output = self.coder.create_code_file(coder_input)
 
-            verifier_input = self._build_verifier_input(verification_plan,retrieval_results)
-            verifier_output = self.verifier.run(verifier_input)
+                self._update_candidate_files(coder_output)
+                with self.event_recorder.step("verifier", "run", attempt=attempt):
+                    verifier_input = self._build_verifier_input(verification_plan,retrieval_results)
+                    verifier_output = self.verifier.run(verifier_input)
 
-            if verifier_output.passed:
-                self.accepted_files = list(self.candidate_files)
+                if verifier_output.passed:
+                    self.accepted_files = list(self.candidate_files)
+                    self._update_logs(attempt)
+                    break
+
                 self._update_logs(attempt)
-                break
+                verifier_feedback = verifier_output
 
+            if len(self.accepted_files) > 0:
+                self.clear_dir()
+                FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/self.driver_name)
+
+            return len(self.accepted_files) > 0
+        except Exception as exc:
+            run_status = "error"
+            self.event_recorder.emit(
+                agent="controller",
+                action="run",
+                status="error",
+                payload={
+                    "candidate_file_count": len(self.candidate_files),
+                    "accepted_file_count": len(self.accepted_files),
+                },
+                error=exc,
+            )
+            raise
+
+        finally:
+            self.event_recorder.emit(
+                agent="controller",
+                action="run",
+                status="finished",
+                payload={
+                    "run_status": run_status,
+                },
+            )
             self._update_logs(attempt)
-            verifier_feedback = verifier_output
-
-        if len(self.accepted_files) > 0:
-            self.clear_dir()
-            FileWriter.write_to_files(self.accepted_files,self.config.project_path.code_dir/self.driver_name)
-
-        return len(self.accepted_files) > 0
+            self._save_logs()
+            self.event_recorder.write(run_status)
 
     def _load_agents(self):
         task_configs = self.config.task_configs
@@ -129,6 +179,11 @@ class Controller:
             api_key_test_coder = self.config.get_apikey(task_configs.verification_test_coder.model.provider),
             semantic_tools=None,
             execution_tools=None,
+        )
+
+        self.event_recorder = EventRecorder(
+            driver_name=self.driver_name,
+            output_dir=self.config.project_path.root_path/ "data" / self.driver_name,
         )
 
     def _build_planner_input(self,user_request:str|None,verifier_feedback:VerifierOutput|None) -> PlannerInput:
@@ -191,10 +246,10 @@ class Controller:
                 shutil.rmtree(item)
 
     def _update_logs(self, attempt: int) -> None:
-        planner_log = self.planner.logs[-1].model_copy(deep=True)
-        coder_log = self.coder.logs[-1].model_copy(deep=True)
-        retriever_log = self.retriever.logs[-1].model_copy(deep=True)
-        verifier_log = self.verifier.logs[-1].model_copy(deep=True)
+        planner_log = _get_log(self.planner, attempt)
+        coder_log = _get_log(self.coder, attempt)
+        retriever_log = _get_log(self.retriever, attempt)
+        verifier_log = _get_log(self.verifier, attempt)
 
         self.logs.append(
             ControllerLog(
@@ -228,6 +283,18 @@ class Controller:
             )
         )
 
+    def _save_logs(self) -> None:
+        log_path = self.config.project_path.root_path/ "data" / self.driver_name / "logs.json"
+        output = {
+            "driver_name": self.driver_name,
+            "logs": [self.event_recorder._to_jsonable(log) for log in self.logs],
+        }
+
+        log_path.write_text(
+            json.dumps(output, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
     def _check_valid_client(self) -> None:
 
         cli_path = Path(self.config.project_path.cli_path).expanduser()
@@ -236,7 +303,7 @@ class Controller:
             raise FileNotFoundError(f"Arduino CLI executable not found: {cli_path}")
 
         try:
-            result = _run_command([str(cli_path), "--version"])
+            result = _run_command([str(cli_path), "version"])
         except subprocess.TimeoutExpired as exc:
             raise TimeoutError(f"Arduino CLI version check timed out: {cli_path}") from exc
         except OSError as exc:
@@ -245,7 +312,7 @@ class Controller:
         if result.returncode != 0:
             raise RuntimeError(
                 "Arduino CLI is not available or returned an error.\n"
-                f"Command: {cli_path} --version\n"
+                f"Command: {cli_path} version\n"
                 f"STDOUT:\n{result.stdout}\n"
                 f"STDERR:\n{result.stderr}"
             )
@@ -293,3 +360,9 @@ def _run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
         errors="replace",
         timeout=60,
     )
+
+def _get_log(agent,attempt: int) -> Any:
+    try:
+        return agent.logs[attempt].model_copy(deep=True)
+    except IndexError:
+        return None
