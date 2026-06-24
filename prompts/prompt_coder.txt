@@ -367,7 +367,8 @@ For modified existing candidate files, reuse the existing `file_id`.
 For newly created candidate files, use the `file_id` specified by the corresponding `TargetFile`.
 
 #### 1.2 `name`: String
-Name of the current code file without filename extension.
+Name of the current code file.
+Base file name only, without the file extension.
 
 #### 1.3 `file_type`: String
 Type or extension of the current code file.
@@ -407,8 +408,6 @@ The reason should include the conflict between the available information and the
 Identifiers of candidate files that should be removed.
 Only include ids of files that existed in the input `candidate_files` and are deleted according to the programming plan.
 Use an empty array if no candidate files should be deleted.
-
-
 
 ## General Rules
 
