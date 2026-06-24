@@ -229,8 +229,6 @@ class Controller:
         )
 
     def _check_valid_client(self) -> None:
-        if not self.config.enable_test_coder:
-            return
 
         cli_path = Path(self.config.project_path.cli_path).expanduser()
 
@@ -253,8 +251,6 @@ class Controller:
             )
 
     def _build_fqbn(self) -> str:
-        if not self.config.enable_test_coder:
-            return ""
 
         core = self.config.core.strip()
         board = self.config.board.strip()
@@ -268,8 +264,6 @@ class Controller:
         return f"arduino:{core}:{board}"
 
     def _check_valid_fqbn(self) -> None:
-        if not self.config.enable_test_coder:
-            return
 
         cli_path = Path(self.config.project_path.cli_path).expanduser()
         fqbn = self._build_fqbn()

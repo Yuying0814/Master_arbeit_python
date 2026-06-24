@@ -106,8 +106,8 @@ class CodingConfig(BaseConfig):
     @classmethod
     def load_config(cls,code_dir:str|Path, cli_path:str|Path, env:str|Path="",*,
                     enable_test_coder:bool=False,
-                    core:str = "",
-                    board:str = "") -> CodingConfig:
+                    core:str = "avr",
+                    board:str = "uno") -> CodingConfig:
         code_dir = Path(code_dir)
         code_dir.mkdir(parents=True, exist_ok=True)
 
