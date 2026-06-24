@@ -205,7 +205,7 @@ Each `IncompleteImplementation` item contains the following fields:
 Name of the incomplete target section location.
 
 ##### 4.6.2 `target_function`: String
-Name of the incomplete target function. 
+Name of the incomplete target function.
 
 ##### 4.6.3 `description`: String
 Description of what has been implemented so far in this item and what remains unimplemented.
@@ -420,7 +420,7 @@ Each `VerificationPlan` contains the following fields:
 
 Semantic verification plan.
 
-It must instruct the verifier to check. The checks may include, but are not limited to:
+It must instruct the verifier to check the code generated later by the coder. The checks may include, but are not limited to:
 
 * whether the generated files match the user request;
 * whether the driver uses Arduino `Wire.h`;
