@@ -222,7 +222,6 @@ Each `CodeFile` follows the same structure described in section 4.
 Feedback from the verifier agent.
 This value is null only in the first planning iteration.
 
-
 ## Output
 
 Return exactly one top-level JSON object.
@@ -270,7 +269,7 @@ For the default task, instruct the coder to generate an Arduino Wire.h-based C++
 * physical-unit conversion functions;
 * calibration-related functions when calibration registers are present;
 * interrupt, alert, or FIFO functions only when supported by the register map.
-The planned contents may include, but are not limited to, the items above. You may add other source-supported elements that are useful for driver-library generation.
+  The planned contents may include, but are not limited to, the items above. You may add other source-supported elements that are useful for driver-library generation.
 
 #### 3.2 `file_plans`: Array<FilePlan>
 File-level plans for creation, modification, or deletion.
@@ -292,7 +291,7 @@ For a new file, create a unique stable descriptive id, such as:
 * `driver_source`
 * `example_sketch_01`
 * `test_sketch_01`
-For an existing file, reuse the existing `file_id`.
+  For an existing file, reuse the existing `file_id`.
 
 ###### 3.2.2.2 `name`: String
 Name of the target file.
@@ -338,80 +337,55 @@ Name of the planned file section.
 ####### 3.2.2.6.2 `description`: String
 Purpose of this file section.
 
-####### 3.2.2.6.3 `required`: Boolean
-Whether this section must be generated.
-For a header file, typical sections may include, but are not limited to:
-* include guard;
-* Arduino and Wire includes;
-* device constants;
-* register address definitions;
-* bit masks and field definitions;
-* configuration enums;
-* driver status or data structures;
-* class or function declarations;
-* public user API.
-For a `.cpp` file, typical sections may include, but are not limited to:
-
-* includes;
-* constructor or initialization state;
-* low-level I2C helper implementations;
-* register read/write helper implementations;
-* initialization implementation;
-* configuration implementation;
-* raw-data read implementation;
-* conversion implementation;
-* calibration implementation;
-* optional interrupt or FIFO implementation.
-
-###### 3.2.2.7 `functions`: Array<FunctionSpec>
-Functions that should be created, modified, or deleted.
+####### 3.2.2.6.3 `functions`: Array<FunctionSpec>
+Functions that should be created, modified, or deleted in this section.
+Use an empty array if this section does not contain planned functions.
 Each `FunctionSpec` contains the following fields:
 
-####### 3.2.2.7.1 `name`: String
+######## 3.2.2.6.3.1 `name`: String
 Name of the current target function.
 
-####### 3.2.2.7.2 `description`: String
+######## 3.2.2.6.3.2 `description`: String
 Short functional description of the current target function.
 
-####### 3.2.2.7.3 `operation`: Operation
+######## 3.2.2.6.3.3 `operation`: Operation
 Operation of the current target function.
 Each `Operation` follows the same structure described in section 3.2.2.4.
 
-####### 3.2.2.7.4 `parameters`: Array<DataType>
+######## 3.2.2.6.3.4 `parameters`: Array<DataType>
 Input, output, or inout parameters for the target function.
 Each `DataType` contains the following fields:
 
-######## 3.2.2.7.4.1 `name`: String
+######### 3.2.2.6.3.4.1 `name`: String
 Name of the current parameter or output.
 
-######## 3.2.2.7.4.2 `data_type`: String
+######### 3.2.2.6.3.4.2 `data_type`: String
 Data type of the current parameter or output.
 
-######## 3.2.2.7.4.3 `direction`: String
+######### 3.2.2.6.3.4.3 `direction`: String
 Data flow direction of the parameter.
 Allowed values are:
-
 * `input`
 * `output`
 * `inout`
 
-######## 3.2.2.7.4.4 `description`: String
+######### 3.2.2.6.3.4.4 `description`: String
 Short description of the current parameter or output.
 
-######## 3.2.2.7.4.5 `nullable`: Boolean
+######### 3.2.2.6.3.4.5 `nullable`: Boolean
 Whether the current parameter or output is optional.
 
-######## 3.2.2.7.4.6 `default_value`: str or null
-default value of the current parameter or output, null if no default value.
+######### 3.2.2.6.3.4.6 `default_value`: String or null
+Default value of the current parameter or output, null if no default value.
 
-####### 3.2.2.7.5 `return_type`: ReturnType
+######## 3.2.2.6.3.5 `return_type`: ReturnType
 Return type of the target function.
 Each `ReturnType` contains the following fields:
 
-######## 3.2.2.7.5.1 `data_type`: String
+######### 3.2.2.6.3.5.1 `data_type`: String
 C return type of the function.
 
-######## 3.2.2.7.5.2 `description`: String
+######### 3.2.2.6.3.5.2 `description`: String
 Meaning of the return value.
 
 Use concise and stable function names.
@@ -433,6 +407,9 @@ For a default Arduino Wire.h driver, planned functions may include, but are not 
 * `readStatus`
 
 Only include functions that are justified by the register map, user request, or needed generic driver structure.
+
+####### 3.2.2.6.4 `required`: Boolean
+Whether this section must be generated.
 
 ### 4. `verification_plan`: VerificationPlan
 
