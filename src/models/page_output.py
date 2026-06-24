@@ -1,16 +1,8 @@
 from src.models.structuredOutputModel import StructuredOutputModel
 
 class PageClassification(StructuredOutputModel):
-    is_toc:bool
     is_register_summary_relevant: bool
     is_register_map_relevant: bool
-    is_digital_interface_relevant: bool
-    is_data_conversion_relevant: bool
-    is_initialization_and_reset_relevant: bool
-    is_timing_relevant: bool
-    is_interrupt_alert_relevant: bool
-    is_fifo_relevant: bool
-    is_coding_example: bool
 
     @classmethod
     def get_default_value(cls)->dict[str,bool]:
