@@ -124,10 +124,14 @@ class DataType(StructuredOutputModel):
     nullable:bool = Field(
         description="whether the current parameter or output is optional",
     )
+    default_value:str|None = Field(
+        default=None,
+        description="default value of the current parameter or output, null if no default value",
+    )
 
 class ReturnType(StructuredOutputModel):
     data_type: str = Field(
-        description="C return type of the function."
+        description="return type of the function."
     )
     description: str = Field(
         description="Meaning of the return value."
