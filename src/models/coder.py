@@ -25,7 +25,7 @@ class CoderInput(StructuredOutputModel):
         description="extracted register map",
     )
 
-    retrieval_result: list[RetrievalResult] = Field(
+    retrieval_results: list[RetrievalResult] = Field(
         default_factory=list,
         description="required infos for realisation of the programming plan",
     )
