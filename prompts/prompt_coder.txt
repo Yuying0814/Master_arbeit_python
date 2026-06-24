@@ -448,9 +448,9 @@ A typical `.ino` structure is:
 
 ```cpp
 #include <Wire.h>
-#include "SensorDriver.h"
+#include "<target_file_base_name>.h"
 
-SensorDriver sensor;
+DriverClass sensor;
 
 void setup() {
   Wire.begin();

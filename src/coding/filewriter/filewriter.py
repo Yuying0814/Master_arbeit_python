@@ -9,7 +9,12 @@ class FileWriter:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        filepath = output_dir / f"{code_file.name}{code_file.file_type}"
+        filename = code_file.name
+        if not filename.endswith(code_file.file_type):
+            filename = f"{filename}{code_file.file_type}"
+
+        filepath = output_dir / filename
+
         content = (
             f"/*\n"
             f"{code_file.description}\n"
