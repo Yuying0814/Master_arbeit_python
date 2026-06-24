@@ -251,7 +251,7 @@ class Controller:
     def _update_logs(self, attempt: int) -> None:
         if attempt <= 0:
             return
-        if self.accepted_files:
+        if self.attempted_log:
             return
         try:
             planner_log = _get_log(self.planner, attempt)
