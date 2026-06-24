@@ -108,10 +108,6 @@ class FileSection(StructuredOutputModel):
         description="functions to be modified in current target file",
     )
 
-    required: bool = Field(
-        description="whether this section must be generated",
-    )
-
 class FunctionSpec(StructuredOutputModel):
     name:str = Field(
         description="name of the current target function",

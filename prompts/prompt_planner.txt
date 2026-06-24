@@ -408,9 +408,6 @@ For a default Arduino Wire.h driver, planned functions may include, but are not 
 
 Only include functions that are justified by the register map, user request, or needed generic driver structure.
 
-####### 3.2.2.6.4 `required`: Boolean
-Whether this section must be generated.
-
 ### 4. `verification_plan`: VerificationPlan
 
 The plan for checking the candidate files.

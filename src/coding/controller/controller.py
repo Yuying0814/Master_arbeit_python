@@ -27,7 +27,8 @@ class Controller:
     logs: list[ControllerLog]
     config:CodingConfig
 
-    def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:RegisterMapOutput):
+    def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:dict[str,Any]) -> None:
+        print("initializing controller")
         self.logs = []
         self.candidate_files = []
         self.accepted_files = []
@@ -36,7 +37,7 @@ class Controller:
 
         self.driver_name = driver_name
         self.pages = pages
-        self.register_map = register_map
+        self.register_map = RegisterMapOutput.model_validate(register_map)
 
         self._check_valid_client()
         self._check_valid_fqbn()
@@ -54,9 +55,15 @@ class Controller:
         return Controller(driver_name,config,pages,register_map)
 
     async def run(self,user_request:str = None):
+        print("==================")
+        print("running controller")
+        print("==================")
         verifier_feedback = None
 
         for attempt in range(1,self.max_tries+1):
+            print("==================")
+            print(f"attempt {attempt/self.max_tries}")
+            print("==================")
 
             planner_input = self._build_planner_input(user_request,verifier_feedback)
             planner_output = self.planner.create_plan(planner_input)
@@ -220,6 +227,9 @@ class Controller:
         )
 
     def _check_valid_client(self) -> None:
+        if not self.config.enable_test_coder:
+            return
+
         cli_path = Path(self.config.project_path.cli_path).expanduser()
 
         if not cli_path.is_file():
@@ -241,6 +251,9 @@ class Controller:
             )
 
     def _build_fqbn(self) -> str:
+        if not self.config.enable_test_coder:
+            return ""
+
         core = self.config.core.strip()
         board = self.config.board.strip()
 
@@ -253,6 +266,9 @@ class Controller:
         return f"arduino:{core}:{board}"
 
     def _check_valid_fqbn(self) -> None:
+        if not self.config.enable_test_coder:
+            return
+
         cli_path = Path(self.config.project_path.cli_path).expanduser()
         fqbn = self._build_fqbn()
 
