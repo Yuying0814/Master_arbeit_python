@@ -138,6 +138,7 @@ class Controller:
             )
 
         return PlannerInput(
+            driver_name=self.driver_name,
             enable_test_coder=self.config.enable_test_coder,
             user_request=user_request,
             register_map=self.register_map,
