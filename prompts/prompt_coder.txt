@@ -391,21 +391,18 @@ Planned target operations that could not be fully implemented in this coding ite
 Use an empty array if all planned operations were fully implemented.
 Each `IncompleteImplementation` contains the following fields:
 
-##### 1.6.1 `target_file_id`: String
-Identifier of the incomplete target file.
-
-##### 1.6.2 `target_section`: String
-Name of the incomplete target section.
+##### 1.6.1 `target_section`: String
+Name of the incomplete target section location.
 Use an empty string if the incomplete operation is not section-specific.
 
-##### 1.6.3 `target_function`: String
+##### 1.6.2 `target_function`: String
 Name of the incomplete target function.
 Use an empty string if the incomplete operation is not function-specific.
 
-##### 1.6.4 `description`: String
+##### 1.6.3 `description`: String
 Description of what has been implemented so far and what remains unimplemented.
 
-##### 1.6.5 `reason`: String
+##### 1.6.4 `reason`: String
 Reason why the planned operation could not be fully implemented.
 The reason should include the conflict between the available information and the planned implementation, rather than a generic explanation of why the operation could not be implemented.
 
