@@ -420,7 +420,7 @@ Each `VerificationPlan` contains the following fields:
 
 Semantic verification plan.
 
-It must instruct the verifier to check the code generated later by the coder. The checks may include, but are not limited to:
+It must instruct the verifier to check the code generated later by the coder in this iteration. The checks may include, but are not limited to:
 
 * whether the generated files match the user request;
 * whether the driver uses Arduino `Wire.h`;
