@@ -51,31 +51,6 @@ class CoderOutput(StructuredOutputModel):
         description="Identifiers of existing candidate files that should be removed from the current candidate file set."
     )
 
-    incomplete_implementation: list[IncompleteImplementation] = Field(
-        default_factory=list,
-        description="Planned target operations that could not be fully implemented in this coding iteration.",
-    )
-
-class IncompleteImplementation(StructuredOutputModel):
-    target_file_id: str = Field(
-        description="Identifier of the target file with an incomplete planned operation.",
-    )
-
-    target_section: str = Field(
-        description="Name of the incomplete target section. Use an empty string if the issue is not section-specific.",
-    )
-
-    target_function: str = Field(
-        description="Name of the incomplete target function. Use an empty string if the issue is not function-specific.",
-    )
-
-    description: str = Field(
-        description="Description of what has been implemented so far and what remains unimplemented.",
-    )
-
-    reason: str = Field(
-        description="Reason why the planned operation could not be fully implemented.",
-    )
 # Log
 class CoderLog(StructuredOutputModel):
     coder_input: CoderInput
