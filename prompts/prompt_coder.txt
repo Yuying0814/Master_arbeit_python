@@ -337,7 +337,7 @@ Each `IncompleteImplementation` item contains the following fields:
 Name of the incomplete target section location.
 
 ##### 4.6.2 `target_function`: String
-Name of the incomplete target function.
+Name of the incomplete target function. Use an empty string if the issue is not function-specific.
 
 ##### 4.6.3 `description`: String
 Description of what has been implemented so far in this item and what remains unimplemented.
@@ -418,7 +418,7 @@ Use an empty array if no candidate files should be deleted.
 1. Use only the provided input JSON object.
 2. Follow `programming_plan` as the primary implementation plan.
 3. Implement only the files, sections, functions, and features specified by `programming_plan`, except for lightweight internal helper functions allowed by Additional Contraints rule 1.
-4. When writing code in a file, organize the content by planned file sections. Each section must start with a comment in the exact form `section_name: ...`, where the section name matches the corresponding `FileSection.name` from `programming_plan`.
+4. When writing code, organize the content by planned file sections. Each section must start with a code comment whose comment text follows the exact form `section_name: ...`, where the section name matches the corresponding `FileSection.name` from `programming_plan`.
 5. Do not add unplanned public APIs, unplanned source files and unplanned output candidate files.
 6. Use `register_map` and `retrieval_result` as source evidence.
 7. Do not invent datasheet facts that are not present in `register_map`, `retrieval_result`, `candidate_files`, or `accepted_files`.

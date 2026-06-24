@@ -205,7 +205,7 @@ Each `IncompleteImplementation` item contains the following fields:
 Name of the incomplete target section location.
 
 ##### 4.6.2 `target_function`: String
-Name of the incomplete target function.
+Name of the incomplete target function. 
 
 ##### 4.6.3 `description`: String
 Description of what has been implemented so far in this item and what remains unimplemented.
