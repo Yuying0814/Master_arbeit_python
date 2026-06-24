@@ -3,6 +3,23 @@ from pydantic import Field
 from typing import Literal
 
 from src.models.structuredOutputModel import StructuredOutputModel
+class IncompleteImplementation(StructuredOutputModel):
+
+    target_section: str = Field(
+        description="Name of the incomplete target section. Use an empty string if the issue is not section-specific.",
+    )
+
+    target_function: str = Field(
+        description="Name of the incomplete target function. Use an empty string if the issue is not function-specific.",
+    )
+
+    description: str = Field(
+        description="Description of what has been implemented so far in this item and what remains unimplemented.",
+    )
+
+    reason: str = Field(
+        description="Reason why the planned operation could not be fully implemented.",
+    )
 
 class CodeFile(StructuredOutputModel):
     file_id: str = Field(
@@ -19,6 +36,10 @@ class CodeFile(StructuredOutputModel):
     )
     content: str = Field(
         description="content of the current code file",
+    )
+    incomplete_implementation: list[IncompleteImplementation] = Field(
+        default_factory=list,
+        description="Planned target operations that could not be fully implemented in this coding iteration.",
     )
 
 class Operation(StructuredOutputModel):
@@ -73,10 +94,6 @@ class TargetFile(StructuredOutputModel):
         default_factory=list,
         description="major content sections that should appear in the target file",
     )
-    functions: list[FunctionSpec] = Field(
-        default_factory=list,
-        description="functions to be modified in current target file",
-    )
 
 class FileSection(StructuredOutputModel):
     name: str = Field(
@@ -85,6 +102,12 @@ class FileSection(StructuredOutputModel):
     description: str = Field(
         description="purpose of this file section",
     )
+
+    functions: list[FunctionSpec] = Field(
+        default_factory=list,
+        description="functions to be modified in current target file",
+    )
+
     required: bool = Field(
         description="whether this section must be generated",
     )
