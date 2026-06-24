@@ -153,6 +153,7 @@ class ExecutionVerifierOutput(StructuredOutputModel):
 #
 class RejectedTarget(StructuredOutputModel):
     file_id: str = Field(
+        default = "",
         description= "identifier of the file",
     )
     rejection_summary: str = Field(
@@ -165,7 +166,7 @@ class RejectedTarget(StructuredOutputModel):
         description= "rejected code sections",
     )
 
-    functions: list[RejectedFunction] = Field(
+    rejected_functions: list[RejectedFunction] = Field(
         default_factory=list,
         description= "rejected functions",
     )
