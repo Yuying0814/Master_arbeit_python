@@ -76,7 +76,7 @@ class Controller:
         try:
             for attempt in range(1, self.max_tries + 1):
                 print("==================")
-                print(f"attempt {attempt + 1}/{self.max_tries}")
+                print(f"attempt {attempt}/{self.max_tries}")
                 print("==================")
 
                 self.event_recorder.emit(
@@ -118,9 +118,11 @@ class Controller:
             if len(self.accepted_files) > 0:
                 self.clear_dir()
                 FileWriter.write_to_files(self.accepted_files, self.config.project_path.code_dir / self.driver_name)
+                run_status = "passed"
 
             return len(self.accepted_files) > 0
         except Exception as exc:
+            self._update_logs(attempt)
             run_status = "error"
             self.event_recorder.emit(
                 agent="controller",
@@ -143,7 +145,6 @@ class Controller:
                     "run_status": run_status,
                 },
             )
-            self._update_logs(attempt)
             self._save_logs()
             self.event_recorder.write(run_status)
 
@@ -284,7 +285,11 @@ class Controller:
         )
 
     def _save_logs(self) -> None:
-        log_path = self.config.project_path.root_path/ "data" / self.driver_name / "logs.json"
+        log_dir = self.config.project_path.root_path / "data" / self.driver_name
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        log_path = log_dir / "logs.json"
+
         output = {
             "driver_name": self.driver_name,
             "logs": [self.event_recorder._to_jsonable(log) for log in self.logs],
@@ -363,7 +368,8 @@ def _run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 def _get_log(agent,attempt: int) -> Any:
+    index = attempt - 1
     try:
-        return agent.logs[attempt].model_copy(deep=True)
+        return agent.logs[index].model_copy(deep=True)
     except IndexError:
         return None

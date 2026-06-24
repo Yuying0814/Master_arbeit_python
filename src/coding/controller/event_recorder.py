@@ -46,7 +46,7 @@ class EventRecorder:
             }
 
         self.events.append(event)
-        self.step += 1
+        self.record_step += 1
 
     @contextmanager
     def step(
