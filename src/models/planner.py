@@ -12,6 +12,10 @@ from src.models.register_output import RegisterMapOutput
 # Planner:
 ## input
 class PlannerInput(StructuredOutputModel):
+    driver_name: str = Field(
+        default = "SensorDriver",
+        description="name of the driver",
+    )
     enable_test_coder: bool = Field(
         default=False,
         description="enable test coder",

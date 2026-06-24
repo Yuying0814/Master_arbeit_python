@@ -27,6 +27,9 @@ You must not write the final code or test code. Your output must only be the str
 The input is one top-level JSON object.
 This object contains all information required by the planner for the current planning iteration.
 The object contains the following fields:
+### 1. `driver_name`: str
+User defined name of the driver. Default is `SensorDriver`.
+Do not use it for inferring any other information except for target file naming in programming plan output.
 
 ### 1. `enable_test_coder`: Boolean
 Whether the test coder component in the execution verifier is enabled.
@@ -295,8 +298,8 @@ For a new file, create a unique stable descriptive id, such as:
 
 ###### 3.2.2.2 `name`: String
 Name of the target file.
-For the default driver task, use a sensor-specific or generic driver name when the device name is inferable.
-Base file name only, without the file extension.
+For the default driver task, use a sensor-specific or generic driver name when the device name is inferable from Input.driver_name.
+Base file name only, must without the file extension.
 If the device name is not inferable, use:
 * `SensorDriver`
 
