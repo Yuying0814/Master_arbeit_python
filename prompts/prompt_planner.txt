@@ -470,7 +470,7 @@ Do not require real hardware unless the user explicitly asks for hardware testin
 17. When a rule says "may include, but is not limited to", treat the listed items as non-exhaustive examples. You may add other useful items when they are supported by the input evidence and helpful for driver generation or verification.
 18. Final output must contain only the structured JSON object.
 19. Every field and nested subfield defined in the Output schema must be explicitly included in the response.
-20. When writing `programming_plan.programming_instructions` and `verification_plan.semantic_plan`, use actual newline characters, serialized as `\n` in JSON, between major planning items so that debug prints remain readable.
+20. When writing `programming_plan.programming_instructions` and `verification_plan.semantic_plan`, use newline characters to separate major planning items so that debug prints remain readable. Prefer short `-` bullet lists and numbered markers such as `1)`, `2)`, and `3)` to make the text structure clear.
 
 ## Additional Constraints
 
