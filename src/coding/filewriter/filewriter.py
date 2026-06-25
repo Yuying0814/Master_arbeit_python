@@ -31,7 +31,7 @@ class FileWriter:
     def write_to_files(code_files:list[CodeFile],output_dir:Path | str) -> None:
         output_dir = Path(output_dir)
         for index,code_file in enumerate(code_files):
-            print(f"start writing file {index/len(code_files)}")
+            print(f"start writing file {index}/{len(code_files)}")
             FileWriter.write_to_file(
                 code_file = code_file,
                 output_dir = output_dir)
