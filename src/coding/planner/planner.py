@@ -39,11 +39,13 @@ class Planner:
         print(" -> start creating new plan")
         plan = self.planner_agent.run(user_input)
         self._update_logs(planer_input,plan)
+
+        text = "\n".join(str(topic.topic_keywords) for topic in plan.retrieval_topics)
         print(
             f" -> plan successfully created\n"
             f"==================\n"
-            f"plan id:\n{plan.plan_id}\n\n"
-            f"retrieval topics:\n{[topic.topic_keywords for topic in plan.retrieval_topics]}\n\n"
+            f"plan id: {plan.plan_id}\n\n"
+            f"retrieval topics:\n{text}\n\n"
             f"programming plan:\n{plan.programming_plan.programming_instructions}\n\n"
             f"verification plan:\n{plan.verification_plan.semantic_plan}\n\n"
             f"verification plan:\n{plan.verification_plan.execution_plan}\n"

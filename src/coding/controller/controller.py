@@ -31,7 +31,7 @@ class Controller:
 
     def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:dict[str,Any]) -> None:
         print(
-            f"\n -> initializing controller\n"
+            f"\n =============== initializing coding controller ===============\n"
             f"=================="
         )
         self.logs = []
