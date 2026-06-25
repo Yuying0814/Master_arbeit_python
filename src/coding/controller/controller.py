@@ -32,7 +32,7 @@ class Controller:
     def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:dict[str,Any]) -> None:
         print(
             f"\n -> initializing controller\n"
-            f"==================\n"
+            f"=================="
         )
         self.logs = []
         self.candidate_files = []
@@ -77,8 +77,7 @@ class Controller:
         )
 
         print(
-            f"==================\n"
-            f" -> run coding\n"
+            f"=============== run coding ===============\n"
         )
 
         try:
@@ -119,10 +118,6 @@ class Controller:
                 if verifier_output.passed:
                     self.accepted_files = list(self.candidate_files)
                     self._update_logs(attempt)
-                    print(
-                        f" -> coding completed\n"
-                        f"==================\n"
-                    )
                     break
 
                 self._update_logs(attempt)
@@ -141,8 +136,7 @@ class Controller:
                 run_status = "passed"
 
             print(
-                f" -> coding ended after {attempt} attempts\n"
-                f"==================\n"
+                f"=============== coding ended after {attempt} attempts\n ==============="
             )
 
             return len(self.accepted_files) > 0
@@ -161,8 +155,7 @@ class Controller:
             )
 
             print(
-                f" -> coding ended after {attempt} attempts\n"
-                f"==================\n"
+                f"=============== coding ended after {attempt} attempts\n ==============="
             )
 
             raise
