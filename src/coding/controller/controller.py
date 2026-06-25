@@ -141,7 +141,7 @@ class Controller:
                 run_status = "passed"
 
             print(
-                f" -> coding ended after {self.max_tries} attempts\n"
+                f" -> coding ended after {attempt} attempts\n"
                 f"==================\n"
             )
 
