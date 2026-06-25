@@ -79,12 +79,15 @@ class Verifier:
         execution_input = _build_execution_input(verifier_input)
         execution_output = self.execution_verifier.run(execution_input)
 
-        passed = semantic_output.passed and execution_output.candidate_code_passed
+        execution_passed = execution_output.candidate_code_passed
+
         if execution_output.test_code_passed is not None:
-            passed = passed and execution_output.test_code_passed
+            execution_passed = execution_passed and execution_output.test_code_passed
 
         if execution_output.test_passed is not None:
-            passed = passed and execution_output.test_passed
+            execution_passed = execution_passed and execution_output.test_passed
+
+        passed = semantic_output.passed and execution_passed
 
         verifier_output = VerifierOutput(
             passed=passed,
@@ -95,9 +98,12 @@ class Verifier:
         print(
             f" -> verification completed\n"
             f"==================\n"
-            f"passed: {verifier_output.passed}\n"
-            f"semantically passed: {verifier_output.semantic_result.passed}\n"
-            f"execution passed: {passed}\n"
+            f"passed: {passed}\n"
+            f"semantically passed: {semantic_output.passed}\n"
+            f"execution passed: {execution_passed}\n"
+            f"  - candidate code compiled: {execution_output.candidate_code_passed}\n"
+            f"  - test code compiled: {execution_output.test_code_passed}\n"
+            f"  - test passed: {execution_output.test_passed}\n"
             f"==================\n"
         )
 
