@@ -356,7 +356,7 @@ Keep the feedback compact but specific enough for the planner to revise the next
 1. Do not check syntax errors. Syntax errors are handled by a separate execution verifier.
 2. Follow `verification_plan` as the authoritative instruction for semantic verification.
 3. If the rejected item is a function and the function belongs to a section, report only the rejected function in the output. Use `rejection_reason.target.rejected_sections` only for section-level problems that are not attributable to a specific function.
-4. When writing `feedback`, use actual newline characters, serialized as `\n` in JSON, between major findings or sentences so that debug prints remain readable.
+4. When writing `feedback`, use actual newline characters, serialized as `\n` in JSON, between major findings so that debug prints remain readable.
 
 ## Wire.h as reference
 
