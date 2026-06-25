@@ -34,10 +34,21 @@ class PageRetriever:
             return response
 
         retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, pages=self.pages)
-        print(f"start retrieving pages related to"
-              f"{[topic.topic_keywords for topic in topics]}")
+
+        text = "\n".join(str(topic.topic_keywords) for topic in topics)
+        print(
+            f" -> start retrieving pages related to:\n"
+            f"{text}\n"
+        )
         page_indices = await self._run_classification_llm_task(retrieval_requests,len(topics))
-        print(f"retrieving pages complete:\n{page_indices}")
+        text = "\n".join(str(item) for item in page_indices)
+        print(
+            f" -> retrieving pages completed\n"
+            f"==================\n"
+            f"page indices for evry topic:\n"
+            f"{text}\n"
+            f"==================\n"
+        )
 
         result = self._generate_retrieval_response(page_indices, topics)
         self._update_logs(topics, result.results)

@@ -102,6 +102,7 @@ class EventRecorder:
             encoding="utf-8",
         )
 
+        print(f"Event logs written to: {output_path}")
         return output_path
 
     def _to_jsonable(self, value: Any) -> Any:

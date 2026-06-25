@@ -30,7 +30,10 @@ class Controller:
     config:CodingConfig
 
     def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:dict[str,Any]) -> None:
-        print("initializing controller")
+        print(
+            f"\n -> initializing controller\n"
+            f"==================\n"
+        )
         self.logs = []
         self.candidate_files = []
         self.accepted_files = []
@@ -46,6 +49,7 @@ class Controller:
         self._check_valid_fqbn()
 
         self._load_agents()
+        print("==================\n")
 
     @classmethod
     def load_controller(
@@ -58,9 +62,6 @@ class Controller:
         return Controller(driver_name,config,pages,register_map)
 
     async def run(self, user_request: str = None):
-        print("==================")
-        print("running controller")
-        print("==================")
         verifier_feedback = None
         run_status = "failed"
         attempt = 0
@@ -74,12 +75,18 @@ class Controller:
                 "max_tries": self.max_tries,
             },
         )
+
+        print(
+            f"==================\n"
+            f" -> run coding\n"
+        )
+
         try:
             for attempt in range(1, self.max_tries + 1):
                 self.attempted_log = False
-                print("==================")
-                print(f"attempt {attempt}/{self.max_tries}")
-                print("==================")
+                print(
+                    f"=== attempt {attempt}/{self.max_tries} ===\n"
+                )
 
                 self.event_recorder.emit(
                     agent="controller",
@@ -112,6 +119,10 @@ class Controller:
                 if verifier_output.passed:
                     self.accepted_files = list(self.candidate_files)
                     self._update_logs(attempt)
+                    print(
+                        f" -> coding completed\n"
+                        f"==================\n"
+                    )
                     break
 
                 self._update_logs(attempt)
@@ -119,8 +130,20 @@ class Controller:
 
             if len(self.accepted_files) > 0:
                 self.clear_dir()
+
+                print(
+                    f" -> start writing accepted files\n"
+                    f"writing accepted {len(self.accepted_files)} files to:\n"
+                    f"{self.config.project_path.code_dir / self.driver_name}\n"
+                )
+
                 FileWriter.write_to_files(self.accepted_files, self.config.project_path.code_dir / self.driver_name)
                 run_status = "passed"
+
+            print(
+                f" -> coding ended after {self.max_tries} attempts\n"
+                f"==================\n"
+            )
 
             return len(self.accepted_files) > 0
         except Exception as exc:
@@ -136,6 +159,12 @@ class Controller:
                 },
                 error=exc,
             )
+
+            print(
+                f" -> coding ended after {attempt} attempts\n"
+                f"==================\n"
+            )
+
             raise
 
         finally:
@@ -315,6 +344,8 @@ class Controller:
             json.dumps(output, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
+        print(f"Logs saved to: {log_path}")
 
 
     def _check_valid_client(self) -> None:

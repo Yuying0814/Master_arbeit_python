@@ -62,10 +62,19 @@ class Verifier:
         )
 
     def run(self,verifier_input:VerifierInput) -> VerifierOutput:
+        print(f" -> start verifying code files")
         semantic_input = _build_semantic_input(verifier_input)
-        print(f"semantic verification started")
+        print(f" ->-> start semantic verification")
         semantic_output = self.semantic_verifier.run(semantic_input)
-        print(f"semantic verification completed:{semantic_output.model_dump_json(indent=2)}")
+        print(
+            f" ->-> semantic verification completed\n"
+            f"==================\n"
+            f"passed: \n"
+            f"{semantic_output.passed}\n\n"
+            f"feedback: \n"
+            f"{semantic_output.feedback}\n"
+            f"==================\n"
+        )
 
         execution_input = _build_execution_input(verifier_input)
         execution_output = self.execution_verifier.run(execution_input)
@@ -81,6 +90,15 @@ class Verifier:
             passed=passed,
             semantic_result=semantic_output,
             execution_result=execution_output,
+        )
+
+        print(
+            f" -> verification completed\n"
+            f"==================\n"
+            f"passed: {verifier_output.passed}\n"
+            f"semantically passed: {verifier_output.semantic_result.passed}\n"
+            f"execution passed: {verifier_output.execution_result}\n"
+            f"==================\n"
         )
 
         self._update_logs(verifier_input,verifier_output)

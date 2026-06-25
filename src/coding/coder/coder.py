@@ -36,13 +36,16 @@ class Coder:
     def create_code_file(self,coder_input:CoderInput)-> CoderOutput:
         user_input = coder_input.model_dump_json()
 
-        print(f"start creating code file")
+        print(f" -> start creating code files")
         coder_output = self.coder_agent.run(user_input)
         print(
-            "coding completed:\n"
-            f"generated_or_modified_files="
-            f"{[file.name + file.file_type for file in coder_output.candidate_files]}\n"
-            f"deleted_file_ids={coder_output.deleted_file_ids}"
+            f" -> code files created\n"
+            f"==================\n"
+            f"generated_or_modified_files:\n"
+            f"{[file.name + file.file_type for file in coder_output.candidate_files]}\n\n"
+            f"deleted_file_ids:\n"
+            f"{coder_output.deleted_file_ids}\n"
+            f"==================\n"
         )
 
         self._update_logs(coder_input,coder_output)

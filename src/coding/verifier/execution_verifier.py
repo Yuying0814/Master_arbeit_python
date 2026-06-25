@@ -75,7 +75,7 @@ class ExecutionVerifier:
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:
         self._reset_log(execution_verifier_input)
-        print("execution verification started")
+        print(" ->-> start execution verification")
 
         with tempfile.TemporaryDirectory(prefix="arduino_verify_") as temp_root:
             self.test_dir = Path(temp_root) / self.driver_name
@@ -94,9 +94,18 @@ class ExecutionVerifier:
                 self._update_log(
                     execution_output=test_result,
                 )
-                print(f"candidate code failed to compile:\n{compiler_message.compiler_message}")
+                print(
+                    f" ->-> candidate code failed to compile\n"
+                    f"==================\n"
+                    f"compiled:\n"
+                    f"{compiler_message.passed}\n\n"
+                    f"compiler message:\n"
+                    f"{compiler_message.compiler_message}\n"
+                    f"==================\n"
+                )
                 return test_result
-            print(f"candidate code compiled successfully")
+
+            print(f" ->-> candidate code compiled successfully")
 
             if self.enable_test_coder:
                 test_coder_output = self.run_test_coder(execution_verifier_input)
@@ -106,13 +115,24 @@ class ExecutionVerifier:
                 )
                 return test_result
 
-            print(f"test coder disabled, therefore no test code generated and no test for candidate code")
+            print(
+                f" ->-> test coder disabled, therefore no test code generated and no test for candidate code"
+            )
+
             test_result = ExecutionVerifierOutput(
                 candidate_code_passed=True,
                 compiler_message=compiler_message,
             )
             self._update_log(
                 execution_output=test_result,
+            )
+            print(
+                f" ->-> execution verification completed\n"
+                f"==================\n"
+                f"candidate code compiled successfully: {test_result.candidate_code_passed}\n"
+                f"test code compiled successfully: {test_result.test_code_passed}\n"
+                f"test passed: {test_result.test_code_passed}\n"
+                f"==================\n"
             )
 
             return test_result

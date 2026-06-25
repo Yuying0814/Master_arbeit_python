@@ -36,10 +36,19 @@ class Planner:
 
     def create_plan(self,planer_input:PlannerInput) -> PlannerOutput:
         user_input = planer_input.model_dump_json()
-        print("start creating new plan")
+        print(" -> start creating new plan")
         plan = self.planner_agent.run(user_input)
         self._update_logs(planer_input,plan)
-        print(f"plan created:\n{plan.model_dump_json(indent=2)}")
+        print(
+            f" -> plan created\n"
+            f"==================\n"
+            f"plan id:\n{plan.plan_id}\n\n"
+            f"retrieval topics:\n{[topic.topic_keywords for topic in plan.retrieval_topics]}\n\n"
+            f"programming plan:\n{plan.programming_plan.programming_instructions}\n\n"
+            f"verification plan:\n{plan.verification_plan.semantic_plan}\n\n"
+            f"verification plan:\n{plan.verification_plan.execution_plan}\n\n"
+            f"==================\n"
+        )
         return plan
 
     def _update_logs(self, planner_input: PlannerInput, planner_output: PlannerOutput) -> None:
