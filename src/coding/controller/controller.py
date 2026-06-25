@@ -136,7 +136,7 @@ class Controller:
                 run_status = "passed"
 
             print(
-                f"=============== coding ended after {attempt} attempts\n ==============="
+                f"=============== coding ended after {attempt} attempts ==============="
             )
 
             return len(self.accepted_files) > 0
@@ -155,7 +155,7 @@ class Controller:
             )
 
             print(
-                f"=============== coding ended after {attempt} attempts\n ==============="
+                f"=============== coding ended after {attempt} attempts ==============="
             )
 
             raise

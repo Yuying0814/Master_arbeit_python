@@ -97,7 +97,7 @@ class Verifier:
             f"==================\n"
             f"passed: {verifier_output.passed}\n"
             f"semantically passed: {verifier_output.semantic_result.passed}\n"
-            f"execution passed: {verifier_output.execution_result}\n"
+            f"execution passed: {passed}\n"
             f"==================\n"
         )
 
