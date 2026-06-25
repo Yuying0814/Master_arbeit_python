@@ -131,7 +131,7 @@ class ExecutionVerifier:
                 f"==================\n"
                 f"candidate code compiled successfully: {test_result.candidate_code_passed}\n"
                 f"test code compiled successfully: {test_result.test_code_passed}\n"
-                f"test passed: {test_result.test_code_passed}\n"
+                f"test passed: {test_result.test_passed}\n"
                 f"==================\n"
             )
 
