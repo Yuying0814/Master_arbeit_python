@@ -33,7 +33,7 @@ class FileWriter:
         for index,code_file in enumerate(code_files):
             print(
                 f"==================\n"
-                f"start writing file {index}/{len(code_files)}"
+                f"start writing file {index+1}/{len(code_files)}"
             )
             FileWriter.write_to_file(
                 code_file = code_file,
