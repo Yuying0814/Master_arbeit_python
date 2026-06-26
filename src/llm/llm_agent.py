@@ -1,11 +1,14 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any,get_args, get_origin
+from pydantic import BaseModel
 
 from langchain_core.tools import BaseTool
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.callbacks import UsageMetadataCallbackHandler
+
 
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.task_config import TaskConfig
@@ -48,7 +51,16 @@ class LLMAgent:
         self.usage_callback = UsageMetadataCallbackHandler()
         self.total_tokens = {}
 
-        self.check_pointer = InMemorySaver() if memory_enabled else None
+        if memory_enabled:
+            allowed_msgpack_modules = _build_allowed_msgpack_modules(output_format)
+
+            serializer = JsonPlusSerializer(
+                allowed_msgpack_modules=allowed_msgpack_modules,
+            )
+
+            self.check_pointer = InMemorySaver(serde=serializer)
+        else:
+            self.check_pointer = None
 
         self.agent = create_agent(
             model=model,
@@ -139,7 +151,7 @@ class LLMAgent:
     def _update_total_tokens(self) -> None:
         self.total_tokens = self.usage_callback.usage_metadata
 
-
+# Helper
 def _build_response_format(output_format: ValidOutputFormat) -> Any | None:
     if isinstance(output_format, str) and output_format in {"text", "json"}:
         return None
@@ -175,3 +187,24 @@ def _is_structured_output(response_format: Any) -> bool:
             and issubclass(response_format, StructuredOutputModel)
         )
     )
+
+def _get_pydantic_model_class(output_format: ValidOutputFormat|None) -> type[BaseModel] | None:
+    if isinstance(output_format, BaseModel):
+        return output_format.__class__
+
+    if isinstance(output_format, type) and issubclass(output_format, BaseModel):
+        return output_format
+
+    return None
+
+def _build_allowed_msgpack_modules(
+    output_format: ValidOutputFormat|None,
+) -> list[tuple[str, str]]:
+    model_cls = _get_pydantic_model_class(output_format)
+
+    if model_cls is None:
+        return []
+
+    return [
+        (model_cls.__module__, model_cls.__name__),
+    ]
