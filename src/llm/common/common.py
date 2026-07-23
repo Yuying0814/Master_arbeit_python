@@ -4,6 +4,8 @@ import asyncio
 
 from collections.abc import Callable
 
+from langchain_core.messages import AIMessage
+
 from pydantic import BaseModel
 from typing import Any,TypeVar,TYPE_CHECKING
 
@@ -39,9 +41,19 @@ class HasOutputFormat:
             "output_format must be subclass of StructuredOutputModel,None or 'text'，"
         )
 
+    def parse_result(self, result: Any) -> Any:
+        if self._is_structured_format(self.output_format):
+            if not isinstance(result, BaseModel):
+                raise TypeError(
+                    "Structured output must be a BaseModel instance."
+                )
 
-class HasApiKey:
-    api_key: str
+            return result.model_dump()
+
+        if not isinstance(result, AIMessage):
+            raise TypeError("Text output must be an AIMessage.")
+
+        return result.content
 
 class HasRunWithRetry:
 

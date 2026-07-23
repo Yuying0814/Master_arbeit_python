@@ -2,12 +2,13 @@ from typing import Any
 from langchain_ollama import ChatOllama
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
+from llm.common.common import HasOutputFormat
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
-from src.llm.common.common import HasLangChainResultParser,ValidOutputFormat
+from src.llm.common.common import ValidOutputFormat
 
 
-class OllamaBatchTask(HasLangChainResultParser):
+class OllamaBatchTask(HasOutputFormat):
     contents: list[dict[str,Any]]
     model: ChatOllama
     user_requests: list[UserRequest]
@@ -23,7 +24,7 @@ class OllamaBatchTask(HasLangChainResultParser):
         self.user_requests = []
         self.model = model
         self.system = system
-        self.output_format = output_format
+        self.output_format = self.validate_output_format(output_format)
         self.retries = []
         self.max_concurrency = 1
         self.has_valid_output = False

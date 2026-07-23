@@ -103,7 +103,7 @@ class LLMSingleTask(HasOutputFormat):
                                }
             self.has_valid_output = True
 
-            return result.model_dump
+            return result.model_dump()
 
         retry_model = _with_langchain_retry(self.model)
         response = await retry_model.ainvoke(messages, **invoke_kwargs)

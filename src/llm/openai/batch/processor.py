@@ -41,7 +41,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
                  input_path:Path,
                  *,model:str|None = None,
                  instructions: str|None = None,
-                 text_format:ValidOutputFormat|None = None,
+                 text_format:ValidOutputFormat,
                  max_output_tokens:int|None = None,
                  ) -> None:
 
@@ -56,7 +56,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
 
         self.model = model if model is not None else "gpt-5-mini"
         self.instructions = instructions if instructions is not None else "You are a helpful assistance"
-        self.text_format = text_format if text_format is not None else "text"
+        self.text_format = text_format
         self.max_output_tokens = max_output_tokens if max_output_tokens is not None else 500
 
         self.batch_client = OpenAIBatchClient(api_key=api_key)
@@ -116,7 +116,6 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
     def write_batch_input_file(self) -> None:
         self.batch_input_file.reset_JSONLs()
         self.batch_input_file.add_multiple_JSONLs(
-            name = self.name,
             model=self.model,
             custom_ids=self.custom_ids,
             instructions=self.instructions,
