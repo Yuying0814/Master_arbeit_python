@@ -163,7 +163,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
             raise ValueError
         self.update_status()
         self.contents,self.outputs,self.records = await self.batch_client.collect_batch_output(self.batch_job)
-        self._parse_contents()
+        self._parse_contents(self.contents)
         self.check_completeness()
 
     def check_completeness(self) -> list[str]:
@@ -219,10 +219,12 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
                     retry_job
                 )
 
+                self._parse_contents(retry_contents)
+
                 update_retry_result(self.contents,retry_contents)
                 update_retry_result(self.outputs,retry_outputs)
                 update_retry_result(self.records,retry_records)
-                self._parse_contents()
+
 
             except Exception:
                 if retry_job:
@@ -274,11 +276,11 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
             return
         self.status = self.batch_job.status
 
-    def _parse_contents(self) -> list[dict[str, Any]]:
+    def _parse_contents(self,contents:list[dict[str,Any]]) -> list[dict[str, Any]]:
         if self.output_format is None or self.output_format == "text":
-            return self.contents
+            return contents
 
-        for content in self.contents:
+        for content in contents:
             if not content.get("completed", False):
                 continue
 
@@ -292,7 +294,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
                 content["completed"] = False
                 content["incomplete_reason"] = str(error)
 
-        return self.contents
+        return contents
 
     def _has_user_request(self):
         return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
