@@ -4,7 +4,7 @@ from dataclasses import dataclass,field
 from pathlib import Path
 from typing import Any
 
-from models.structuredOutputModel import StructuredOutputModel
+from src.models.structuredOutputModel import StructuredOutputModel
 from src.llm.common.types import ValidOutputFormat
 
 @dataclass
@@ -51,7 +51,11 @@ class BatchInputFile:
         body["model"] = model
         body["input"] = user
         body["instructions"] = instructions
-        body["text"] = _build_format_value(output_format),
+
+        body["text"] = {
+            "format":_build_format_value(output_format)
+        }
+
         body["max_output_tokens"] = max_output_tokens
 
         JSONL = {
@@ -102,7 +106,7 @@ class BatchInputFile:
 
 # Helper
 def _build_format_value(output_format: ValidOutputFormat) -> dict[str, Any]:
-    if isinstance(output_format, type) and isinstance(output_format, StructuredOutputModel):
+    if isinstance(output_format, type) and issubclass(output_format, StructuredOutputModel):
         return {
             "type": "json_schema",
             "name": output_format.__class__.__name__,

@@ -62,7 +62,7 @@ class AsyncOpenAIBatchClient:
         except Exception as error:
             raise RuntimeError(f"Failed to get batch output: {output_file_id}") from error
 
-    def parse_batch_output(self,raw_output: str,) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    def parse_batch_output(self,raw_output: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
         records: list[dict[str, Any]] = []
         outputs: list[dict[str, Any]] = []
         contents: list[dict[str, Any]] = []
@@ -136,15 +136,10 @@ class AsyncOpenAIBatchClient:
 
             raw_content = "\n".join(text_fragments)
 
-            try:
-                parsed_content = json.loads(raw_content)
-            except json.JSONDecodeError:
-                parsed_content = raw_content
-
             contents.append(
                 {
                     "custom_id": custom_id,
-                    "content": parsed_content,
+                    "content": raw_content,
                     "completed": True,
                     "incomplete_reason": "",
                 }

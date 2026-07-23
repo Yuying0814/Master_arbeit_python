@@ -2,10 +2,10 @@ from typing import Any
 from langchain_ollama import ChatOllama
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
-from llm.common.common import HasOutputFormat
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
-from src.llm.common.common import ValidOutputFormat
+from src.llm.common.common import HasOutputFormat
+from src.llm.common.types import ValidOutputFormat
 
 
 class OllamaBatchTask(HasOutputFormat):

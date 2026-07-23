@@ -270,6 +270,23 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
             return
         self.status = self.batch_job.status
 
+    def _parse_contents(self):
+        if self.output_format is None or self.output_format == "text":
+            return
+
+        parsed_contents = []
+        for content in self.contents:
+            raw_content = content["content"]
+            try:
+                content["content"] = self.output_format.model_validate_json(
+                    raw_content
+                ).model_dump()
+                parsed_contents.append(content)
+            except Exception as error:
+                continue
+
+        self.contents = parsed_contents
+
     def _has_user_request(self):
         return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
 
