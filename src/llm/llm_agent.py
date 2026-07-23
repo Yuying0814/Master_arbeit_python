@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any,get_args, get_origin
+from typing import Any
 from pydantic import BaseModel
 
 from langchain_core.tools import BaseTool
@@ -153,14 +153,11 @@ class LLMAgent:
 
 # Helper
 def _build_response_format(output_format: ValidOutputFormat) -> Any | None:
-    if isinstance(output_format, str) and output_format in {"text", "json"}:
+    if output_format is None:
         return None
 
-    if isinstance(output_format, dict):
-        return output_format
-
-    if isinstance(output_format, StructuredOutputModel):
-        return output_format.__class__
+    if isinstance(output_format, str) and output_format.lower().strip() == "text":
+        return None
 
     if isinstance(output_format, type) and issubclass(output_format, StructuredOutputModel):
         return output_format

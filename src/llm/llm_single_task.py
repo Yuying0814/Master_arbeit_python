@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from pydantic import BaseModel
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.runnables import RunnableLambda
@@ -11,10 +10,10 @@ from langchain_core.runnables import RunnableLambda
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
 from src.llm.model_factory import build_chat_model
-from src.llm.common.common import HasLangChainResultParser, ValidOutputFormat
+from src.llm.common.common import HasOutputFormat, ValidOutputFormat
 
 
-class LLMSingleTask(HasLangChainResultParser):
+class LLMSingleTask(HasOutputFormat):
     user_input: str
     has_valid_output: bool
     model_name:str
@@ -27,12 +26,13 @@ class LLMSingleTask(HasLangChainResultParser):
         model: BaseChatModel,
         model_name: str,
         system: str,
-        output_format: ValidOutputFormat = "text",
+        output_format: ValidOutputFormat = None,
     ) -> None:
+
         self.model = model
         self.model_name = model_name
         self.system = system
-        self.output_format = output_format
+        self.output_format = self.validate_output_format(output_format)
         self.user_input = ""
         self.has_valid_output = False
         self.total_usage = {}
@@ -44,6 +44,7 @@ class LLMSingleTask(HasLangChainResultParser):
         task_config: TaskConfig,
         api_key: str | None = None,
     ) -> "LLMSingleTask":
+
         if task_config.model.provider != "ollama" and not api_key:
             raise ValueError(f"{task_config.model.provider} expects a valid API key.")
 
@@ -102,10 +103,7 @@ class LLMSingleTask(HasLangChainResultParser):
                                }
             self.has_valid_output = True
 
-            if isinstance(result, BaseModel):
-                return result.model_dump()
-
-            return result
+            return result.model_dump
 
         retry_model = _with_langchain_retry(self.model)
         response = await retry_model.ainvoke(messages, **invoke_kwargs)
@@ -115,15 +113,8 @@ class LLMSingleTask(HasLangChainResultParser):
             self.model_name:response.usage_metadata or {}
                            }
 
-        if self.output_format == "json":
-            self.has_valid_output = True
-            return self._parse_json(response.content)
-
-        if self.output_format == "text":
-            self.has_valid_output = True
-            return response.content
-
-        raise ValueError(f"Unsupported output_format: {self.output_format}")
+        self.has_valid_output = True
+        return response.content
 
     def add_user_inputs(self, user_inputs: str | list[UserRequest]) -> None:
         if not isinstance(user_inputs, str):

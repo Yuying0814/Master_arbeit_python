@@ -187,10 +187,9 @@ class AsyncOpenAIBatchClient:
     async def wait_for_completion(
         self,
         batch_job: BatchJob,
-        check_interval: int = 10,
+        check_interval: float = 10.0,
         max_retries: int = 6,
     ) -> BatchJob:
-        """Poll the batch status until it reaches a terminal state."""
         failed_count = 0
 
         try:

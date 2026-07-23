@@ -1,8 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
-from dataclasses import dataclass
 from src.llm.common.types import ValidOutputFormat,LLMProvider
-
 
 class ModelConfig(BaseModel):
     provider:LLMProvider = "openai"
@@ -14,7 +12,7 @@ class ModelConfig(BaseModel):
 class TaskConfig(BaseModel):
     model: ModelConfig = Field(default_factory=ModelConfig)
     system: str = "You are a helpful assistant"
-    output_format: ValidOutputFormat = "text"
+    output_format: ValidOutputFormat = None
     memory_enabled: bool = False
 
 class CodingTaskConfigs(BaseModel):

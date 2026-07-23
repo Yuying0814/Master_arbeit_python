@@ -2,8 +2,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass,field
 from pathlib import Path
+from typing import Any
+
+from models.structuredOutputModel import StructuredOutputModel
 from src.llm.common.types import ValidOutputFormat
-from src.llm.openai.build_text_format import build_text_format
 
 @dataclass
 class BatchInputFile:
@@ -18,9 +20,8 @@ class BatchInputFile:
             *,
             model: str | None = None,
             instructions: str | None = None,
-            text_format: ValidOutputFormat | None = None,
+            output_format: ValidOutputFormat,
             max_output_tokens: int | None = None,
-            name: str | None = None,
     ) -> None:
         body: dict = {}
 
@@ -36,8 +37,6 @@ class BatchInputFile:
         if not isinstance(instructions, str):
             raise TypeError("instructions must be a str")
 
-        if text_format is None:
-            text_format = "text"
 
         if max_output_tokens is None:
             max_output_tokens = 500
@@ -49,20 +48,10 @@ class BatchInputFile:
         ):
             raise TypeError("max_output_tokens must be a positive integer")
 
-        text_format_args = (text_format,)
-
-        if name is not None:
-            if not isinstance(name, str):
-                raise TypeError("name must be a str")
-
-            if len(name.strip()) > 0:
-                text_format_args += (name,)
-
-
         body["model"] = model
         body["input"] = user
         body["instructions"] = instructions
-        body["text"] = {"format": build_text_format(*text_format_args)}
+        body["text"] = _build_format_value(output_format),
         body["max_output_tokens"] = max_output_tokens
 
         JSONL = {
@@ -81,9 +70,9 @@ class BatchInputFile:
                             *,
                             model: str | None = None,
                             instructions: str | None = None,
-                            text_format: ValidOutputFormat | None = None,
+                            output_format: ValidOutputFormat,
                             max_output_tokens: int | None = None,
-                            name: str | None = None,) -> None:
+                            ) -> None:
 
         if len(custom_ids) == 0 or len(users) == 0:
             raise ValueError("custom ids and user prompt must not be empty ")
@@ -97,9 +86,8 @@ class BatchInputFile:
                 user=user,
                 model=model,
                 instructions=instructions,
-                text_format=text_format,
+                output_format=output_format,
                 max_output_tokens=max_output_tokens,
-                name=name
             )
 
     def write_to_file(self) -> None:
@@ -111,6 +99,21 @@ class BatchInputFile:
     def reset_JSONLs(self) -> None:
         self.JSONLs.clear()
         self.custom_ids.clear()
+
+# Helper
+def _build_format_value(output_format: ValidOutputFormat) -> dict[str, Any]:
+    if isinstance(output_format, type) and isinstance(output_format, StructuredOutputModel):
+        return {
+            "type": "json_schema",
+            "name": output_format.__class__.__name__,
+            "strict": True,
+            "schema": output_format.model_json_schema(),
+        }
+    else:
+        return {
+            "type": "text"
+        }
+
 
 
 

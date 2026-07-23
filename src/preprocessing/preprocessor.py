@@ -132,7 +132,7 @@ class Preprocessor:
             raise
 
     def run_ocr(self):
-        ocr_config = self.config.mistral.task.get("ocr")
+        ocr_config = self.config.mistral.task["ocr"]
         if not _valid_mistral_config(ocr_config):
            raise ValueError("OCR config not defined or not loaded\n")
 

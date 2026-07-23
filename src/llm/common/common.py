@@ -1,13 +1,13 @@
-import json
 import time
 import warnings
 import asyncio
 
 from collections.abc import Callable
 
-from langchain_core.messages import AIMessage
 from pydantic import BaseModel
 from typing import Any,TypeVar,TYPE_CHECKING
+
+from src.models.structuredOutputModel import StructuredOutputModel
 from src.llm.common.types import ValidOutputFormat
 
 if TYPE_CHECKING:
@@ -16,38 +16,28 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 class HasOutputFormat:
-    output_format: ValidOutputFormat
+    output_format: ValidOutputFormat = None
 
-class HasLangChainResultParser(HasOutputFormat):
     @staticmethod
     def _is_structured_format(text_format: Any) -> bool:
-        if isinstance(text_format, dict):
-            return True
-
         return isinstance(text_format, type) and issubclass(text_format, BaseModel)
 
-    def parse_result(self,result:AIMessage) -> Any:
-        if self._is_structured_format(self.output_format):
-
-            if isinstance(result, BaseModel):
-                return result.model_dump()
-
-            return result
-
-        if self.output_format == "json":
-            return self._parse_json(result.content)
-
-        if self.output_format == "text":
-            return result.content
-
-        raise ValueError(f"Unsupported text_format: {self.output_format}")
-
     @staticmethod
-    def _parse_json(content: str) -> Any:
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ValueError("Model output is not valid JSON.") from error
+    def validate_output_format(value) -> ValidOutputFormat:
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            if value.lower().strip() == "text":
+                return "text"
+
+        if isinstance(value, type) and issubclass(value, StructuredOutputModel):
+            return value
+
+        raise TypeError(
+            f"Unsupported output format:{type(value).__name__}"
+            "output_format must be subclass of StructuredOutputModel,None or 'text'，"
+        )
 
 
 class HasApiKey:

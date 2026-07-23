@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODE: Literal["single_test", "multiple_test"] = "single_test"
 
 # Set the input PDF path for single_test mode.
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "lis3dh.pdf"
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "bst-bme280-ds002.pdf"
 
 # Set the input PDF directory for multiple_test mode.
 PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
@@ -69,7 +69,7 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
             "is_batch": False,
             "model_name": "gpt-5-mini",
             "temperature": 0.0,
-            "max_tokens": 8000,
+            "max_tokens": 20000,
         },
         "extract_reg_map": {
             "provider": "openai",

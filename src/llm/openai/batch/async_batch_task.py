@@ -6,14 +6,15 @@ from typing import Any,TypeVar
 
 from src.models.task_config import TaskConfig
 from src.models.batch import UserRequest
-from src.llm.common.common import ValidOutputFormat,HasRunWithRetry
+from src.llm.common.common import HasRunWithRetry,HasOutputFormat
+from src.llm.common.types import ValidOutputFormat
 from src.llm.openai.batch.async_client import AsyncOpenAIBatchClient
 from src.llm.openai.batch.batch_job import BatchJob
 from src.llm.openai.batch.input_file import BatchInputFile
 
 T = TypeVar("T")
 
-class AsyncOpenAIBatchTask(HasRunWithRetry):
+class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
     name:str
     status:str
     has_valid_output:bool
@@ -26,7 +27,6 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
 
     model:str
     instructions:str
-    text_format:ValidOutputFormat
     max_output_tokens:int
 
     batch_client:AsyncOpenAIBatchClient
@@ -62,7 +62,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
 
         self.model = model if model is not None else "gpt-5-mini"
         self.instructions = instructions if instructions is not None else "You are a helpful assistance"
-        self.text_format = text_format if text_format is not None else "text"
+        self.output_format = self.validate_output_format(text_format)
         self.max_output_tokens = max_output_tokens if max_output_tokens is not None else 500
 
         self.batch_client = AsyncOpenAIBatchClient(api_key=api_key)
@@ -114,7 +114,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
         }
         """
         if isinstance(user_requests, str):
-            raise TypeError("AsyncOpenAIBatchTask    expects a list of UserRequest.")
+            raise TypeError("AsyncOpenAIBatchTask expects a list of UserRequest.")
 
         custom_ids = []
         user_inputs = []
@@ -132,12 +132,11 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
     def write_batch_input_file(self) -> None:
         self.batch_input_file.reset_JSONLs()
         self.batch_input_file.add_multiple_JSONLs(
-            name = self.name,
             model=self.model,
             custom_ids=self.custom_ids,
             instructions=self.instructions,
             users=self.user_inputs,
-            text_format=self.text_format,
+            output_format=self.output_format,
             max_output_tokens=self.max_output_tokens,
         )
         self.batch_input_file.write_to_file()
@@ -200,12 +199,11 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
             input_path = self.input_path.parent / f"{self.name}_retry{attempt}.jsonl"
             retry_batch_input_file = BatchInputFile(path=input_path)
             retry_batch_input_file.add_multiple_JSONLs(
-                name = self.name,
                 model=self.model,
                 custom_ids=retry_custom_ids,
                 instructions=self.instructions,
                 users=retry_user_inputs,
-                text_format=self.text_format,
+                output_format=self.output_format,
                 max_output_tokens=self.max_output_tokens,
             )
             retry_batch_input_file.write_to_file()
@@ -241,7 +239,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
         self.check_completeness()
 
     async def cleanup(self) -> None:
-        '''try to cancel the batch(only when status is "validating" "submitted" "in progress" "") and delete uploaded file'''
+        """ try to cancel the batch(only when status is "validating" "submitted" "in progress" "") and delete uploaded file"""
         if self.is_cleaned_up:
             return
 
@@ -275,7 +273,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
     def _has_user_request(self):
         return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
 
-    def _get_final_usage(self) -> dict:
+    def _get_final_usage(self):
         usages = []
 
         for record in self.records:
@@ -303,7 +301,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry):
             retry_job = retry.get("retry_job")
             retry_records = retry.get("retry_records", [])
 
-            if retry_job:
+            if retry_job is not None:
                 retry_usage = retry_job.batch_info.get("usage", {}) or {}
 
                 if retry_usage:

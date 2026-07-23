@@ -1,8 +1,6 @@
-from typing import Any, TypeAlias, Literal
+from typing import TypeAlias, Literal
 from src.models.structuredOutputModel import StructuredOutputModel
 
-ValidOutputFormat: TypeAlias = (
-       Literal["text", "json"] | dict[str, Any] | StructuredOutputModel | type[StructuredOutputModel]
-)
+ValidOutputFormat: TypeAlias = type[StructuredOutputModel] | None | Literal["text"]
 
 LLMProvider = Literal["openai", "ollama"]
