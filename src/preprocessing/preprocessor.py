@@ -193,7 +193,7 @@ class Preprocessor:
         print("Page candidates updated\n")
 
     async def classify_pages(self):
-        task_config = self.config.llm_task_config.classify_pages
+        task_config = self.config.task_configs.classify_pages
         task_name = inspect.currentframe().f_code.co_name
         input_Path = self.config.project_path.input_path/f"{task_name}.jsonl"
 
@@ -232,7 +232,7 @@ class Preprocessor:
             print("No verification task for register summary\n")
             return []
 
-        task_config = self.config.llm_task_config.verify_reg_sum_pages
+        task_config = self.config.task_configs.verify_reg_sum_pages
         task_name = inspect.currentframe().f_code.co_name
         input_path = self.config.project_path.input_path/f"{task_name}.jsonl"
 
@@ -272,7 +272,7 @@ class Preprocessor:
             print("No verification task for register map\n")
             return []
 
-        task_config = self.config.llm_task_config.verify_reg_pages
+        task_config = self.config.task_configs.verify_reg_pages
         task_name = inspect.currentframe().f_code.co_name
         inputPath = self.config.project_path.input_path/f"{task_name}.jsonl"
 
@@ -312,7 +312,7 @@ class Preprocessor:
             self.reg_summary = {}
             return {}
 
-        task_config = self.config.llm_task_config.extract_reg_index
+        task_config = self.config.task_configs.extract_reg_index
 
         selected_pages = _select_extraction_pages(
             pages=self.pages,
@@ -348,7 +348,7 @@ class Preprocessor:
             self.reg_map = {}
             return {}
 
-        task_config = self.config.llm_task_config.extract_reg_map
+        task_config = self.config.task_configs.extract_reg_map
 
         selected_pages = _select_extraction_pages(
             pages=self.pages,
