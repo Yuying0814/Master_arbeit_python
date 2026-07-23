@@ -109,7 +109,7 @@ def _build_format_value(output_format: ValidOutputFormat) -> dict[str, Any]:
     if isinstance(output_format, type) and issubclass(output_format, StructuredOutputModel):
         return {
             "type": "json_schema",
-            "name": output_format.__class__.__name__,
+            "name": output_format.__name__,
             "strict": True,
             "schema": output_format.model_json_schema(),
         }

@@ -4,6 +4,8 @@ import warnings
 from pathlib import Path
 from typing import Any,TypeVar
 
+from pydantic import ValidationError
+
 from src.models.task_config import TaskConfig
 from src.models.batch import UserRequest
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
@@ -161,6 +163,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
             raise ValueError
         self.update_status()
         self.contents,self.outputs,self.records = await self.batch_client.collect_batch_output(self.batch_job)
+        self._parse_contents()
         self.check_completeness()
 
     def check_completeness(self) -> list[str]:
@@ -219,6 +222,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
                 update_retry_result(self.contents,retry_contents)
                 update_retry_result(self.outputs,retry_outputs)
                 update_retry_result(self.records,retry_records)
+                self._parse_contents()
 
             except Exception:
                 if retry_job:
@@ -270,22 +274,25 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
             return
         self.status = self.batch_job.status
 
-    def _parse_contents(self):
+    def _parse_contents(self) -> list[dict[str, Any]]:
         if self.output_format is None or self.output_format == "text":
-            return
+            return self.contents
 
-        parsed_contents = []
         for content in self.contents:
-            raw_content = content["content"]
-            try:
-                content["content"] = self.output_format.model_validate_json(
-                    raw_content
-                ).model_dump()
-                parsed_contents.append(content)
-            except Exception as error:
+            if not content.get("completed", False):
                 continue
 
-        self.contents = parsed_contents
+            try:
+                content["content"] = (
+                    self.output_format.model_validate_json(content["content"]).model_dump()
+                )
+
+            except ValidationError as error:
+                content["content"] = ""
+                content["completed"] = False
+                content["incomplete_reason"] = str(error)
+
+        return self.contents
 
     def _has_user_request(self):
         return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
