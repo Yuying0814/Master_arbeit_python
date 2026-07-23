@@ -5,9 +5,60 @@ from dataclasses import dataclass
 from src.config import BaseConfig, BaseProjectPath
 from src.models.page_output import PageClassification,PageDescription
 from src.models.register_output import RegisterIndexOutput,RegisterMapOutput
-from src.models.task_config import TaskConfig,ModelConfig
+from src.models.task_config import TaskConfig,ModelConfig,PreprocessingTaskConfig,MistralConfig
 
-def _build_llm_task_config(prompt_path:Path) -> LLMTaskConfig:
+@dataclass(frozen=True)
+class ProjectPath(BaseProjectPath):
+    pdf_path: Path
+
+class PreprocessingConfig(BaseConfig):
+    project_path: ProjectPath
+    task_configs: PreprocessingTaskConfig
+    mistral: MistralConfig
+
+    def __init__(self,project_path:ProjectPath,preprocessing_task_configs:PreprocessingTaskConfig,mistral_config:MistralConfig) -> None:
+        super().__init__(project_path)
+        self.task_configs = preprocessing_task_configs
+        self.mistral = mistral_config
+
+    @classmethod
+    def load_config(cls,pdf:str|Path,env:str|Path="") -> "PreprocessingConfig":
+        pdf = Path(pdf).resolve()
+        if not pdf.is_file():
+            raise FileNotFoundError(f"No such PDF file: {pdf}")
+        root_path = Path(__file__).resolve().parents[2]
+
+        if isinstance(env,str):
+            if len(env.strip()) == 0:
+                env = root_path / ".env"
+                if not env.is_file():
+                    raise FileNotFoundError(f"No env file input, must provide an env path or at default path: {env}")
+            else:
+                env=Path(env).resolve()
+
+        if not env.is_file():
+            raise FileNotFoundError(f"No such .env file: {env}")
+
+        env_path = env
+
+        project_path = ProjectPath(
+            root_path=root_path,
+            pdf_path=pdf,
+            input_path=root_path /"data"/ "input",
+            output_path=root_path /"data"/ "output",
+            prompt_path=root_path / "prompts",
+            src_dir=root_path / "src",
+            env_path=env_path,
+            tests_dir=root_path / "tests",
+        )
+
+        return cls(
+            project_path = project_path,
+            preprocessing_task_configs = _build_preprocessing_task_configs(project_path.prompt_path),
+            mistral_config = _build_mistral_task_config(project_path.pdf_path),
+        )
+
+def _build_preprocessing_task_configs(prompt_path:Path) -> PreprocessingTaskConfig:
     classify_pages = TaskConfig(
         model = ModelConfig(
             provider = "openai",
@@ -80,7 +131,7 @@ def _build_llm_task_config(prompt_path:Path) -> LLMTaskConfig:
         system = _read_instructions(prompt_path/"prompt_extractRegMap.txt"),
         output_format = RegisterMapOutput,
     )
-    return LLMTaskConfig(
+    return PreprocessingTaskConfig(
         classify_pages = classify_pages,
         verify_reg_sum_pages = verify_reg_sum_pages,
         verify_reg_pages = verify_reg_pages,
@@ -106,67 +157,3 @@ def _build_mistral_task_config(pdf_path:Path)->MistralConfig:
     }
 
     return MistralConfig(task=task)
-
-@dataclass(frozen=True)
-class ProjectPath(BaseProjectPath):
-    pdf_path: Path
-
-@dataclass(frozen=True)
-class LLMTaskConfig:
-    classify_pages:TaskConfig
-    verify_reg_sum_pages:TaskConfig
-    verify_reg_pages:TaskConfig
-    add_page_description:TaskConfig
-    extract_reg_index:TaskConfig
-    extract_reg_map:TaskConfig
-
-@dataclass(frozen=True)
-class MistralConfig:
-    task:dict[str, dict]
-
-class PreprocessingConfig(BaseConfig):
-    project_path: ProjectPath
-    llm_task_config: LLMTaskConfig
-    mistral: MistralConfig
-
-    def __init__(self,project_path:ProjectPath,llm_task_config:LLMTaskConfig,mistral_config:MistralConfig) -> None:
-        super().__init__(project_path)
-        self.llm_task_config = llm_task_config
-        self.mistral = mistral_config
-
-    @classmethod
-    def load_config(cls,pdf:str|Path,env:str|Path="") -> "PreprocessingConfig":
-        pdf = Path(pdf).resolve()
-        if not pdf.is_file():
-            raise FileNotFoundError(f"No such PDF file: {pdf}")
-        root_path = Path(__file__).resolve().parents[2]
-
-        if isinstance(env,str):
-            if len(env.strip()) == 0:
-                env = root_path / ".env"
-                if not env.is_file():
-                    raise FileNotFoundError(f"No env file input, must provide an env path or at default path: {env}")
-            else:
-                env=Path(env).resolve()
-
-        if not env.is_file():
-            raise FileNotFoundError(f"No such .env file: {env}")
-
-        env_path = env
-
-        project_path = ProjectPath(
-            root_path=root_path,
-            pdf_path=pdf,
-            input_path=root_path /"data"/ "input",
-            output_path=root_path /"data"/ "output",
-            prompt_path=root_path / "prompts",
-            src_dir=root_path / "src",
-            env_path=env_path,
-            tests_dir=root_path / "tests",
-        )
-
-        return cls(
-            project_path = project_path,
-            llm_task_config = _build_llm_task_config(project_path.prompt_path),
-            mistral_config = _build_mistral_task_config(project_path.pdf_path),
-        )

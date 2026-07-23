@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODE: Literal["single_test", "multiple_test"] = "single_test"
 
 # Set the input PDF path for single_test mode.
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "bst-bme280-ds002.pdf"
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "ITG-3050-Register-Map.pdf"
 
 # Set the input PDF directory for multiple_test mode.
 PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
@@ -41,21 +41,21 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
             "is_batch": True,
             "model_name": "gpt-5-mini",
             "temperature": 0.0,
-            "max_tokens": 2000,
+            "max_tokens": 10000,
         },
         "verify_reg_sum_pages": {
             "provider": "openai",
             "is_batch": True,
             "model_name": "gpt-5-mini",
             "temperature": 0.0,
-            "max_tokens": 1000,
+            "max_tokens": 10000,
         },
         "verify_reg_pages": {
             "provider": "openai",
             "is_batch": True,
             "model_name": "gpt-5-mini",
             "temperature": 0.0,
-            "max_tokens": 1000,
+            "max_tokens": 10000,
         },
         # "add_page_description": {
         #     "provider": "openai",
@@ -84,7 +84,7 @@ def configure_preprocessing_models(config: PreprocessingConfig) -> None:
 # ============================================================
 
     for task_name, settings in model_settings.items():
-        task_config = getattr(config.llm_task_config, task_name)
+        task_config = getattr(config.task_configs, task_name)
 
         for field_name, value in settings.items():
             setattr(task_config.model, field_name, value)

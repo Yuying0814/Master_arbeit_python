@@ -13,12 +13,71 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.preprocessing.config import PreprocessingConfig
 from src.preprocessing.preprocessor import Preprocessor
 
+def configure_coding_models(config: PreprocessingConfig) -> None:
+    """Configure model settings for the current preprocessing run."""
+    """Available settings for each task:
+        provider: str, "openai", "ollama"
+        is_batch: bool, True, False (better not change)
+        model_name: str, "gpt-5-mini", "gpt-5.4", ...
+        temperature: int
+        max_tokens: int
+    """
+    model_settings: dict[str, dict[str, Any]] = {
+        "classify_pages": {
+            "provider": "openai",
+            "is_batch": True,
+            "model_name": "gpt-5-mini",
+            "temperature": 0.0,
+            "max_tokens": 2000,
+        },
+        "verify_reg_sum_pages": {
+            "provider": "openai",
+            "is_batch": True,
+            "model_name": "gpt-5-mini",
+            "temperature": 0.0,
+            "max_tokens": 1000,
+        },
+        "verify_reg_pages": {
+            "provider": "openai",
+            "is_batch": True,
+            "model_name": "gpt-5-mini",
+            "temperature": 0.0,
+            "max_tokens": 1000,
+        },
+        # "add_page_description": {
+        #     "provider": "openai",
+        #     "is_batch": True,
+        #     "model_name": "gpt-5-mini",
+        #     "temperature": 0.0,
+        #     "max_tokens": 2000,
+        # },
+        "extract_reg_index": {
+            "provider": "openai",
+            "is_batch": False,
+            "model_name": "gpt-5-mini",
+            "temperature": 0.0,
+            "max_tokens": 20000,
+        },
+        "extract_reg_map": {
+            "provider": "openai",
+            "is_batch": False,
+            "model_name": "gpt-5.4",
+            "temperature": 0.0,
+            "max_tokens": 100000,
+        },
+    }
 
-def test_preprocessor_pipeline(pdf_name:str) -> None:
+    for task_name, settings in model_settings.items():
+        task_config = getattr(config.task_configs, task_name)
+
+        for field_name, value in settings.items():
+            setattr(task_config.model, field_name, value)
+
+def test_preprocessor_pipeline(pdf_path:Path) -> None:
     """ Test for preprocessor pipeline """
     """ Test Results will be written to project root/data/output """
 
-    pdf_path:Path = PROJECT_ROOT / "data" / "input_pdf" / pdf_name ## Enter real PDF Path Here for testing e.g. PROJECT_ROOT / "data" / "input_pdf" / "xxx"
+    pdf_path:Path = PROJECT_ROOT / "data" / "input_pdf" / pdf_path ## Enter real PDF Path Here for testing e.g. PROJECT_ROOT / "data" / "input_pdf" / "xxx"
     name = pdf_path.stem
     config = PreprocessingConfig.load_config(pdf=pdf_path)
     preprocessor = Preprocessor(config)

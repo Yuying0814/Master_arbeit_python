@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from src.llm.common.types import ValidOutputFormat,LLMProvider
 
@@ -21,3 +23,16 @@ class CodingTaskConfigs(BaseModel):
     coding:TaskConfig
     verification_semantic:TaskConfig
     verification_test_coder:TaskConfig
+
+@dataclass(frozen=True)
+class PreprocessingTaskConfig:
+    classify_pages:TaskConfig
+    verify_reg_sum_pages:TaskConfig
+    verify_reg_pages:TaskConfig
+    add_page_description:TaskConfig
+    extract_reg_index:TaskConfig
+    extract_reg_map:TaskConfig
+
+@dataclass(frozen=True)
+class MistralConfig:
+    task:dict[str, dict]
