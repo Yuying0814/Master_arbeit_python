@@ -23,7 +23,7 @@ def build_chat_model(
     match provider:
         case "anthropic":
             if not api_key:
-                raise ValueError("OpenAI API key is required for provider='openai'.")
+                raise ValueError("OpenAI API key is required for provider='anthropic'.")
 
             return ChatAnthropic(
                 model_name=model_name,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Iterable
 
-from anthropic import AsyncAnthropic
+from anthropic import AsyncAnthropic, NotFoundError
 from anthropic.types.messages import MessageBatch, MessageBatchIndividualResponse
 
 
@@ -61,7 +61,7 @@ class AsyncClaudeBatchClient:
     async def clean_up_batch(self, batch_id: str) -> None:
         try:
             batch = await self.retrieve(batch_id)
-        except Exception:
+        except NotFoundError:
             return
 
         if batch.processing_status != "ended":
