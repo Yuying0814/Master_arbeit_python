@@ -8,7 +8,7 @@ from src.models.structuredOutputModel import StructuredOutputModel
 from src.llm.common.types import ValidOutputFormat
 
 @dataclass
-class BatchInputFile:
+class OpenaiBatchInputFile:
     path:Path
     JSONLs:list[dict] = field(default_factory=list)
     custom_ids: list[str] = field(default_factory=list)

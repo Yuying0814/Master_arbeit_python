@@ -9,7 +9,7 @@ from src.models.batch import UserRequest
 from src.llm.common.common import ValidOutputFormat,HasRunWithRetry
 from src.llm.openai.batch.client import OpenAIBatchClient
 from src.llm.openai.batch.batch_job import BatchJob
-from src.llm.openai.batch.input_file import BatchInputFile
+from src.llm.openai.batch.input_file import OpenaiBatchInputFile
 
 T = TypeVar("T")
 
@@ -30,7 +30,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
 
     batch_client:OpenAIBatchClient
     batch_job:BatchJob|None
-    batch_input_file:BatchInputFile
+    batch_input_file:OpenaiBatchInputFile
     retries:list[dict[str,Any]]
     contents:list[dict[str,Any]]
     outputs:list[dict[str,Any]]
@@ -61,7 +61,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
 
         self.batch_client = OpenAIBatchClient(api_key=api_key)
         self.batch_job = None
-        self.batch_input_file = BatchInputFile(path=self.input_path)
+        self.batch_input_file = OpenaiBatchInputFile(path=self.input_path)
         self.retries = []
         self.contents = []
         self.outputs = []
@@ -183,7 +183,7 @@ class OpenAIBatchTaskProcessor(HasRunWithRetry):
                 self.max_output_tokens += 500*attempt
 
             input_path = self.input_path.parent / f"{self.name}_retry{attempt}.jsonl"
-            retry_batch_input_file = BatchInputFile(path=input_path)
+            retry_batch_input_file = OpenaiBatchInputFile(path=input_path)
             retry_batch_input_file.add_multiple_JSONLs(
                 name = self.name,
                 model=self.model,

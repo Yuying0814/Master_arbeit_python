@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from openai import OpenAI
 from src.llm.openai.batch.batch_job import BatchJob
-from src.llm.openai.batch.input_file import BatchInputFile
+from src.llm.openai.batch.input_file import OpenaiBatchInputFile
 
 
 class OpenAIBatchClient:
@@ -16,7 +16,7 @@ class OpenAIBatchClient:
     def __init__(self, api_key:str) -> None:
         self.openai_client = OpenAI(api_key=api_key)
 
-    def batch_run(self,batch_input_file:BatchInputFile) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    def batch_run(self, batch_input_file:OpenaiBatchInputFile) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
 
         batch_job = self.submit(batch_input_file)
         batch_job = self.wait_for_completion(batch_job)
@@ -160,7 +160,7 @@ class OpenAIBatchClient:
         except Exception as error:
             warnings.warn(f"Failed to cancel batch: {batch_id}\n{error}")
 
-    def submit(self,batch_input_file:BatchInputFile) -> BatchJob:
+    def submit(self, batch_input_file:OpenaiBatchInputFile) -> BatchJob:
         batch_input = batch_input_file.path
         name = batch_input.stem
 

@@ -198,7 +198,6 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             )
 
 
-
     def reset(self) -> None:
         self.contents = []
         self.records = []
