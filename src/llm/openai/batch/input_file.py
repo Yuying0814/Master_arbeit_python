@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import math
 from dataclasses import dataclass,field
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ class OpenaiBatchInputFile:
             *,
             model: str | None = None,
             instructions: str | None = None,
+            temperature: float = 0.0,
             output_format: ValidOutputFormat,
             max_output_tokens: int | None = None,
     ) -> None:
@@ -37,6 +39,9 @@ class OpenaiBatchInputFile:
         if not isinstance(instructions, str):
             raise TypeError("instructions must be a str")
 
+        if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
+            raise ValueError("temperature must be between 0.0 and 2.0.")
+
 
         if max_output_tokens is None:
             max_output_tokens = 500
@@ -51,6 +56,7 @@ class OpenaiBatchInputFile:
         body["model"] = model
         body["input"] = user
         body["instructions"] = instructions
+        body["temperature"] = temperature
 
         body["text"] = {
             "format":_build_format_value(output_format)
@@ -74,6 +80,7 @@ class OpenaiBatchInputFile:
                             *,
                             model: str | None = None,
                             instructions: str | None = None,
+                            temperature:float = 0.0,
                             output_format: ValidOutputFormat,
                             max_output_tokens: int | None = None,
                             ) -> None:
@@ -90,6 +97,7 @@ class OpenaiBatchInputFile:
                 user=user,
                 model=model,
                 instructions=instructions,
+                temperature = 0.0,
                 output_format=output_format,
                 max_output_tokens=max_output_tokens,
             )
