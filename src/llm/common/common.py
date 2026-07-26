@@ -31,7 +31,7 @@ class HasOutputFormat:
 
         if isinstance(value, str):
             if value.lower().strip() == "text":
-                return "text"
+                return None
 
         if isinstance(value, type) and issubclass(value, StructuredOutputModel):
             return value
@@ -41,6 +41,7 @@ class HasOutputFormat:
             "output_format must be subclass of StructuredOutputModel,None or 'text'，"
         )
 
+class HasLangChainOutput(HasOutputFormat):
     def parse_result(self, result: Any) -> Any:
         if self._is_structured_format(self.output_format):
             if not isinstance(result, BaseModel):
