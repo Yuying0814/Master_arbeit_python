@@ -175,12 +175,13 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         for batch_id in reversed(self.batch_ids):
             try:
                 await self.batch_client.clean_up_batch(batch_id)
+                self.is_cleaned_up = True
             except Exception as error:
                 warnings.warn(
                     f"Failed to clean up Claude batch {batch_id}: {error}",
                     RuntimeWarning,
                 )
-        self.is_cleaned_up = True
+
 
     async def close(self):
         try:
