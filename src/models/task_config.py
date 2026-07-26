@@ -25,7 +25,7 @@ class CodingTaskConfigs(BaseModel):
     verification_test_coder:TaskConfig
 
 @dataclass(frozen=True)
-class PreprocessingTaskConfig:
+class PreprocessingTaskConfigs:
     classify_pages:TaskConfig
     verify_reg_sum_pages:TaskConfig
     verify_reg_pages:TaskConfig

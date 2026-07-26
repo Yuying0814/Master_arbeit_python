@@ -348,7 +348,7 @@ class Preprocessor:
             self.reg_map = {}
             return {}
 
-        task_config = self.config.task_configs.extract_reg_map
+        task_config = self.config.task_configs  .extract_reg_map
 
         selected_pages = _select_extraction_pages(
             pages=self.pages,

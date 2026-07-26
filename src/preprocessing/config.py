@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from src.config import BaseConfig, BaseProjectPath
 from src.models.page_output import PageClassification,PageDescription
 from src.models.register_output import RegisterIndexOutput,RegisterMapOutput
-from src.models.task_config import TaskConfig,ModelConfig,PreprocessingTaskConfig,MistralConfig
+from src.models.task_config import TaskConfig,ModelConfig,PreprocessingTaskConfigs,MistralConfig
 
 @dataclass(frozen=True)
 class ProjectPath(BaseProjectPath):
@@ -13,10 +13,10 @@ class ProjectPath(BaseProjectPath):
 
 class PreprocessingConfig(BaseConfig):
     project_path: ProjectPath
-    task_configs: PreprocessingTaskConfig
+    task_configs: PreprocessingTaskConfigs
     mistral: MistralConfig
 
-    def __init__(self,project_path:ProjectPath,preprocessing_task_configs:PreprocessingTaskConfig,mistral_config:MistralConfig) -> None:
+    def __init__(self, project_path:ProjectPath, preprocessing_task_configs:PreprocessingTaskConfigs, mistral_config:MistralConfig) -> None:
         super().__init__(project_path)
         self.task_configs = preprocessing_task_configs
         self.mistral = mistral_config
@@ -58,7 +58,7 @@ class PreprocessingConfig(BaseConfig):
             mistral_config = _build_mistral_task_config(project_path.pdf_path),
         )
 
-def _build_preprocessing_task_configs(prompt_path:Path) -> PreprocessingTaskConfig:
+def _build_preprocessing_task_configs(prompt_path:Path) -> PreprocessingTaskConfigs:
     classify_pages = TaskConfig(
         model = ModelConfig(
             provider = "openai",
@@ -131,7 +131,7 @@ def _build_preprocessing_task_configs(prompt_path:Path) -> PreprocessingTaskConf
         system = _read_instructions(prompt_path/"prompt_extractRegMap.txt"),
         output_format = RegisterMapOutput,
     )
-    return PreprocessingTaskConfig(
+    return PreprocessingTaskConfigs(
         classify_pages = classify_pages,
         verify_reg_sum_pages = verify_reg_sum_pages,
         verify_reg_pages = verify_reg_pages,
