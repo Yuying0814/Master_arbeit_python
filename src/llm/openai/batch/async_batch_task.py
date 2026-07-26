@@ -212,6 +212,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 custom_ids=retry_custom_ids,
                 instructions=self.instructions,
                 users=retry_user_inputs,
+                temperature=self.temperature,
                 output_format=self.output_format,
                 max_output_tokens=self.max_output_tokens,
             )

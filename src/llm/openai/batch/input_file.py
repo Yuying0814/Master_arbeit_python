@@ -97,7 +97,7 @@ class OpenaiBatchInputFile:
                 user=user,
                 model=model,
                 instructions=instructions,
-                temperature = 0.0,
+                temperature = temperature,
                 output_format=output_format,
                 max_output_tokens=max_output_tokens,
             )
