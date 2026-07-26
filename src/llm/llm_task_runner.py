@@ -1,10 +1,12 @@
 from typing import Protocol, Any
 from pathlib import Path
 
+from src.llm.llm_batch_task import LLMBatchTask
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
 from src.llm.llm_single_task import LLMSingleTask
 from src.llm.openai.batch.async_batch_task import AsyncOpenAIBatchTask
+from src.llm.anthropic.batch.async_batch_task import AsyncClaudeBatchTask
 from src.llm.ollama.batch.ollama_batch_task import OllamaBatchTask
 
 
@@ -43,7 +45,7 @@ class LLMTaskRunner:
         return results
 
     async def cleanup(self) -> None:
-        if isinstance(self.task, AsyncOpenAIBatchTask):
+        if isinstance(self.task, LLMBatchTask):
             await self.task.cleanup()
 
     @classmethod
@@ -70,6 +72,13 @@ class LLMTaskRunner:
                     input_path = input_path,
                     task_config = task_config,
                 )
+
+            case "anthropic":
+                return AsyncClaudeBatchTask.load_from_task_config(
+                    api_key = api_key,
+                    task_config = task_config,
+                )
+
             case "ollama":
                 return OllamaBatchTask.load_from_task_config(
                     task_config = task_config,

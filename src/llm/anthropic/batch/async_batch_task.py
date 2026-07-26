@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from anthropic import transform_schema
 
+from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.anthropic.batch.async_client import AsyncClaudeBatchClient
 from src.llm.common.batch_utils import get_output_schema, merge, parse_output_text,sum_normalized_usage
 
@@ -18,7 +19,7 @@ from src.models.task_config import TaskConfig
 
 
 
-class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat):
+class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
     def __init__(
         self,
@@ -27,14 +28,12 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat):
         model: str,
         system: str,
         output_format: ValidOutputFormat,
-        temperature: float,
         max_output_tokens: int,
     ) -> None:
 
         self.model = model
         self.system = system
         self.output_format = self.validate_output_format(output_format)
-        self.temperature = temperature
         self.max_output_tokens = max_output_tokens
 
         self.batch_client = AsyncClaudeBatchClient(api_key=api_key)
@@ -58,7 +57,6 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat):
         *,
         api_key: str | None,
         task_config: TaskConfig,
-        input_path: Path | None = None,
     ) -> "AsyncClaudeBatchTask":
 
         if not api_key:
@@ -69,7 +67,6 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat):
             model=task_config.model.model_name,
             system=task_config.system,
             output_format=task_config.output_format,
-            temperature=task_config.model.temperature,
             max_output_tokens=task_config.model.max_tokens,
         )
 
@@ -184,6 +181,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat):
                     RuntimeWarning,
                 )
 
+    async def close(self):
         try:
             await self.batch_client.close()
         except Exception as error:
@@ -256,7 +254,6 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat):
             params: dict[str, Any] = {
                 "model": self.model,
                 "max_tokens": max_output_tokens,
-                "temperature": self.temperature,
                 "system": self.system,
                 "messages": [
                     {

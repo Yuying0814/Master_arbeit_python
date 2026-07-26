@@ -4,11 +4,12 @@ from langchain_core.callbacks import UsageMetadataCallbackHandler
 
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
+from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.common.common import HasLangChainOutput
 from src.llm.common.types import ValidOutputFormat
 
 
-class OllamaBatchTask(HasLangChainOutput):
+class OllamaBatchTask(HasLangChainOutput,LLMBatchTask):
     contents: list[dict[str,Any]]
     model: ChatOllama
     user_requests: list[UserRequest]

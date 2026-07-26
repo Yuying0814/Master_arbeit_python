@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from src.models.task_config import TaskConfig
 from src.models.batch import UserRequest
+from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
 from src.llm.common.types import ValidOutputFormat
 from src.llm.openai.batch.async_client import AsyncOpenAIBatchClient
@@ -17,7 +18,7 @@ from src.llm.common.batch_utils import parse_output_text,merge,sum_normalized_us
 
 T = TypeVar("T")
 
-class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
+class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     name:str
     status:str
     has_valid_output:bool

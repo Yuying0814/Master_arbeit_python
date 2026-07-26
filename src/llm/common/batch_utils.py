@@ -15,8 +15,7 @@ def parse_output_text(content: str,output_format: ValidOutputFormat) -> Any:
     if output_format is None:
         return content
 
-    parsed = json.loads(content)
-    return output_format.model_validate(parsed).model_dump()
+    return output_format.model_validate(content).model_dump()
 
 def merge(
     current: list[dict[str, Any]],
