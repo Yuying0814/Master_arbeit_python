@@ -13,7 +13,7 @@ from src.llm.common.types import ValidOutputFormat
 from src.llm.openai.batch.async_client import AsyncOpenAIBatchClient
 from src.llm.openai.batch.batch_job import BatchJob
 from src.llm.openai.batch.input_file import BatchInputFile
-from src.llm.common.batch_utils import get_output_schema,parse_output_text,merge_contents,sum_normalized_usage
+from src.llm.common.batch_utils import parse_output_text,merge,sum_normalized_usage
 
 T = TypeVar("T")
 
@@ -222,9 +222,9 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
 
                 self._parse_contents(retry_contents)
 
-                update_retry_result(self.contents,retry_contents)
-                update_retry_result(self.outputs,retry_outputs)
-                update_retry_result(self.records,retry_records)
+                merge(self.contents,retry_contents)
+                merge(self.outputs,retry_outputs)
+                merge(self.records,retry_records)
 
 
             except Exception:
@@ -278,17 +278,13 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
         self.status = self.batch_job.status
 
     def _parse_contents(self,contents:list[dict[str,Any]]) -> list[dict[str, Any]]:
-        if self.output_format is None or self.output_format == "text":
-            return contents
 
         for content in contents:
             if not content.get("completed", False):
                 continue
 
             try:
-                content["content"] = (
-                    self.output_format.model_validate_json(content["content"]).model_dump()
-                )
+                content["content"] = parse_output_text(content["content"], self.output_format)
 
             except ValidationError as error:
                 content["content"] = ""
@@ -310,7 +306,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
                 usages.append(usage)
 
         self.final_usage = {
-            self.model: _sum_token_usage(usages)
+            self.model: sum_normalized_usage(usages)
         }
 
     def _get_total_usage(self) -> None:
@@ -337,12 +333,8 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat):
                     usages.extend(_extract_record_usages(retry_records))
 
         self.total_usage = {
-            self.model: _sum_token_usage(usages)
+            self.model: sum_normalized_usage(usages)
         }
-
-
-
-
 
 # Helper
 def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,Any]]) -> None:
@@ -358,47 +350,6 @@ def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,An
             old_items[index] = new_item
         else:
             old_items.append(new_item)
-
-def _sum_token_usage(usages: list[dict[str, Any]]) -> dict[str, Any]:
-    total_usage = {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "input_tokens_details": {
-            "cached_tokens": 0,
-        },
-        "output_tokens_details": {
-            "reasoning_tokens": 0,
-        },
-    }
-
-    for usage in usages:
-        if not usage:
-            continue
-
-        input_tokens = usage.get("input_tokens", 0)
-        output_tokens = usage.get("output_tokens", 0)
-        total_tokens = usage.get("total_tokens", input_tokens + output_tokens)
-
-        cached_tokens = (
-            usage
-            .get("input_tokens_details", {})
-            .get("cached_tokens", 0)
-        )
-
-        reasoning_tokens = (
-            usage
-            .get("output_tokens_details", {})
-            .get("reasoning_tokens", 0)
-        )
-
-        total_usage["input_tokens"] += input_tokens
-        total_usage["output_tokens"] += output_tokens
-        total_usage["total_tokens"] += total_tokens
-        total_usage["input_tokens_details"]["cached_tokens"] += cached_tokens
-        total_usage["output_tokens_details"]["reasoning_tokens"] += reasoning_tokens
-
-    return total_usage
 
 def _extract_record_usages(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     usages = []

@@ -4,11 +4,11 @@ from langchain_core.callbacks import UsageMetadataCallbackHandler
 
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
-from src.llm.common.common import HasOutputFormat
+from src.llm.common.common import HasLangChainOutput
 from src.llm.common.types import ValidOutputFormat
 
 
-class OllamaBatchTask(HasOutputFormat):
+class OllamaBatchTask(HasLangChainOutput):
     contents: list[dict[str,Any]]
     model: ChatOllama
     user_requests: list[UserRequest]
@@ -212,7 +212,7 @@ class OllamaBatchTask(HasOutputFormat):
         return len(self.user_requests) > 0
 
 
-#
+# Helper
 def build_custom_id_content_map(contents: list[dict[str,Any]]) -> dict[str,dict[str,Any]]:
     return {
         content["custom_id"]: content for content in contents
