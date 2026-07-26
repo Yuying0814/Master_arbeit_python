@@ -18,20 +18,22 @@ def parse_output_text(content: str,output_format: ValidOutputFormat) -> Any:
     parsed = json.loads(content)
     return output_format.model_validate(parsed).model_dump()
 
-def merge_contents(
+def merge(
     current: list[dict[str, Any]],
     updates: list[dict[str, Any]],
 ) -> None:
 
-    update_map = {
-        item["custom_id"]: item
-        for item in updates
+    current_index_map = {
+        item["custom_id"]: index for index,item in enumerate(current)
     }
 
-    for index, item in enumerate(current):
-        replacement = update_map.get(item["custom_id"])
-        if replacement is not None:
-            current[index] = replacement
+    for index, item in enumerate(updates):
+        custom_id = item["custom_id"]
+        if custom_id in current_index_map:
+            index = current_index_map.get(custom_id)
+            current[index] = item
+        else:
+            current.append(item)
 
 
 def sum_normalized_usage(usages: list[dict[str, Any]]) -> dict[str, Any]:
@@ -49,6 +51,9 @@ def sum_normalized_usage(usages: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
     for usage in usages:
+        if not usage:
+            continue
+
         input_tokens = int(usage.get("input_tokens", 0) or 0)
         output_tokens = int(usage.get("output_tokens", 0) or 0)
         total_tokens = int(
