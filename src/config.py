@@ -30,6 +30,8 @@ class BaseConfig:
                 api_key = os.getenv("OPENAI_API_KEY", "").strip()
             case "mistral":
                 api_key = os.getenv("MISTRALAI_API_KEY", "").strip()
+            case "anthropic":
+                api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
             case _:
                 api_key = ""
 

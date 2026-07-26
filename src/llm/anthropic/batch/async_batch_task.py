@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import warnings
-from pathlib import Path
 from typing import Any
 from pydantic import ValidationError
 
@@ -131,6 +130,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 item["custom_id"]
                 for item in self.contents
                 if not item["completed"]
+                and item["incomplete_reason"] in {"max_tokens","missing_result"}
             }
 
             if not retry_ids:
@@ -180,6 +180,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                     f"Failed to clean up Claude batch {batch_id}: {error}",
                     RuntimeWarning,
                 )
+        self.is_cleaned_up = True
 
     async def close(self):
         try:
@@ -190,7 +191,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 RuntimeWarning,
             )
 
-        self.is_cleaned_up = True
+
 
     def reset(self) -> None:
         self.contents = []
@@ -325,11 +326,11 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             self._total_usage_items.append(usage)
             self._final_usage_by_id[request.custom_id] = usage
 
-            if message.stop_reason == "max_tokens":
+            if message.stop_reason in {"max_tokens","refusal","model_context_window_exceeded",}:
                 contents.append(
                     self._build_incomplete_content(
                         request.custom_id,
-                        "max_tokens",
+                        message.stop_reason,
                     )
                 )
                 continue
