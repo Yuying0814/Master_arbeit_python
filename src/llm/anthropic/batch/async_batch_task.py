@@ -34,7 +34,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         self.model = model
         self.system = system
         self.output_format = self.validate_output_format(output_format)
-        self.thinking_effort = thinking_effort,
+        self.thinking_effort = thinking_effort
         self.max_output_tokens = max_output_tokens
 
         self.batch_client = AsyncClaudeBatchClient(api_key=api_key)
