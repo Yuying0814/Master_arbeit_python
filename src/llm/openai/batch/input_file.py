@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.llm.common.types import ValidOutputFormat
+from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 
 @dataclass
 class OpenaiBatchInputFile:
@@ -21,6 +21,7 @@ class OpenaiBatchInputFile:
             *,
             model: str | None = None,
             instructions: str | None = None,
+            thinking_effort: ThinkingEffort = None,
             temperature: float = 0.0,
             output_format: ValidOutputFormat,
             max_output_tokens: int | None = None,
@@ -42,6 +43,8 @@ class OpenaiBatchInputFile:
         if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
             raise ValueError("temperature must be between 0.0 and 2.0.")
 
+        if thinking_effort is None:
+            thinking_effort = "medium"
 
         if max_output_tokens is None:
             max_output_tokens = 500
@@ -57,6 +60,9 @@ class OpenaiBatchInputFile:
         body["input"] = user
         body["instructions"] = instructions
         body["temperature"] = temperature
+        body["reasoning"] = {
+            "effort": thinking_effort,
+        }
 
         body["text"] = {
             "format":_build_format_value(output_format)
@@ -80,6 +86,7 @@ class OpenaiBatchInputFile:
                             *,
                             model: str | None = None,
                             instructions: str | None = None,
+                            thinking_effort:ThinkingEffort = None,
                             temperature:float = 0.0,
                             output_format: ValidOutputFormat,
                             max_output_tokens: int | None = None,
@@ -97,6 +104,7 @@ class OpenaiBatchInputFile:
                 user=user,
                 model=model,
                 instructions=instructions,
+                thinking_effort=thinking_effort,
                 temperature = temperature,
                 output_format=output_format,
                 max_output_tokens=max_output_tokens,

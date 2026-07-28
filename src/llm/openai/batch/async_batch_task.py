@@ -10,7 +10,7 @@ from src.models.task_config import TaskConfig
 from src.models.batch import UserRequest
 from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
-from src.llm.common.types import ValidOutputFormat
+from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 from src.llm.openai.batch.async_client import AsyncOpenAIBatchClient
 from src.llm.openai.batch.batch_job import BatchJob
 from src.llm.openai.batch.input_file import OpenaiBatchInputFile
@@ -50,6 +50,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                  input_path:Path,
                  *,model:str|None = None,
                  instructions: str|None = None,
+                 thinking_effort:ThinkingEffort = None,
                  temperature: float = 0.0,
                  text_format:ValidOutputFormat|None = None,
                  max_output_tokens:int|None = None,
@@ -67,6 +68,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
         self.model = model if model is not None else "gpt-5-mini"
         self.instructions = instructions if instructions is not None else "You are a helpful assistance"
+        self.thinking_effort = thinking_effort
         self.temperature = temperature
         self.output_format = self.validate_output_format(text_format)
         self.max_output_tokens = max_output_tokens if max_output_tokens is not None else 500
@@ -94,6 +96,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             input_path=Path(input_path),
             model = task_config.model.model_name,
             instructions=task_config.system,
+            thinking_effort=task_config.model.thingking_effort,
             temperature=task_config.model.temperature,
             text_format=task_config.output_format,
             max_output_tokens=task_config.model.max_tokens
@@ -143,6 +146,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             custom_ids=self.custom_ids,
             instructions=self.instructions,
             users=self.user_inputs,
+            thinking_effort = self.thinking_effort,
             temperature=self.temperature,
             output_format=self.output_format,
             max_output_tokens=self.max_output_tokens,
@@ -212,6 +216,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 custom_ids=retry_custom_ids,
                 instructions=self.instructions,
                 users=retry_user_inputs,
+                thinking_effort=self.thinking_effort,
                 temperature=self.temperature,
                 output_format=self.output_format,
                 max_output_tokens=self.max_output_tokens,

@@ -12,7 +12,7 @@ from src.llm.anthropic.batch.async_client import AsyncClaudeBatchClient
 from src.llm.common.batch_utils import get_output_schema, merge, parse_output_text,sum_normalized_usage
 
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
-from src.llm.common.types import ValidOutputFormat
+from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
 
@@ -27,12 +27,14 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         model: str,
         system: str,
         output_format: ValidOutputFormat,
+        thinking_effort:ThinkingEffort,
         max_output_tokens: int,
     ) -> None:
 
         self.model = model
         self.system = system
         self.output_format = self.validate_output_format(output_format)
+        self.thinking_effort = thinking_effort,
         self.max_output_tokens = max_output_tokens
 
         self.batch_client = AsyncClaudeBatchClient(api_key=api_key)
@@ -66,6 +68,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             model=task_config.model.model_name,
             system=task_config.system,
             output_format=task_config.output_format,
+            thinking_effort=task_config.model.thingking_effort,
             max_output_tokens=task_config.model.max_tokens,
         )
 
@@ -276,6 +279,12 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                         "schema": transformed_schema,
                     }
                 }
+
+            if self.thinking_effort is not None:
+                params["thinking"] = {
+                    "type": "adaptive",
+                }
+                params["output_config"]["effort"] = self.thinking_effort
 
             batch_requests.append(
                 {

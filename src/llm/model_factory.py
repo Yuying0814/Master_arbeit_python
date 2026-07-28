@@ -4,8 +4,9 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 
-from src.llm.common.types import LLMProvider
+from src.llm.common.types import LLMProvider,ThinkingEffort
 
 
 def build_chat_model(
@@ -13,6 +14,7 @@ def build_chat_model(
     provider: LLMProvider,
     model_name: str,
     api_key: str | None = None,
+    thinking_effort:ThinkingEffort = None,
     temperature: float = 0.0,
     max_output_tokens: int|None = None,
 ) -> BaseChatModel:
@@ -21,6 +23,16 @@ def build_chat_model(
         max_output_tokens = 4000
 
     match provider:
+        case "google":
+            if not api_key:
+                raise ValueError("Google API key is required for provider='google'")
+            return ChatGoogleGenerativeAI(
+                model=model_name,
+                api_key=api_key,
+                max_tokens=max_output_tokens,
+                thinking_level = thinking_effort,
+            )
+
         case "anthropic":
             if not api_key:
                 raise ValueError("Anthropic API key is required for provider='anthropic'.")
@@ -29,6 +41,10 @@ def build_chat_model(
                 model_name=model_name,
                 api_key=api_key,
                 max_tokens_to_sample= max_output_tokens,
+                thinking = {
+                    "type":"adaptive"
+                },
+                effort=thinking_effort,
             )
 
         case "openai":
@@ -40,6 +56,7 @@ def build_chat_model(
                 api_key=api_key,
                 temperature=temperature,
                 max_tokens= max_output_tokens,
+                reasoning_effort=thinking_effort,
             )
 
         case "ollama":
@@ -48,5 +65,5 @@ def build_chat_model(
                 temperature=temperature,
                 num_predict=max_output_tokens,
             )
-
-    raise ValueError(f"Unsupported LLM provider: {provider}")
+        case _:
+            raise ValueError(f"Unsupported LLM provider: {provider}")

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
-from src.llm.common.types import ValidOutputFormat,LLMProvider
+from src.llm.common.types import ValidOutputFormat,LLMProvider,ThinkingEffort
 
 class ModelConfig(BaseModel):
     provider:LLMProvider = "openai"
     is_batch: bool = False
     model_name:str = "gpt-5-mini"
+    thingking_effort: ThinkingEffort = None
     temperature:float = 0.0
     max_tokens:int = 4000
 

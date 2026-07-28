@@ -16,6 +16,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
             provider = "openai",
             is_batch=True,
             model_name="gpt-5-mini",
+            thingking_effort="medium",
             temperature=0.0,
             max_tokens=2000,
         ),
@@ -27,6 +28,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
         model=ModelConfig(
             provider="openai",
             model_name="gpt-5-mini",
+            thingking_effort="medium",
             temperature=0.0,
             max_tokens=10000,
         ),
@@ -39,6 +41,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
         model=ModelConfig(
             provider="openai",
             model_name="gpt-5-mini",
+            thingking_effort="medium",
             temperature=0.0,
             max_tokens=10000,
         ),
@@ -50,6 +53,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
         model=ModelConfig(
             provider="openai",
             model_name="gpt-5-mini",
+            thingking_effort="medium",
             temperature=0.0,
             max_tokens=10000,
         ),
@@ -61,6 +65,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
         model=ModelConfig(
             provider="openai",
             model_name="gpt-5-mini",
+            thingking_effort="medium",
             temperature=0.0,
             max_tokens=10000,
         ),
