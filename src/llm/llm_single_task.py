@@ -52,7 +52,7 @@ class LLMSingleTask(HasOutputFormat):
             api_key=api_key,
             provider=task_config.model.provider,
             model_name=task_config.model.model_name,
-            thinking_effort=task_config.model.thingking_effort,
+            thinking_effort=task_config.model.thinking_effort,
             temperature=task_config.model.temperature,
             max_output_tokens=task_config.model.max_tokens,
         )

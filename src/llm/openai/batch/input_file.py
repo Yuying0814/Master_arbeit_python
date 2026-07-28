@@ -43,9 +43,6 @@ class OpenaiBatchInputFile:
         if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
             raise ValueError("temperature must be between 0.0 and 2.0.")
 
-        if thinking_effort is None:
-            thinking_effort = "medium"
-
         if max_output_tokens is None:
             max_output_tokens = 500
 
@@ -60,15 +57,16 @@ class OpenaiBatchInputFile:
         body["input"] = user
         body["instructions"] = instructions
         body["temperature"] = temperature
-        body["reasoning"] = {
-            "effort": thinking_effort,
-        }
-
         body["text"] = {
             "format":_build_format_value(output_format)
         }
 
         body["max_output_tokens"] = max_output_tokens
+
+        if thinking_effort is not None:
+            body["reasoning"] = {
+                "effort": thinking_effort,
+            }
 
         JSONL = {
             "custom_id": custom_id,

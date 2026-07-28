@@ -96,7 +96,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             input_path=Path(input_path),
             model = task_config.model.model_name,
             instructions=task_config.system,
-            thinking_effort=task_config.model.thingking_effort,
+            thinking_effort=task_config.model.thinking_effort,
             temperature=task_config.model.temperature,
             text_format=task_config.output_format,
             max_output_tokens=task_config.model.max_tokens

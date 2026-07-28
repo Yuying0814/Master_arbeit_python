@@ -68,7 +68,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             model=task_config.model.model_name,
             system=task_config.system,
             output_format=task_config.output_format,
-            thinking_effort=task_config.model.thingking_effort,
+            thinking_effort=task_config.model.thinking_effort,
             max_output_tokens=task_config.model.max_tokens,
         )
 
