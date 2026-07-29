@@ -133,7 +133,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 item["custom_id"]
                 for item in self.contents
                 if not item["completed"]
-                and item["incomplete_reason"] not in {"refusal","model_context_window_exceeded"}
+                and item["incomplete_reason"].strip().lower() not in {"refusal","model_context_window_exceeded"}
             }
 
             if not retry_ids:
@@ -147,7 +147,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
             increase_tokens = any(
                 item["custom_id"] in retry_ids
-                and item["incomplete_reason"] == "max_tokens"
+                and item["incomplete_reason"].strip().lower() == "max_tokens"
                 for item in self.contents
             )
 
