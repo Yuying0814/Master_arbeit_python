@@ -7,6 +7,7 @@ from src.models.task_config import TaskConfig
 from src.llm.llm_single_task import LLMSingleTask
 from src.llm.openai.batch.async_batch_task import AsyncOpenAIBatchTask
 from src.llm.anthropic.batch.async_batch_task import AsyncClaudeBatchTask
+from src.llm.google.batch.async_batch_task import AsyncGeminiBatchTask
 from src.llm.ollama.batch.ollama_batch_task import OllamaBatchTask
 
 
@@ -68,6 +69,13 @@ class LLMTaskRunner:
         match task_config.model.provider:
             case "openai":
                 return AsyncOpenAIBatchTask.load_from_task_config(
+                    api_key = api_key,
+                    input_path = input_path,
+                    task_config = task_config,
+                )
+
+            case "google":
+                return AsyncGeminiBatchTask.load_from_task_config(
                     api_key = api_key,
                     input_path = input_path,
                     task_config = task_config,
