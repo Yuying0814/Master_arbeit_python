@@ -15,7 +15,7 @@ def build_chat_model(
     model_name: str,
     api_key: str | None = None,
     thinking_effort:ThinkingEffort = None,
-    temperature: float = 0.0,
+    temperature: float|None = None,
     max_output_tokens: int|None = None,
 ) -> BaseChatModel:
 

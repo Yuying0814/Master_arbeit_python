@@ -44,7 +44,7 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         output_format: ValidOutputFormat,
         max_output_tokens: int,
         thinking_effort: ThinkingEffort,
-        temperature: float,
+        temperature: float|None,
     ) -> None:
         self.name = input_path.stem
         self.input_path = input_path
