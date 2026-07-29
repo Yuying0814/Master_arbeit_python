@@ -187,7 +187,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                             content["incomplete_reason"] in NOT_RETRIABLE_REASON}
         retry_custom_ids = not_completed_id | (set(self.custom_ids) - existing_ids)
 
-        self.has_valid_output = self.has_valid_output = (
+        self.has_valid_output = (
             len(self.custom_ids) == len(self.contents)
             and existing_ids == set(self.custom_ids)
             and all(content["completed"] for content in self.contents)
