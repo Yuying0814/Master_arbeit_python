@@ -1,6 +1,7 @@
 from typing import Protocol, Any
 from pathlib import Path
 
+
 from src.llm.llm_batch_task import LLMBatchTask
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
@@ -8,6 +9,7 @@ from src.llm.llm_single_task import LLMSingleTask
 from src.llm.openai.batch.async_batch_task import AsyncOpenAIBatchTask
 from src.llm.anthropic.batch.async_batch_task import AsyncClaudeBatchTask
 from src.llm.google.batch.async_batch_task import AsyncGeminiBatchTask
+from src.llm.kimi.batch.async_batch_task import AsyncKimiBatchTask
 from src.llm.ollama.batch.ollama_batch_task import OllamaBatchTask
 
 
@@ -84,6 +86,13 @@ class LLMTaskRunner:
             case "anthropic":
                 return AsyncClaudeBatchTask.load_from_task_config(
                     api_key = api_key,
+                    task_config = task_config,
+                )
+
+            case "kimi":
+                return AsyncKimiBatchTask.load_from_task_config(
+                    api_key=api_key,
+                    input_path = input_path,
                     task_config = task_config,
                 )
 

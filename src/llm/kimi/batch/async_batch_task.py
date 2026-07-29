@@ -2,7 +2,9 @@ from __future__ import annotations
 import warnings
 
 from pathlib import Path
-from typing import Any,TypeVar
+from typing import Any
+
+from pydantic import ValidationError
 
 from src.models.task_config import TaskConfig
 from src.models.batch import UserRequest
@@ -16,7 +18,6 @@ from src.llm.kimi.batch.async_client import AsyncKimiBatchClient
 from src.llm.kimi.batch.input_file import KimiBatchInputFile
 
 
-T = TypeVar("T")
 NOT_RETRIABLE_REASONS = {
     "content_filter",
     "invalid_request_error",
@@ -49,13 +50,13 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         self.user_requests = []
 
         self.model = model if model is not None else "kimi-k2.6"
-        self.instructions = instructions if instructions is not None else "You are a helpful assistance"
+        self.instructions = instructions if instructions is not None else "You are a helpful assistant"
         self.thinking_effort = thinking_effort
         self.output_format = self.validate_output_format(text_format)
         self.max_output_tokens = max_output_tokens if max_output_tokens is not None else 5000
 
         self.batch_client = AsyncKimiBatchClient(api_key=api_key)
-        self.batch_ids = []
+        self.batches = []
         self.batch_input_file = KimiBatchInputFile(path=self.input_path,input_file_id="")
         self.batch_input_files = []
 
@@ -118,10 +119,11 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         batch = await self.batch_client.submit(batch_input_file)
         batch_input_file.input_file_id = batch.input_file_id
 
-        self.batch_ids.append(batch.id)
+        self.batches.append(batch)
         self.batch_input_files.append(batch_input_file)
+        completed_batch = await self.run_with_retry_async(self.batch_client.wait_for_completion, batch.id)
+        self.batches[-1] = completed_batch
 
-        batch = await self.run_with_retry_async(self.batch_client.wait_for_completion, batch.id)
         records = await self.run_with_retry_async(self.batch_client.collect_results, batch)
 
         return self._collect_results(requests, records)
@@ -215,7 +217,7 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
         self.user_requests = list(user_requests)
 
-    def _collect_results(self,requests:list[UserRequest],records:list[dict[str,Any]]) -> list[str,Any]:
+    def _collect_results(self,requests:list[UserRequest],records:list[dict[str,Any]]) -> list[dict[str, Any]]:
 
         records_map = {
             record.get("custom_id"): record
@@ -242,8 +244,13 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
             response = record.get("response", {}) or {}
             body = response.get("body", {}) or {}
-            choices = body.get("choices", []) or []
+            body_error = body.get("error",{}) or {}
+            if body_error:
+                content = self._build_incomplete_content(request.custom_id,self._get_error(body_error))
+                contents.append(content)
+                continue
 
+            choices = body.get("choices", []) or []
             usage = self._normalize_usage(body.get("usage", {}) or {})
             self._total_usage_items.append(usage)
             self._final_usage_by_id[request.custom_id] = usage
@@ -270,6 +277,7 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 if not message_content:
                     content = self._build_incomplete_content(request.custom_id,"incomplete_content")
                     contents.append(content)
+                    content_invalid = True
                     break
 
                 text_fragments.append(message_content)
@@ -278,14 +286,18 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 continue
 
             raw_text = "".join(text_fragments)
-            contents.append(
-                {
-                    "custom_id": custom_id,
-                    "content": parse_output_text(raw_text,self.output_format),
-                    "completed": True,
-                    "incomplete_reason": "",
-                }
-            )
+            try:
+                contents.append(
+                    {
+                        "custom_id": custom_id,
+                        "content": parse_output_text(raw_text,self.output_format),
+                        "completed": True,
+                        "incomplete_reason": "",
+                    }
+                )
+            except ValidationError as error:
+                content = self._build_incomplete_content(custom_id,"output_parsing_failed")
+                contents.append(content)
 
         return contents
 
@@ -300,9 +312,9 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
     @staticmethod
     def _get_error(error:dict[str,Any]) -> str:
-        err_msg = error.get("code","") or ""
+        err_msg = error.get("type","") or ""
         if not err_msg:
-            err_msg = error.get("type","Unknown error") or "Unknown error"
+            err_msg = error.get("code","Unknown error") or "Unknown error"
 
         return err_msg
 
@@ -322,26 +334,29 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     async def cleanup(self) -> None:
         if self.is_cleaned_up:
             return
+        cleanup_results: list[bool] = []
+        resources = list(zip(self.batches, self.batch_input_files))
 
-        resources = list(zip(self.batch_ids, self.batch_input_files))
-        failed_resources = []
-
-        for batch_id, batch_input_file in reversed(resources):
+        for batch, batch_input_file in reversed(resources):
             try:
-                await self.batch_client.cancel(batch_id)
-                await self.batch_client.delete_file(batch_input_file.input_file_id)
+                is_canceled = await self.batch_client.cancel(batch)
+                is_deleted = await self.batch_client.delete_file(batch_input_file.input_file_id)
+                cleanup_results.append(is_canceled and is_deleted)
             except Exception as error:
-                failed_resources.append((batch_id, batch_input_file))
-                warnings.warn(f"Failed to clean up Kimi batch "f"{batch_id} and {batch_input_file.input_file_id}: {error}",RuntimeWarning,)
+                cleanup_results.append(False)
+                warnings.warn(
+                    f"Failed to clean up Kimi batch "f"{batch.id} and {batch_input_file.input_file_id}:\n {error}",
+                    RuntimeWarning,
+                )
 
-        self.is_cleaned_up = not failed_resources
+        self.is_cleaned_up = all(cleanup_results)
 
     def reset(self):
         self.batch_input_file.reset_JSONLs()
         self.contents = []
         self.records = []
         self.retries = []
-        self.batch_jobs = []
+        self.batches = []
         self.batch_input_files = []
         self.has_valid_output = False
         self.is_cleaned_up = False

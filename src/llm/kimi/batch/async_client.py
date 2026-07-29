@@ -130,8 +130,11 @@ class AsyncKimiBatchClient:
         return records
 
     async def cancel(self, batch: Batch) -> bool:
-        if batch.status not in ACTIVE_STATES:
-            return False
+        if batch.status in TERMINAL_STATES:
+            return True
+
+        if batch.status == "cancelling":
+            return True
 
         try:
             await self.kimi_client.batches.cancel(batch_id=batch.id)

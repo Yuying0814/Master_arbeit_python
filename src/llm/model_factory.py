@@ -5,6 +5,7 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_moonshot import ChatMoonshot
 
 from src.llm.common.types import LLMProvider,ThinkingEffort
 
@@ -23,14 +24,16 @@ def build_chat_model(
         max_output_tokens = 4000
 
     match provider:
-        case "google":
+        case "openai":
             if not api_key:
-                raise ValueError("Google API key is required for provider='google'")
-            return ChatGoogleGenerativeAI(
+                raise ValueError("OpenAI API key is required for provider='openai'.")
+
+            return ChatOpenAI(
                 model=model_name,
                 api_key=api_key,
-                max_tokens=max_output_tokens,
-                thinking_level = thinking_effort,
+                temperature=temperature,
+                max_tokens= max_output_tokens,
+                reasoning_effort=thinking_effort,
             )
 
         case "anthropic":
@@ -47,16 +50,24 @@ def build_chat_model(
                 effort=thinking_effort,
             )
 
-        case "openai":
+        case "google":
             if not api_key:
-                raise ValueError("OpenAI API key is required for provider='openai'.")
-
-            return ChatOpenAI(
+                raise ValueError("Google API key is required for provider='google'")
+            return ChatGoogleGenerativeAI(
                 model=model_name,
                 api_key=api_key,
-                temperature=temperature,
-                max_tokens= max_output_tokens,
-                reasoning_effort=thinking_effort,
+                max_tokens=max_output_tokens,
+                thinking_level = thinking_effort,
+            )
+
+        case "kimi":
+            if not api_key:
+                raise ValueError("Kimi API key is required for provider='kimi'")
+            return ChatMoonshot(
+                model=model_name,
+                api_key=api_key,
+                max_completion_tokens=max_output_tokens,
+                reasoning_effort=thinking_effort if model_name=="kimi-k3" else None,
             )
 
         case "ollama":

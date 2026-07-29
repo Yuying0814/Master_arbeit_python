@@ -34,6 +34,8 @@ class BaseConfig:
                 api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
             case "google":
                 api_key = os.getenv("GEMINI_API_KEY", "").strip()
+            case "kimi":
+                api_key = os.getenv("KIMI_API_KEY", "").strip()
             case _:
                 api_key = ""
 
