@@ -85,6 +85,7 @@ class LLMSingleTask(HasOutputFormat):
         if self._is_structured_format(self.output_format):
             structured_model = self.model.with_structured_output(
                 self.output_format,
+                method="json_schema",
                 include_raw=True,
             )
 
