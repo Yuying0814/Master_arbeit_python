@@ -9,7 +9,7 @@ class ModelConfig(BaseModel):
     is_batch: bool = False
     model_name:str = "gpt-5-mini"
     thinking_effort: ThinkingEffort = None
-    temperature:float = 0.0
+    temperature:float|None = None
     max_tokens:int = 4000
 
 class TaskConfig(BaseModel):

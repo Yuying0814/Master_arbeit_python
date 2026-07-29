@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import warnings
 import asyncio
+from operator import truediv
 from pathlib import Path
 from typing import Any
 from openai import AsyncOpenAI
@@ -116,27 +117,39 @@ class AsyncOpenAIBatchClient:
                 continue
 
             text_fragments: list[str] = []
+            refusal = False
 
             for item in output_items:
                 if item.get("type", "") != "message":
                     continue
 
+                refusal = False
                 for content in item.get("content", []):
                     content_type = content.get("type", "")
 
                     if content_type == "output_text":
                         text_fragments.append(content.get("text", ""))
                     elif content_type == "refusal":
-                        refusal = content.get("refusal", "")
-                        contents.append(
-                            {
-                                "custom_id": custom_id,
-                                "content": "",
-                                "completed": False,
-                                "incomplete_reason": refusal,
-                            }
-                        )
-                        continue
+                        refusal = True
+
+            if refusal:
+                outputs.append(
+                    {
+                        "custom_id": custom_id,
+                        "output": output_items,
+                        "completed": False,
+                        "incomplete_reason": "refusal",
+                    }
+                )
+
+                contents.append(
+                    {
+                        "custom_id": custom_id,
+                        "content": "",
+                        "completed": False,
+                        "incomplete_reason": "refusal",
+                    }
+                )
 
             outputs.append(
                 {

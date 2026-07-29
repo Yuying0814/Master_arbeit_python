@@ -22,7 +22,7 @@ class OpenaiBatchInputFile:
             model: str | None = None,
             instructions: str | None = None,
             thinking_effort: ThinkingEffort = None,
-            temperature: float = 0.0,
+            temperature: float|None = None,
             output_format: ValidOutputFormat,
             max_output_tokens: int | None = None,
     ) -> None:
@@ -56,12 +56,14 @@ class OpenaiBatchInputFile:
         body["model"] = model
         body["input"] = user
         body["instructions"] = instructions
-        body["temperature"] = temperature
         body["text"] = {
             "format":_build_format_value(output_format)
         }
 
         body["max_output_tokens"] = max_output_tokens
+
+        if temperature is not None:
+            body["temperature"] = temperature
 
         if thinking_effort is not None:
             body["reasoning"] = {
