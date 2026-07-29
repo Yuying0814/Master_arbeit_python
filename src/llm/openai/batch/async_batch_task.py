@@ -52,7 +52,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                  *,model:str|None = None,
                  instructions: str|None = None,
                  thinking_effort:ThinkingEffort = None,
-                 temperature: float|None = 0.0,
+                 temperature: float|None = None,
                  text_format:ValidOutputFormat|None = None,
                  max_output_tokens:int|None = None,
                  ) -> None:
@@ -186,7 +186,13 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         not_completed_id = {content["custom_id"] for content in self.contents if not content["completed"] and not
                             content["incomplete_reason"] in NOT_RETRIABLE_REASON}
         retry_custom_ids = not_completed_id | (set(self.custom_ids) - existing_ids)
-        self.has_valid_output = not retry_custom_ids and (len(self.custom_ids)== len(self.contents))
+
+        self.has_valid_output = self.has_valid_output = (
+            len(self.custom_ids) == len(self.contents)
+            and existing_ids == set(self.custom_ids)
+            and all(content["completed"] for content in self.contents)
+        )
+
         return list(retry_custom_ids)
 
     async def retry_batch(self,max_retries:int = 3) -> None:
@@ -199,7 +205,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             retry_records = []
             retry_job = None
 
-            if self.has_valid_output:
+            if self.has_valid_output or not retry_custom_ids:
                 return
 
             input_id_map = {
