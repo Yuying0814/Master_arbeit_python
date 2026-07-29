@@ -93,7 +93,7 @@ class GeminiBatchInputFile:
         output_format: ValidOutputFormat,
         max_output_tokens: int,
         thinking_effort: ThinkingEffort,
-        temperature: float,
+        temperature: float|None,
     ) -> None:
         if not custom_ids or not users:
             raise ValueError("Custom ids and user inputs must not be empty.")
