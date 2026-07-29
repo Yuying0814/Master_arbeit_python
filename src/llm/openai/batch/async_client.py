@@ -121,9 +121,22 @@ class AsyncOpenAIBatchClient:
                 if item.get("type", "") != "message":
                     continue
 
-                for content in item.get("content", []) or []:
-                    if content.get("type", "") == "output_text":
-                        text_fragments.append(content.get("text", "") or "")
+                for content in item.get("content", []):
+                    content_type = content.get("type", "")
+
+                    if content_type == "output_text":
+                        text_fragments.append(content.get("text", ""))
+                    elif content_type == "refusal":
+                        refusal = content.get("refusal", "")
+                        contents.append(
+                            {
+                                "custom_id": custom_id,
+                                "content": "",
+                                "completed": False,
+                                "incomplete_reason": refusal,
+                            }
+                        )
+                        continue
 
             outputs.append(
                 {

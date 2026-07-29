@@ -428,7 +428,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             + cache_read_tokens
         )
         output_tokens = int(usage.get("output_tokens", 0) or 0)
-        output_tokens_details = usage.get("output_tokens_details", {})
+        output_tokens_details = usage.get("output_tokens_details") or {}
         reasoning_tokens = int(output_tokens_details.get("thinking_tokens", 0) or 0)
 
         return {

@@ -239,10 +239,9 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             max_output_tokens=max_output_tokens,
         )
 
-        batch_job = await self.run_with_retry_async(
-            self.batch_client.submit,
-            batch_input_file,
-            self.model,
+        batch_job = await self.batch_client.submit(
+            batch_input_file=batch_input_file,
+            model=self.model,
         )
 
         self.batch_jobs.append(batch_job)
