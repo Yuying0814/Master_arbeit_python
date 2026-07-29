@@ -66,8 +66,8 @@ def build_chat_model(
             return ChatMoonshot(
                 model=model_name,
                 api_key=api_key,
-                thinking=False if model_name == "kimi-k2.5" else None,
-                temperature=0.6 if model_name == "kimi-k2.5" else None,
+                thinking=True if model_name == "kimi-k2.5" else None,
+                temperature=1.0 if model_name == "kimi-k2.5" else None,
                 max_completion_tokens=max_output_tokens,
                 reasoning_effort=thinking_effort if model_name=="kimi-k3" else None,
             )
