@@ -124,9 +124,10 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         completed_batch = await self.run_with_retry_async(self.batch_client.wait_for_completion, batch.id)
         self.batches[-1] = completed_batch
 
-        records = await self.run_with_retry_async(self.batch_client.collect_results, batch)
+        records = await self.run_with_retry_async(self.batch_client.collect_results, completed_batch)
+        contents = self._collect_results(requests, records)
 
-        return self._collect_results(requests, records)
+        return contents,records
 
     async def retry_batch(self, max_retries: int = 3) -> None:
 
