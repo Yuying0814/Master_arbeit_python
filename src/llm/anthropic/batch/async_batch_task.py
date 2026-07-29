@@ -286,12 +286,6 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
             if output_config:
                 params["output_config"] = output_config
-            batch_requests.append(
-                {
-                    "custom_id": request.custom_id,
-                    "params": params,
-                }
-            )
 
             batch_requests.append(
                 {
