@@ -17,6 +17,7 @@ from src.llm.openai.batch.input_file import OpenaiBatchInputFile
 from src.llm.common.batch_utils import parse_output_text,merge,sum_normalized_usage
 
 T = TypeVar("T")
+NOT_RETRIABLE_REASON = ["refusal","model_context_window_exceeded"]
 
 class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     name:str
@@ -51,7 +52,7 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                  *,model:str|None = None,
                  instructions: str|None = None,
                  thinking_effort:ThinkingEffort = None,
-                 temperature: float = 0.0,
+                 temperature: float|None = 0.0,
                  text_format:ValidOutputFormat|None = None,
                  max_output_tokens:int|None = None,
                  ) -> None:
@@ -182,7 +183,8 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             return self.custom_ids
 
         existing_ids = {content["custom_id"] for content in self.contents}
-        not_completed_id = {content["custom_id"] for content in self.contents if not content["completed"]}
+        not_completed_id = {content["custom_id"] for content in self.contents if not content["completed"] and not
+                            content["incomplete_reason"] in NOT_RETRIABLE_REASON}
         retry_custom_ids = not_completed_id | (set(self.custom_ids) - existing_ids)
         self.has_valid_output = not retry_custom_ids and (len(self.custom_ids)== len(self.contents))
         return list(retry_custom_ids)

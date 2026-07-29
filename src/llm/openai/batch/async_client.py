@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import warnings
 import asyncio
-from operator import truediv
 from pathlib import Path
 from typing import Any
 from openai import AsyncOpenAI
@@ -123,7 +122,6 @@ class AsyncOpenAIBatchClient:
                 if item.get("type", "") != "message":
                     continue
 
-                refusal = False
                 for content in item.get("content", []):
                     content_type = content.get("type", "")
 
@@ -150,6 +148,7 @@ class AsyncOpenAIBatchClient:
                         "incomplete_reason": "refusal",
                     }
                 )
+                continue
 
             outputs.append(
                 {

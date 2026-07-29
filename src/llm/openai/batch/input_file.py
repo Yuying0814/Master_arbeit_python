@@ -40,9 +40,6 @@ class OpenaiBatchInputFile:
         if not isinstance(instructions, str):
             raise TypeError("instructions must be a str")
 
-        if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
-            raise ValueError("temperature must be between 0.0 and 2.0.")
-
         if max_output_tokens is None:
             max_output_tokens = 500
 
@@ -63,6 +60,8 @@ class OpenaiBatchInputFile:
         body["max_output_tokens"] = max_output_tokens
 
         if temperature is not None:
+            if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
+                raise ValueError("temperature must be between 0.0 and 2.0.")
             body["temperature"] = temperature
 
         if thinking_effort is not None:
@@ -87,7 +86,7 @@ class OpenaiBatchInputFile:
                             model: str | None = None,
                             instructions: str | None = None,
                             thinking_effort:ThinkingEffort = None,
-                            temperature:float = 0.0,
+                            temperature:float|None = None,
                             output_format: ValidOutputFormat,
                             max_output_tokens: int | None = None,
                             ) -> None:
