@@ -39,7 +39,7 @@ class GeminiBatchInputFile:
         if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
             raise ValueError("temperature must be between 0.0 and 2.0.")
 
-        if system.strip() is None:
+        if not system.strip():
             system = "You are a helpful assistant."
 
         generation_config: dict[str, Any] = {
@@ -48,7 +48,9 @@ class GeminiBatchInputFile:
         }
 
         if thinking_effort is not None:
-            generation_config["thinkingLevel"] = thinking_effort
+            generation_config["thinking_config"] = {
+                "thinking_level": thinking_effort,
+            }
 
         output_schema = get_output_schema(output_format)
 

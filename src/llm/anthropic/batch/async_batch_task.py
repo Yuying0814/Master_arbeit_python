@@ -272,19 +272,26 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 ],
             }
 
+            output_config: dict[str, Any] = {}
+
             if transformed_schema is not None:
-                params["output_config"] = {
-                    "format": {
-                        "type": "json_schema",
-                        "schema": transformed_schema,
-                    }
+                output_config["format"] = {
+                    "type": "json_schema",
+                    "schema": transformed_schema,
                 }
 
             if self.thinking_effort is not None:
-                params["thinking"] = {
-                    "type": "adaptive",
+                params["thinking"] = {"type": "adaptive"}
+                output_config["effort"] = self.thinking_effort
+
+            if output_config:
+                params["output_config"] = output_config
+            batch_requests.append(
+                {
+                    "custom_id": request.custom_id,
+                    "params": params,
                 }
-                params["output_config"]["effort"] = self.thinking_effort
+            )
 
             batch_requests.append(
                 {
@@ -427,6 +434,8 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             + cache_read_tokens
         )
         output_tokens = int(usage.get("output_tokens", 0) or 0)
+        output_tokens_details = usage.get("output_tokens_details", {})
+        reasoning_tokens = int(output_tokens_details.get("thinking_tokens", 0) or 0)
 
         return {
             "input_tokens": input_tokens,
@@ -436,6 +445,6 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 "cached_tokens": cache_read_tokens,
             },
             "output_tokens_details": {
-                "reasoning_tokens": 0,
+                "reasoning_tokens": reasoning_tokens,
             },
         }

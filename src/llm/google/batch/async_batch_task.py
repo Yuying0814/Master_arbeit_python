@@ -429,7 +429,7 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     def _extract_text(candidate: Any) -> str:
         content = getattr(candidate, "content", None)
         parts = getattr(content, "parts", None) or []
-        
+
         return "".join(
             part.text
             for part in parts
@@ -441,9 +441,15 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     def _get_blocked_reason(response: types.GenerateContentResponse,) -> str:
 
         prompt_feedback = response.prompt_feedback
+
         if prompt_feedback is None:
             return ""
-        return prompt_feedback.block_reason.name
+
+        block_reason = prompt_feedback.block_reason
+        if block_reason is None:
+            return ""
+
+        return block_reason.name
 
     @staticmethod
     def _get_result_custom_id(result: dict[str, Any]) -> str:
