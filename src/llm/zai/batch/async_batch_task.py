@@ -20,41 +20,16 @@ from src.llm.llm_batch_task import LLMBatchTask
 from src.models.batch import UserRequest
 from src.models.task_config import TaskConfig
 
-
-NON_RETRYABLE_REASONS = {
-    "1000",
-    "1001",
-    "1003",
-    "1005",
-    "1113",
-    "1210",
-    "1211",
-    "1212",
-    "1213",
-    "1214",
-    "1215",
-    "1220",
-    "1221",
-    "1222",
-    "1261",
-    "1301",
-    "1308",
-    "1309",
-    "1310",
-    "1311",
-    "1313",
-    "1314",
-    "1315",
-    "1316",
-    "1317",
-    "1318",
-    "1319",
-    "1320",
-    "1321",
-    "content_filter",
-    "sensitive",
-}
-
+NOT_RETRIABLE_REASONS = [
+    "sensitive","model_context_window_exceeded",
+    "1000","1001","1003","1005", # Authentication Failed
+    "1210","1211","1212","1213","1214","1215","1221","1222", # Invalid parameter
+    "1220", # No permission
+    "1261", # Prompt too long
+    "1301", # Sensitive content
+    "1113","1308","1309","1310","1311","1313","1314","1315","1316","1317","1318","1319","1320","1321"
+    # Usage limit reached or Insufficient balance
+]
 
 class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
 
@@ -200,6 +175,7 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
                 item["custom_id"]
                 for item in self.contents
                 if not item["completed"]
+                and item["incomplete_reason"] not in NOT_RETRIABLE_REASONS
             }
 
             if not retry_ids:
@@ -398,7 +374,7 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
             return
 
         cleanup_results: list[bool] = []
-        resources = zip(self.batches, self.batch_input_files)
+        resources = list(zip(self.batches, self.batch_input_files))
 
         for batch, batch_input_file in reversed(resources):
             try:
@@ -406,6 +382,7 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
                 is_deleted = await self.batch_client.delete_file(batch_input_file.input_file_id)
                 cleanup_results.append(is_canceled and is_deleted)
             except Exception as error:
+                cleanup_results.append(False)
                 warnings.warn(
                     f"Failed to clean up GLM batch "
                     f"{batch.id}: {error}",
