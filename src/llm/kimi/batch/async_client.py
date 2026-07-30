@@ -31,12 +31,12 @@ class AsyncKimiBatchClient:
         except Exception as error:
             raise RuntimeError(f"Failed to upload input file: {batch_input}") from error
 
-        input_file_id = uploaded_file.id
+        batch_input_file.input_file_id = uploaded_file.id
 
         try:
-            batch = await self._create_batch(input_file_id)
+            batch = await self._create_batch(uploaded_file.id)
         except Exception as error:
-            await self.delete_file(input_file_id)
+            await self.delete_file(uploaded_file.id)
             raise RuntimeError(f"Failed to create batch : {batch_input}") from error
 
         return batch

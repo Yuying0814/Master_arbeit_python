@@ -10,8 +10,8 @@ from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 
 @dataclass
 class KimiBatchInputFile:
-    input_file_id: str
     path:Path
+    input_file_id: str = ""
     JSONLs:list[dict] = field(default_factory=list)
     custom_ids: list[str] = field(default_factory=list)
 

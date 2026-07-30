@@ -108,8 +108,13 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         finally:
             await self.cleanup()
 
-    async def _run_attempt(self, requests: list[UserRequest], *, batch_input_file: KimiBatchInputFile,
-                           max_output_tokens):
+    async def _run_attempt(
+            self, requests: list[UserRequest],
+            *,
+            batch_input_file: KimiBatchInputFile,
+            max_output_tokens
+    ) -> tuple[list[dict[str, Any]],list[dict[str, Any]],]:
+
         self._write_batch_input_file(
             requests,
             batch_input_file=batch_input_file,
@@ -117,7 +122,6 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         )
 
         batch = await self.batch_client.submit(batch_input_file)
-        batch_input_file.input_file_id = batch.input_file_id
 
         self.batches.append(batch)
         self.batch_input_files.append(batch_input_file)
@@ -136,7 +140,7 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 item["custom_id"]
                 for item in self.contents
                 if not item["completed"]
-                   and item["incomplete_reason"].strip().lower() not in NOT_RETRIABLE_REASONS
+                and item["incomplete_reason"].strip().lower() not in NOT_RETRIABLE_REASONS
             }
 
             if not retry_ids:
@@ -163,7 +167,6 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                         self.input_path.parent
                         / f"{self.name}_retry{attempt}.jsonl"
                 ),
-                input_file_id="",
             )
 
             retry_contents, retry_records = await self._run_attempt(
@@ -335,6 +338,7 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     async def cleanup(self) -> None:
         if self.is_cleaned_up:
             return
+
         cleanup_results: list[bool] = []
         resources = list(zip(self.batches, self.batch_input_files))
 
