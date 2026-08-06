@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
+from typing import Literal
+
 from src.llm.common.types import ValidOutputFormat,LLMProvider,ThinkingEffort
 
 class ModelConfig(BaseModel):
@@ -37,3 +39,14 @@ class PreprocessingTaskConfigs:
 @dataclass(frozen=True)
 class MistralConfig:
     task:dict[str, dict]
+
+class OcrConfig(BaseModel):
+    provider: Literal["mistral","glm"]
+    model_name: str
+    include_image: bool = True
+    table_format: Literal["html","markdown"] = "html"
+    url:str = "http://localhost:11434"
+    layout_device:str = "cpu"
+    connection_poor_size: int = 1
+    max_workers: int = 1
+    batch_size: int = 1
