@@ -2,7 +2,6 @@ import os
 import sys
 import asyncio
 
-from langchain_core import prompts
 from pydantic import Field
 from pathlib import Path
 
@@ -15,11 +14,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from dotenv import load_dotenv
 from typing import Any
 
-from src.preprocessing.mistral.mistral_client import MistralClient
+from llm.mistral.ocr.mistral_client import MistralClient
 from src.models.structuredOutputModel import StructuredOutputModel
 
 from src.coding.retriever.retriever import PageRetriever
-from src.models.retriever import RetrievalRequest, BinaryClassifierOutput, RetrievalTopic
+from src.models.retriever import BinaryClassifierOutput, RetrievalTopic
 from src.models.task_config import TaskConfig, ModelConfig
 
 class Test(StructuredOutputModel):

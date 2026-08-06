@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from typing import Any
 from src.models.register_output import RegisterMapOutput
 from src.openai.openai_task import OpenAITask
-from src.preprocessing.mistral.mistral_client import MistralClient
+from llm.mistral.ocr.mistral_client import MistralClient
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
