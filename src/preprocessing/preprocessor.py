@@ -13,7 +13,7 @@ from src.preprocessing.page.build_page_request import build_page_requests
 from src.preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
 from src.preprocessing.toc.resolve_toc_entries import resolve_toc_entries
 from src.preprocessing.toc.toc_entry import extract_toc_entries
-from src.preprocessing.mistral.mistral_client import MistralClient
+from llm.mistral.ocr.mistral_client import MistralClient
 from src.preprocessing.page.parse_results import parse_classification_content,parse_verification_contents
 from src.preprocessing.toc.find_toc_pages import find_toc_pages
 from src.preprocessing.utils.text_utils import remove_header_footer
