@@ -158,6 +158,15 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
             self.batch_client.wait_for_completion,
             batch.id,
         )
+        if completed_batch.status == "failed":
+            batch_errors = (
+                completed_batch.errors.data
+                if completed_batch.errors is not None
+                else []
+            )
+            raise RuntimeError(
+                f"GLM batch validation failed: {batch_errors}"
+            )
         self.batches[-1] = completed_batch
 
         records = await self.run_with_retry_async(
@@ -175,7 +184,7 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
                 item["custom_id"]
                 for item in self.contents
                 if not item["completed"]
-                and item["incomplete_reason"] not in NOT_RETRIABLE_REASONS
+                and item["incomplete_reason"].strip().lower() not in NOT_RETRIABLE_REASONS
             }
 
             if not retry_ids:
