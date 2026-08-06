@@ -11,9 +11,9 @@ from uuid import uuid4
 from src.models.register_output import RegisterMapOutput
 
 
-
 class SchemaMismatchError(RuntimeError):
     pass
+
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS change_records (
@@ -84,7 +84,6 @@ CREATE TABLE IF NOT EXISTS task_models (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 """
-
 
 EXPECTED_COLUMNS = {
     "devices": (
@@ -375,12 +374,12 @@ BEGIN
         ORDER BY position
     )
 ),
-        
+
         CASE
             WHEN OLD.register_map_json IS NOT NEW.register_map_json
             THEN current_json_path()
         END,
-        
+
         CASE
             WHEN OLD.register_map_json IS NOT NEW.register_map_json
             THEN json_object(
@@ -559,6 +558,7 @@ EXPECTED_TRIGGERS = (
     "audit_delete_task_models",
 )
 
+
 class DataManager:
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = Path(db_path).expanduser().resolve()
@@ -657,7 +657,7 @@ class DataManager:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def list_task_models(self,device_name: str) -> list[dict[str, Any]]:
+    def list_task_models(self, device_name: str) -> list[dict[str, Any]]:
         with self._read_transaction():
             versions = self.list_versions(device_name)
 
@@ -680,7 +680,7 @@ class DataManager:
                         "version_pk": version["version_pk"],
                         "version_major": version["version_major"],
                         "version_minor": version["version_minor"],
-                        "task_models":[
+                        "task_models": [
                             {
                                 "task_name": row["task_name"],
                                 "model_name": row["model_name"],
@@ -755,7 +755,7 @@ class DataManager:
 
         return json.loads(row["register_map_json"])
 
-    def get_snapshot(self,device_name: str,version_major: int, version_minor:int) -> dict[str, Any]:
+    def get_snapshot(self, device_name: str, version_major: int, version_minor: int) -> dict[str, Any]:
         row = self.connection.execute(
             """
             SELECT snapshot_json
@@ -822,13 +822,14 @@ class DataManager:
             allow_nan=False,
         )
 
-        prepared_task_models = []
+        task_model_set = []
+
         for task_model in task_models:
             task_name = task_model["task_name"].strip()
             model_name = task_model["model_name"].strip()
             duration_ms = task_model["duration_ms"]
 
-            prepared_task_models.append(
+            task_model_set.append(
                 (task_name, model_name, duration_ms)
             )
 
@@ -841,6 +842,7 @@ class DataManager:
             version_major, version_minor = self._get_next_version(
                 device_name,
                 input_pdf_sha256,
+                task_model_set,
             )
 
             cursor = self.connection.execute(
@@ -886,7 +888,7 @@ class DataManager:
                 """,
                 (
                     (version_pk, task_name, model_name, duration_ms)
-                    for task_name, model_name, duration_ms in prepared_task_models
+                    for task_name, model_name, duration_ms in task_model_set
                 ),
             )
 
@@ -916,13 +918,90 @@ class DataManager:
 
         return row["version_major"], row["version_minor"]
 
-    def _get_next_version(self,device_name: str,pdf_sha256: str,) -> tuple[int, int]:
+    def get_major_task_model_map(
+            self,
+            device_name: str,
+            version_major: int,
+    ) -> dict[str, str]:
+        rows = self.connection.execute(
+            """
+            SELECT
+                preprocessing_versions.version_pk,
+                preprocessing_versions.version_minor,
+                task_models.task_name,
+                task_models.model_name
+            FROM preprocessing_versions
+            LEFT JOIN task_models
+                ON task_models.version_pk = preprocessing_versions.version_pk
+            WHERE preprocessing_versions.device_name = ?
+              AND preprocessing_versions.version_major = ?
+            ORDER BY
+                preprocessing_versions.version_minor,
+                task_models.task_name
+            """,
+            (device_name, version_major),
+        ).fetchall()
+
+        if not rows:
+            raise LookupError(
+                f"Major version not found: {device_name} v{version_major}"
+            )
+
+        task_models_by_version: dict[int, dict[str, str]] = {}
+
+        for row in rows:
+            version_task_models = task_models_by_version.setdefault(
+                row["version_pk"],
+                {},
+            )
+            if row["task_name"] is not None:
+                version_task_models[row["task_name"]] = row["model_name"]
+
+        reference_version_pk, reference_task_models = next(
+            iter(task_models_by_version.items())
+        )
+
+        for version_pk, version_task_models in task_models_by_version.items():
+            if version_task_models != reference_task_models:
+                raise RuntimeError(
+                    "Inconsistent task-model mappings in "
+                    f"{device_name} v{version_major}: "
+                    f"version_pk={reference_version_pk} and "
+                    f"version_pk={version_pk}"
+                )
+
+        return reference_task_models
+
+    def _get_next_version(
+            self,
+            device_name: str,
+            pdf_sha256: str,
+            task_models: list[tuple[str, str, int]],
+    ) -> tuple[int, int]:
         try:
             version_major, version_minor = self._get_latest_version(device_name)
         except LookupError:
             return 1, 0
 
-        if self._pdf_exists_in_major(device_name, version_major, pdf_sha256):
+        new_task_model_map = {
+            task_name: model_name
+            for task_name, model_name, _ in task_models
+        }
+
+        current_task_models = self.get_major_task_model_map(
+            device_name,
+            version_major,
+        )
+
+        pdf_repeated = self._pdf_exists_in_major(
+            device_name,
+            version_major,
+            pdf_sha256,
+        )
+
+        models_changed = new_task_model_map != current_task_models
+
+        if pdf_repeated or models_changed:
             return version_major + 1, 0
 
         return version_major, version_minor + 1
@@ -946,7 +1025,7 @@ class DataManager:
             allow_nan=False,
         )
 
-        with self._write_operation("update_register_map_field",json_path=json_path,) as operation_id:
+        with self._write_operation("update_register_map_field", json_path=json_path, ) as operation_id:
             row = self.connection.execute(
                 """
                 SELECT
@@ -1062,7 +1141,7 @@ class DataManager:
             "renumbered_major_versions": renumbered_major_versions,
         }
 
-    def delete_major_version(self, device_name:str, version_major:int) -> dict[str, Any]:
+    def delete_major_version(self, device_name: str, version_major: int) -> dict[str, Any]:
         with self._write_operation("delete_major_version") as operation_id:
             deletion = self._delete_major_version(device_name, version_major)
 
@@ -1109,7 +1188,7 @@ class DataManager:
             ),
         }
 
-    def _renumber_major_versions_after(self,device_name: str,deleted_version_major: int,) -> list[dict[str, int]]:
+    def _renumber_major_versions_after(self, device_name: str, deleted_version_major: int, ) -> list[dict[str, int]]:
         rows = self.connection.execute(
             """
             SELECT DISTINCT version_major
@@ -1142,7 +1221,7 @@ class DataManager:
 
         return renumbered
 
-    def delete_device(self,device_name: str,) -> dict[str, Any]:
+    def delete_device(self, device_name: str, ) -> dict[str, Any]:
         with self._write_operation("delete_device") as operation_id:
             if not self._device_exists(device_name):
                 raise LookupError(f"Device not found: {device_name}")
@@ -1230,9 +1309,9 @@ class DataManager:
                 raise LookupError(f"Device not found: {new_device_name}")
 
             changed = (
-                row["device_name"] != new_device_name
-                or row["version_major"] != new_version_major
-                or row["version_minor"] != new_version_minor
+                    row["device_name"] != new_device_name
+                    or row["version_major"] != new_version_major
+                    or row["version_minor"] != new_version_minor
             )
 
             if changed:
@@ -1264,7 +1343,7 @@ class DataManager:
             "new_version_minor": new_version_minor,
         }
 
-    def _get_version_result(self,device_name:str,version_major:int,version_minor:int) -> dict:
+    def _get_version_result(self, device_name: str, version_major: int, version_minor: int) -> dict:
         row = self.connection.execute(
             """
             SELECT *
@@ -1288,7 +1367,7 @@ class DataManager:
         prepro_result["snapshot_json"] = json.loads(prepro_result["snapshot_json"])
         return prepro_result
 
-    def find_versions_by_pdf(self,device_name:str, pdf_sha256:str):
+    def find_versions_by_pdf(self, device_name: str, pdf_sha256: str):
         rows = self.connection.execute(
             """
             SELECT
@@ -1308,14 +1387,14 @@ class DataManager:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def _device_exists(self,device_name:str):
+    def _device_exists(self, device_name: str):
         row = self.connection.execute(
             "SELECT 1 FROM devices WHERE device_name = ? LIMIT 1",
             (device_name,),
         ).fetchone()
         return row is not None
 
-    def _pdf_exists_in_major(self,device_name:str, version_major:int, pdf_sha256:str):
+    def _pdf_exists_in_major(self, device_name: str, version_major: int, pdf_sha256: str):
         row = self.connection.execute(
             """
             SELECT 1
@@ -1330,7 +1409,7 @@ class DataManager:
         return row is not None
 
     @contextmanager
-    def _write_operation(self, operation_name: str,*,json_path:str|None = None) -> Iterator[str]:
+    def _write_operation(self, operation_name: str, *, json_path: str | None = None) -> Iterator[str]:
         operation_name = operation_name.strip()
         if not operation_name:
             raise ValueError("operation_name must not be empty")
