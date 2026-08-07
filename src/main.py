@@ -245,7 +245,7 @@ def main():
                     )
             )
 
-            pages, register_map = get_latest_data(
+            data = get_latest_data(
                 database_path=Path(DATABASE_PATH),
                 device_name=result["device_name"],
             )
@@ -254,8 +254,9 @@ def main():
                 run_coding_controller(
                     config=coding_config,
                     driver_name=result["device_name"],
-                    pages=pages,
-                    register_map=register_map,
+                    version_major=result["version_major"],
+                    pages=data["pages"],
+                    register_map=data["register_map"],
                     user_request=USER_REQUEST if USER_REQUEST else None,
                 )
             )
@@ -294,7 +295,7 @@ def main():
 
             unique_device_names = list(dict.fromkeys(device_names))
             for name in unique_device_names:
-                pages, register_map = get_latest_data(
+                data = get_latest_data(
                     database_path=Path(DATABASE_PATH),
                     device_name=name
                 )
@@ -303,8 +304,9 @@ def main():
                     run_coding_controller(
                         config=coding_config,
                         driver_name=name,
-                        pages=pages,
-                        register_map=register_map,
+                        version_major=data["version_major"],
+                        pages=data["pages"],
+                        register_map=data["register_map"],
                         user_request=USER_REQUEST if USER_REQUEST else None,
                     )
                 )

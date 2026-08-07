@@ -249,14 +249,14 @@ class ChatTools:
     def run_coding_controller(
             self,
             device_name:str,
-            version_major:int|None=None,
+            version_major:int,
             user_request:str|None=None,
     ) -> dict[str,Any]:
         """Generate a sensor driver from a stored preprocessing version.
 
         Args:
             device_name: Required existing device name.
-            version_major: Optional major version; prompts the user when omitted.
+            version_major: Major preprocessed version to code.
             user_request: Optional driver requirements; uses the controller default when omitted.
         """
 
@@ -336,7 +336,9 @@ class ChatTools:
                 register_map=major_result["register_map"],
             )
             completed = asyncio.run(
-                controller.run(_optional_text(user_request))
+                controller.run(
+                    version_major=version_major,
+                    user_request=_optional_text(user_request)),
             )
 
             if not completed:
@@ -475,6 +477,15 @@ class ChatTools:
                 version_minor,
             )
 
+    def get_info_of_version_pk(self,version_pk:int,) -> dict[str,Any]:
+        """Return version identity and metadata for a database version ID.
+
+        Args:
+            version_pk: Required database identifier of the version.
+        """
+        with DataManager(self.database_path) as manager:
+            return manager.get_info_of_version_pk(version_pk)
+
     def find_versions_by_pdf(self,device_name: str,pdf_sha256: str,) -> list[dict[str, Any]]:
         """Find device versions created from a PDF SHA-256 value.
 
@@ -507,6 +518,43 @@ class ChatTools:
                 version_pk,
                 json_path,
                 new_value,
+            ),
+        )
+
+    def reassign_version_identity(
+            self,
+            version_pk:int,
+            device_name:str|None=None,
+            version_major:int|None=None,
+            version_minor:int|None=None,
+    ) -> dict[str,Any]:
+        """Reassign a preprocessing version after code-level user approval.
+
+        Args:
+            version_pk: Required database identifier of the version.
+            device_name: Optional existing destination device name.
+            version_major: Optional replacement major version number.
+            version_minor: Optional replacement minor version number.
+        """
+        with DataManager(self.database_path) as m:
+            row_info =  m.get_info_of_version_pk(version_pk)
+
+        return self._write_with_confirmation(
+            "reassign_version_identity",
+            {
+                "version_pk":version_pk,
+                "old_device_name": row_info["device_name"],
+                "old_version_major": row_info["version_major"],
+                "old_version_minor": row_info["version_minor"],
+                "new_device_name":device_name if device_name is not None else row_info["device_name"],
+                "new_version_major":version_major if version_major is not None else row_info["version_major"],
+                "new_version_minor":version_minor if version_minor is not None else row_info["version_minor"],
+            },
+            lambda manager: manager.reassign_version_identity(
+                version_pk,
+                device_name=device_name,
+                version_major=version_major,
+                version_minor=version_minor,
             ),
         )
 
@@ -614,8 +662,10 @@ class ChatTools:
             self.get_task_models,
             self.get_token_consumption,
             self.get_version_pk,
+            self.get_info_of_version_pk,
             self.find_versions_by_pdf,
             self.update_register_map_field,
+            self.reassign_version_identity,
             self.delete_version,
             self.delete_major_version,
             self.delete_device,

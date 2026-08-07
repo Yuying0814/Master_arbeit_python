@@ -40,6 +40,7 @@ class Controller:
         self.config = config
         self.not_accepted_files = []
         self.attempted_log = False
+        self.code_path = Path()
 
         self.driver_name = driver_name
         self.pages = pages
@@ -61,7 +62,8 @@ class Controller:
     ) -> "Controller":
         return Controller(driver_name,config,pages,register_map)
 
-    async def run(self, user_request: str = None):
+    async def run(self, version_major:int, user_request: str = None,):
+        self.code_path = self.config.project_path.code_dir/self.driver_name/str(version_major)
         verifier_feedback = None
         run_status = "failed"
         attempt = 0
@@ -129,10 +131,10 @@ class Controller:
                 print(
                     f" -> start writing accepted files\n"
                     f"writing accepted {len(self.accepted_files)} files to:\n"
-                    f"{self.config.project_path.code_dir / self.driver_name}\n"
+                    f"{self.code_path}\n"
                 )
 
-                FileWriter.write_to_files(self.accepted_files, self.config.project_path.code_dir / self.driver_name)
+                FileWriter.write_to_files(self.accepted_files, self.code_path)
                 run_status = "passed"
 
             print(
@@ -261,7 +263,7 @@ class Controller:
         self.candidate_files = list(candidate_files_by_id.values())
 
     def clear_dir(self):
-        path = Path(self.config.project_path.code_dir/self.driver_name)
+        path = Path(self.code_path)
         path.mkdir(parents=True, exist_ok=True)
 
         for item in path.iterdir():

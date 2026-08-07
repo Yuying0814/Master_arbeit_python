@@ -824,6 +824,30 @@ class DataManager:
             )
         return row["version_pk"]
 
+    def get_info_of_version_pk(self,version_pk:int)->dict[Any, Any]:
+        row = self.connection.execute(
+            """
+            SELECT 
+                device_name,
+                version_major,
+                version_minor,
+                input_pdf_sha256,
+                pages_json_created_at,
+                register_map_created_at,
+                register_map_modified_at,
+                snapshot_created_at,
+                token_consumption
+            FROM preprocessing_versions
+            WHERE version_pk = ?
+            """,
+            (version_pk,),
+        ).fetchone()
+
+        if row is None:
+            raise LookupError(f"Version not found: version_pk={version_pk}")
+
+        return dict(row)
+
     def save_preprocessing_result(
             self,
             *,
@@ -1326,17 +1350,8 @@ class DataManager:
                 raise ValueError("version_minor must be greater than or equal to 0")
 
         with self._write_operation("reassign_version_identity") as operation_id:
-            row = self.connection.execute(
-                """
-                SELECT device_name, version_major, version_minor
-                FROM preprocessing_versions
-                WHERE version_pk = ?
-                """,
-                (version_pk,),
-            ).fetchone()
 
-            if row is None:
-                raise LookupError(f"Version not found: version_pk={version_pk}")
+            row = self.get_info_of_version_pk(version_pk)
 
             new_device_name = (
                 row["device_name"] if device_name is None else device_name

@@ -63,7 +63,7 @@ async def run_preprocessor(
 def get_latest_data(
         database_path: Path,
         device_name:str,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+) -> dict[str,Any]:
     with DataManager(database_path) as manager:
         latest_version = manager.get_latest_version(device_name)
         result = manager.get_major_version_result(
@@ -71,18 +71,24 @@ def get_latest_data(
             version_major=latest_version[0],
         )
         pages = []
-        for version in result["pages"]:
-            for page in version["pages"]:
+        for item in result["pages"]:
+            for page in item["pages"]:
                 normalized_page = dict(page)
                 normalized_page["index"] = len(pages)
                 pages.append(normalized_page)
 
-        return pages, result["register_map"]
+        return {
+            "version_major": latest_version[0],
+            "pages": pages,
+            "register_map": result["register_map"]
+        }
+
 
 
 async def run_coding_controller(
         config:CodingConfig,
         driver_name:str,
+        version_major:int,
         pages:list[dict[str, Any]],
         register_map:dict[str, Any],
         user_request:str | None = None,
@@ -94,7 +100,7 @@ async def run_coding_controller(
         register_map=register_map,
     )
 
-    return await controller.run(user_request=user_request)
+    return await controller.run(user_request=user_request,version_major=version_major)
 
 def save_preprocessing_outputs(
         device_name:str,
