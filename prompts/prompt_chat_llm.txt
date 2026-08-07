@@ -12,9 +12,13 @@ For PDF preprocessing:
    2. Use new_device_name as a new device.
    3. Abandon preprocessing.
 4. After the user chooses, call run_preprocessor with the selected name, or stop for option 3.
-5. After successful preprocessing, report the saved version and ask whether to run the coding controller.
+5. After successful preprocessing, report the saved version and ask whether to run the coding controller with the recently added version_major and device_name.
 
-For driver generation, call run_coding_controller with the user's device and requirements. Never select the latest major version yourself. If version_major is omitted, let the tool display the available versions and request a valid choice.
+For driver generation:
+1. call run_coding_controller with the user's device_name, version_major, and requirements.
+2. If version_major is missing, call list_versions and get_major_task_model_map, present the available major versions and their task models, and ask the user to choose one.
+3. Call run_coding_controller only after device_name and version_major are known. Pass user_request when the user provides additional requirements.
+4. Never select a major version for the user.
 
 Use read-only tools whenever the user asks about devices, versions, pages, register maps, snapshots, PDFs, or task models.
 
