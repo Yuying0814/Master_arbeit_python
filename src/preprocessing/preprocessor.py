@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from src.models.page_output import PageClassification
+from src.llm.ocr_task import OcrTask
 from src.llm.llm_task_runner import LLMTaskRunner
 from src.preprocessing.page.build_page_request import build_page_requests
 from src.preprocessing.retrieval.find_relevant_page_range import find_relevant_page_range
 from src.preprocessing.toc.resolve_toc_entries import resolve_toc_entries
 from src.preprocessing.toc.toc_entry import extract_toc_entries
-from llm.mistral.ocr.mistral_client import MistralClient
 from src.preprocessing.page.parse_results import parse_classification_content,parse_verification_contents
 from src.preprocessing.toc.find_toc_pages import find_toc_pages
 from src.preprocessing.utils.text_utils import remove_header_footer
@@ -48,18 +48,18 @@ class Preprocessor:
     reg_index_extractor:LLMTaskRunner | None
     reg_map_extractor:LLMTaskRunner | None
 
-    mistral_client: MistralClient
-
     config:PreprocessingConfig
 
-    def __init__(self,config: PreprocessingConfig):
-        if not config.project_path.pdf_path.exists() or not config.project_path.pdf_path.is_file():
-            raise FileNotFoundError
+    def __init__(
+            self,
+            config: PreprocessingConfig,
+            ocr_result:dict[str,Any]|None = None,
+    ) -> None:
 
         self.config = config
 
-        self.pdf_path = config.project_path.pdf_path
-        self.ocr_result = {}
+        self.pdf_path = Path()
+        self.ocr_result = ocr_result if ocr_result else {}
         self.pages = []
 
         self.toc_page_idx = []
@@ -86,17 +86,17 @@ class Preprocessor:
         self.reg_index_extractor = None
         self.reg_map_extractor = None
 
-        self.mistral_client = MistralClient(config.get_apikey("mistral"))
 
-    async def run(self):
+    async def run(self,pdf_path:str|Path) -> dict[str,Any]:
+        self.pdf_path = _validate_pdf_path(pdf_path)
         try:
             await self.pipeline()
-            self.save_outputs()
+            return self.build_outputs()
         except Exception:
             await self.cleanup()
             raise
 
-    async def pipeline(self):
+    async def pipeline(self) -> None:
         print("-----------------------------------------------------------------------\n")
         print("start running text preprocessor pipeline\n")
         print("-----------------------------------------------------------------------\n")
@@ -132,21 +132,30 @@ class Preprocessor:
             raise
 
     def run_ocr(self):
-        ocr_config = self.config.mistral.task["ocr"]
-        if not _valid_mistral_config(ocr_config):
-           raise ValueError("OCR config not defined or not loaded\n")
+        if not self.ocr_result:
+            api_key = (
+                self.config.get_apikey("mistral")
+                if self.config.ocr.provider == "mistral"
+                else None
+            )
 
-        try:
-            self.ocr_result = self.mistral_client.run_ocr(**ocr_config)
-        except RuntimeError as error:
-            raise RuntimeError(f"OCR failed\n") from error
+            ocr_task = OcrTask(self.config.ocr, api_key)
+
+            try:
+                self.ocr_result = ocr_task.run(self.pdf_path)
+            except (RuntimeError,ValueError,TypeError) as error:
+                raise RuntimeError(f"OCR failed\n") from error
+
+        raw_pages = self.ocr_result.get("pages")
+        if not isinstance(raw_pages,list) or not raw_pages:
+            raise ValueError("OCR returned no normalized pages.")
 
         pages = [
             {
                 "index":page["index"],
                 "markdown":page["markdown"],
                 "tables":page["tables"],
-            } for page in self.ocr_result.get("pages")]
+            } for page in raw_pages]
 
         self.pages = remove_header_footer(pages)
         print("Ocr completed\n")
@@ -463,43 +472,19 @@ class Preprocessor:
                 return_exceptions=True,
             )
 
-    def save_outputs(self):
-        name = self.pdf_path.stem
-        output_dir = self.config.project_path.output_path / name
-        output_dir.mkdir(parents=True, exist_ok=True)
+    def build_outputs(self) -> dict[str, Any]:
 
-        _write_json(
-            output_dir / f"{name}_preprocessor_snapshot.json",
-            _build_preprocessor_snapshot(self),
-        )
+        snapshot = _build_preprocessor_snapshot(self)
+        token_consumption = _build_token_consumption_snapshot(self)
+        task_models = _build_task_models(self)
 
-        _write_json(
-            output_dir / f"{name}_register_map.json",
-            self.reg_map,
-        )
-
-        _write_json(
-            output_dir / f"{name}_pages.json",
-            self.pages,
-        )
-
-        _write_json(
-            output_dir / f"{name}_token_consumption.json",
-            _build_token_consumption_snapshot(self),
-        )
-
-# Helper
-def _valid_mistral_config(config:dict[str,Any]) -> bool:
-    if not config:
-        return False
-    required_keys = {"file_path"}
-    optional_keys = {"model_name","table_format","include_image"}
-    allowed_keys = required_keys | optional_keys
-
-    missing_keys = required_keys - set(config.keys())
-    extra_keys = set(config.keys()) - allowed_keys
-
-    return not missing_keys and not extra_keys
+        return{
+            "pages": self.pages,
+            "register_map": self.reg_map,
+            "snapshot": snapshot,
+            "task_models": task_models,
+            "token_consumption": token_consumption,
+        }
 
 # def _all_classification_false(pages: list[dict[str, Any]]) -> bool:
 #     for page in pages:
@@ -507,7 +492,7 @@ def _valid_mistral_config(config:dict[str,Any]) -> bool:
 #         if any(bool(value) for value in classification.values()):
 #             return False
 #
-#     return True
+#     return
 
 def _get_pages_by_ocr_index(pages:list[dict[str,Any]],page_indices) -> list[dict[str,Any]]:
     page_index_map = {page["index"]: page for page in pages}
@@ -527,34 +512,6 @@ def _select_extraction_pages(pages:list[dict[str,Any]],page_index:list[int]) -> 
         }
         for page in selected_pages
     ]
-
-def _make_json_safe(value: Any) -> Any:
-    if isinstance(value, Path):
-        return str(value)
-
-    if isinstance(value, dict):
-        return {
-            str(key): _make_json_safe(item)
-            for key, item in value.items()
-        }
-
-    if isinstance(value, list):
-        return [
-            _make_json_safe(item)
-            for item in value
-        ]
-
-    if isinstance(value, tuple):
-        return [
-            _make_json_safe(item)
-            for item in value
-        ]
-
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-
-    return str(value)
-
 
 def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
     return {
@@ -576,15 +533,26 @@ def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
     }
 
 def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> dict[str,Any]:
-    token_consumption = {}
-
-    token_consumption["classification"] = _get_usage_from_task(preprocessor.classifier)
-    token_consumption["reg_sum_verification"] = _get_usage_from_task(preprocessor.reg_sum_verifier)
-    token_consumption["reg_page_verification"] = _get_usage_from_task(preprocessor.reg_page_verifier)
-    token_consumption["reg_index_extraction"] = _get_usage_from_task(preprocessor.reg_index_extractor)
-    token_consumption["reg_map_extraction"] = _get_usage_from_task(preprocessor.reg_map_extractor)
+    token_consumption= {
+        "classification": _get_usage_from_task(preprocessor.classifier),
+        "reg_sum_verification": _get_usage_from_task(preprocessor.reg_sum_verifier),
+        "reg_page_verification": _get_usage_from_task(preprocessor.reg_page_verifier),
+        "reg_index_extraction": _get_usage_from_task(preprocessor.reg_index_extractor),
+        "reg_map_extraction": _get_usage_from_task(preprocessor.reg_map_extractor)
+    }
 
     return token_consumption
+
+def _build_task_models(preprocessor: Preprocessor) -> dict[str,Any]:
+    task_configs = preprocessor.config.task_configs
+    task_models = {}
+
+    for task_name in type(task_configs).model_fields:
+        task_config = getattr(task_configs, task_name)
+        model_name = task_config.model.model_name
+        task_models[task_name] = model_name
+
+    return task_models
 
 def _get_usage_from_task(task:LLMTaskRunner | None) -> dict[str,Any]:
     if task is not None:
@@ -598,14 +566,10 @@ def _get_usage_from_task(task:LLMTaskRunner | None) -> dict[str,Any]:
             "total_usage": {},
         }
 
-def _write_json(output_path: Path, data: Any) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    output_path.write_text(
-        json.dumps(
-            _make_json_safe(data),
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+def _validate_pdf_path(pdf_path: str|Path) -> Path:
+    path = Path(pdf_path).expanduser().resolve()
+    if not path.is_file():
+        raise FileNotFoundError(f"PDF file not found: {path}")
+    if path.suffix.casefold() != ".pdf":
+        raise ValueError(f"Expected a PDF file: {path}")
+    return path

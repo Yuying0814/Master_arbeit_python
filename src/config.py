@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from dataclasses import dataclass
 
-@dataclass(frozen=True)
+@dataclass
 class BaseProjectPath:
     root_path: Path
     input_path: Path
@@ -21,7 +21,7 @@ class BaseConfig:
     def __init__(self,project_path:BaseProjectPath) -> None:
         self.project_path = project_path
         load_dotenv(dotenv_path=self.project_path.env_path)
-
+    
     def get_apikey(self,option: str) -> str:
         option = option.lower().strip()
 

@@ -89,7 +89,7 @@ def _read_instructions(prompt_path:str|Path|None) -> str:
     prompt_path = Path(prompt_path)
     return Path(prompt_path).read_text(encoding="utf-8")
 
-@dataclass(frozen=True)
+@dataclass
 class CodingProjectPath(BaseProjectPath):
     code_dir: Path
     cli_path: Path

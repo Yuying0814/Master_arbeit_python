@@ -13,13 +13,10 @@ from src.chat.config import ChatConfig
 from src.coding.config import CodingConfig
 from src.coding.controller.controller import Controller
 from src.data_manager.data_manager import DataManager
+from src.llm.ocr_task import OcrTask
 from src.llm.llm_single_task import LLMSingleTask
-from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.task_config import ModelConfig, TaskConfig
 from src.preprocessing.config import PreprocessingConfig
-from llm.mistral.ocr.mistral_client import MistralClient
 from src.preprocessing.preprocessor import Preprocessor
-from src.preprocessing.utils.text_utils import remove_header_footer
 
 
 class QuitChatRequested(BaseException):
@@ -32,34 +29,17 @@ def read_user_input(prompt: str) -> str:
         raise QuitChatRequested
     return value
 
-
-class DeviceIdentificationResult(StructuredOutputModel):
-    detected_device_name: str
-    existing_device_name: str | None
-    is_consistent: bool
-
-
-class CachedOCRPreprocessor(Preprocessor):
-    def __init__(self,config:PreprocessingConfig,ocr_result:dict[str,Any],) -> None:
-        super().__init__(config)
-        self.ocr_result = ocr_result
-
-    def run_ocr(self):
-        pages = [
-            {
-                "index":page["index"],
-                "markdown":page["markdown"],
-                "tables":page["tables"],
-            } for page in self.ocr_result["pages"]
-        ]
-        self.pages = remove_header_footer(pages)
-        print("Ocr completed\n")
-
-
 class ChatTools:
-    def __init__(self, config: ChatConfig) -> None:
-        self.config = config
-        self.database_path = config.project_path.database_path
+    def __init__(
+            self,
+            chat_config: ChatConfig,
+            preprocessing_config:PreprocessingConfig,
+            coding_config:CodingConfig
+    ) -> None:
+        self.chat_config = chat_config
+        self.database_path = chat_config.project_path.database_path
+        self.preprocessing_config = preprocessing_config
+        self.coding_config = coding_config
         self.preprocessing_sessions: dict[str, dict[str, Any]] = {}
 
     def inspect_preprocessing_pdf(
@@ -79,17 +59,18 @@ class ChatTools:
             expected_device_name = _optional_text(expected_device_name)
             device_names = self.list_devices()
 
-            api_key = self.config.get_apikey("mistral")
-            if not api_key:
-                raise ValueError("Mistral API key is required for PDF OCR.")
-
-            ocr_result = MistralClient(api_key).run_ocr(path)
+            api_key = (
+                self.chat_config.get_apikey("mistral")
+                if self.chat_config.ocr.provider == "mistral"
+                else None
+            )
+            ocr_result = OcrTask(self.chat_config.ocr,api_key).run(path)
 
             if not ocr_result.get("pages"):
-                raise ValueError("Mistral OCR returned no pages.")
+                raise ValueError("OCR returned no pages.")
 
             task = LLMSingleTask.load_from_task_config(
-                _device_identification_config(self.config)
+                self.chat_config.task_configs.identify_name
             )
 
             task.add_user_inputs(
@@ -225,32 +206,28 @@ class ChatTools:
                         self.preprocessing_sessions.pop(preprocessing_session_id, None)
                         return {"success":False,"status":"cancelled"}
 
-            config = PreprocessingConfig.load_config(
-                pdf=session["pdf_path"],
-                env=self.config.project_path.env_path,
-            )
-            preprocessor = CachedOCRPreprocessor(
+            config = self.preprocessing_config
+
+            preprocessor = Preprocessor(
                 config,
                 session["ocr_result"],
             )
-            asyncio.run(preprocessor.run())
+            result = asyncio.run(preprocessor.run(session["pdf_path"]))
 
-            output_dir = config.project_path.output_path / session["pdf_path"].stem
-            snapshot_path = output_dir / f"{session['pdf_path'].stem}_preprocessor_snapshot.json"
-            snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
             completed_at = datetime.now(timezone.utc).isoformat()
 
             with DataManager(self.database_path) as manager:
                 result = manager.save_preprocessing_result(
                     device_name=device_name,
                     input_pdf_sha256=pdf_sha256,
-                    pages=preprocessor.pages,
-                    register_map=preprocessor.reg_map,
-                    snapshot=snapshot,
+                    pages=result["pages"],
+                    register_map=result["register_map"],
+                    snapshot=result["snapshot"],
                     pages_created_at=completed_at,
                     register_map_created_at=completed_at,
                     snapshot_created_at=completed_at,
-                    task_models=getattr(preprocessor,"task_models",[]),
+                    task_models=result["task_models"],
+                    token_consumption=result["token_consumption"],
                 )
 
             self.preprocessing_sessions.pop(preprocessing_session_id, None)
@@ -274,19 +251,13 @@ class ChatTools:
             device_name:str,
             version_major:int|None=None,
             user_request:str|None=None,
-            enable_test_coder:bool=False,
-            core:str="avr",
-            board:str="uno",
     ) -> dict[str,Any]:
-        """Generate an sensor driver from a stored preprocessing version.
+        """Generate a sensor driver from a stored preprocessing version.
 
         Args:
             device_name: Required existing device name.
             version_major: Optional major version; prompts the user when omitted.
             user_request: Optional driver requirements; uses the controller default when omitted.
-            enable_test_coder: Optional flag for generated compilation tests; defaults to false.
-            core: Optional Arduino core name; defaults to avr.
-            board: Optional Arduino board name; defaults to uno.
         """
 
         try:
@@ -345,7 +316,7 @@ class ChatTools:
 
             major_result = self.get_major_version_result(
                 device_name,
-                version_major,
+                    version_major,
             )
             pages = []
             for version in major_result["pages"]:
@@ -357,21 +328,7 @@ class ChatTools:
                     f"No pages found for device: {device_name} v{version_major}"
                 )
 
-            code_dir = self.config.project_path.output_path / "generated_drivers"
-            cli_path = (
-                self.config.project_path.root_path
-                / "arduino"
-                / "bin"
-                / "arduino-cli.exe"
-            )
-            coding_config = CodingConfig.load_config(
-                code_dir=code_dir,
-                cli_path=cli_path,
-                env=self.config.project_path.env_path,
-                enable_test_coder=enable_test_coder,
-                core=core,
-                board=board,
-            )
+            coding_config = self.coding_config
             controller = Controller.load_controller(
                 driver_name=device_name,
                 config=coding_config,
@@ -394,7 +351,7 @@ class ChatTools:
                 "status":"completed",
                 "device_name":device_name,
                 "version_major":version_major,
-                "output_path":str(code_dir / device_name),
+                "output_path":self.coding_config.project_path.code_dir / device_name,
             }
         except Exception as error:
             return {
@@ -488,6 +445,35 @@ class ChatTools:
         """
         with DataManager(self.database_path) as manager:
             return manager.get_task_models(version_pk)
+
+    def get_token_consumption(self,version_pk: int,) -> dict[str,Any]:
+        """Return token consumption for one preprocessing version.
+
+        Args:
+            version_pk: Required database identifier of the version.
+        """
+        with DataManager(self.database_path) as manager:
+            return manager.get_token_consumption(version_pk)
+
+    def get_version_pk(
+            self,
+            device_name: str,
+            version_major: int,
+            version_minor: int,
+    ) -> int:
+        """Return the database identifier of an exact preprocessing version.
+
+        Args:
+            device_name: Required existing device name.
+            version_major: Required major version number.
+            version_minor: Required minor version number.
+        """
+        with DataManager(self.database_path) as manager:
+            return manager.get_version_pk(
+                device_name,
+                version_major,
+                version_minor,
+            )
 
     def find_versions_by_pdf(self,device_name: str,pdf_sha256: str,) -> list[dict[str, Any]]:
         """Find device versions created from a PDF SHA-256 value.
@@ -626,6 +612,8 @@ class ChatTools:
             self.get_register_map,
             self.get_snapshot,
             self.get_task_models,
+            self.get_token_consumption,
+            self.get_version_pk,
             self.find_versions_by_pdf,
             self.update_register_map_field,
             self.delete_version,
@@ -634,25 +622,16 @@ class ChatTools:
         ]
 
 
-def build_tools(config: ChatConfig) -> list[Callable[..., Any]]:
-    return ChatTools(config).as_tools()
-
-def _device_identification_config(config: ChatConfig) -> TaskConfig:
-    prompt = (
-        config.project_path.prompt_path / "prompt_identify_device.txt"
-    ).read_text(encoding="utf-8")
-
-    return TaskConfig(
-        model=ModelConfig(
-            provider="ollama",
-            model_name="qwen3:8b",
-            temperature=0.0,
-            max_tokens=2000,
-        ),
-        system=prompt,
-        output_format=DeviceIdentificationResult,
-    )
-
+def build_tools(
+        chat_config: ChatConfig,
+        preprocessing_config:PreprocessingConfig,
+        coding_config:CodingConfig,
+) -> list[Callable[..., Any]]:
+    return ChatTools(
+        chat_config=chat_config,
+        preprocessing_config=preprocessing_config,
+        coding_config=coding_config,
+    ).as_tools()
 
 def _device_identification_input(
         device_names: list[str],

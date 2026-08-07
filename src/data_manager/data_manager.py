@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS preprocessing_versions (
     snapshot_created_at TEXT NOT NULL CHECK (
         length(trim(snapshot_created_at)) > 0
     ),
+    token_consumption TEXT NOT NULL CHECK (json_valid(token_consumption)),
+
     FOREIGN KEY (device_name) REFERENCES devices (device_name)
         ON UPDATE CASCADE ON DELETE CASCADE,
     UNIQUE (device_name, version_major, version_minor),
@@ -78,7 +80,6 @@ CREATE TABLE IF NOT EXISTS task_models (
     version_pk INTEGER NOT NULL,
     task_name TEXT NOT NULL CHECK (length(trim(task_name)) > 0),
     model_name TEXT NOT NULL CHECK (length(trim(model_name)) > 0),
-    duration_ms INTEGER NOT NULL CHECK (duration_ms >= 0),
     PRIMARY KEY (version_pk, task_name),
     FOREIGN KEY (version_pk) REFERENCES preprocessing_versions (version_pk)
         ON UPDATE CASCADE ON DELETE CASCADE
@@ -103,13 +104,13 @@ EXPECTED_COLUMNS = {
         "register_map_modified_at",
         "snapshot_json",
         "snapshot_created_at",
+        "token_consumption"
     ),
 
     "task_models": (
         "version_pk",
         "task_name",
         "model_name",
-        "duration_ms"
     ),
 
     "change_records": (
@@ -276,6 +277,7 @@ BEGIN
             OR OLD.register_map_created_at IS NOT NEW.register_map_created_at
             OR OLD.snapshot_json IS NOT NEW.snapshot_json
             OR OLD.snapshot_created_at IS NOT NEW.snapshot_created_at
+            OR OLD.token_consumption IS NOT NEW.token_consumption
         THEN RAISE(
         ABORT,'immutable preprocessing version fields cannot be updated'
         )
@@ -486,8 +488,7 @@ BEGIN
         json_object(
             'version_pk', NEW.version_pk,
             'task_name', NEW.task_name,
-            'model_name', NEW.model_name,
-            'duration_ms', NEW.duration_ms
+            'model_name', NEW.model_name
         ),
         strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     );
@@ -499,7 +500,6 @@ FOR EACH ROW
 WHEN OLD.version_pk IS NOT NEW.version_pk
     OR OLD.task_name IS NOT NEW.task_name
     OR OLD.model_name IS NOT NEW.model_name
-    OR OLD.duration_ms IS NOT NEW.duration_ms
 BEGIN
     SELECT RAISE(
         ABORT,'task_models records cannot be updated'
@@ -536,8 +536,7 @@ BEGIN
         json_object(
             'version_pk', OLD.version_pk,
             'task_name', OLD.task_name,
-            'model_name', OLD.model_name,
-            'duration_ms', OLD.duration_ms
+            'model_name', OLD.model_name
         ),
         NULL,
         strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
@@ -666,7 +665,7 @@ class DataManager:
             for version in versions:
                 rows = self.connection.execute(
                     """
-                    SELECT task_name, model_name, duration_ms
+                    SELECT task_name, model_name
                     FROM task_models
                     WHERE version_pk = ?
                     """
@@ -684,7 +683,6 @@ class DataManager:
                             {
                                 "task_name": row["task_name"],
                                 "model_name": row["model_name"],
-                                "duration_ms": row["duration_ms"],
                             } for row in rows
                         ]
                     }
@@ -779,7 +777,7 @@ class DataManager:
     def get_task_models(self, version_pk: int) -> list[dict]:
         rows = self.connection.execute(
             """
-            SELECT task_name, model_name, duration_ms
+            SELECT task_name, model_name
             FROM task_models
             WHERE version_pk = ?
             ORDER BY task_name
@@ -787,6 +785,44 @@ class DataManager:
             (version_pk,),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def get_token_consumption(self,version_pk:int)->dict[str, Any]:
+        row = self.connection.execute(
+            """
+            SELECT token_consumption
+            FROM preprocessing_versions
+            WHERE version_pk = ?
+            LIMIT 1
+            """,
+            (version_pk,),
+        ).fetchone()
+
+        if row is None:
+            raise LookupError(
+                f"Token consumption not found: version_pk={version_pk}"
+            )
+
+        return json.loads(row["token_consumption"])
+
+    def get_version_pk(self,device_name: str,version_major:int,version_minor:int)->int:
+        row = self.connection.execute(
+            """
+            SELECT version_pk
+            FROM preprocessing_versions
+            WHERE device_name = ?
+                AND version_major = ?
+                AND version_minor = ?
+            LIMIT 1
+            """,
+            (device_name,version_major,version_minor),
+        ).fetchone()
+
+        if row is None:
+            raise LookupError(
+                f"Version not found: "
+                f"{device_name} v{version_major}.{version_minor}"
+            )
+        return row["version_pk"]
 
     def save_preprocessing_result(
             self,
@@ -799,7 +835,8 @@ class DataManager:
             pages_created_at: str,
             register_map_created_at: str,
             snapshot_created_at: str,
-            task_models: list[dict[str, Any]],
+            token_consumption: dict[str, Any],
+            task_models: dict[str, str],
     ) -> dict[str, Any]:
         device_name = device_name.strip()
 
@@ -821,16 +858,21 @@ class DataManager:
             separators=(",", ":"),
             allow_nan=False,
         )
+        token_consumption_json = json.dumps(
+            token_consumption,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
 
         task_model_set = []
 
-        for task_model in task_models:
-            task_name = task_model["task_name"].strip()
-            model_name = task_model["model_name"].strip()
-            duration_ms = task_model["duration_ms"]
-
+        for task_name, model_name in task_models.items():
             task_model_set.append(
-                (task_name, model_name, duration_ms)
+                (
+                    task_name.strip(),
+                    model_name.strip(),
+                )
             )
 
         with self._write_operation("save_preprocessing_result") as operation_id:
@@ -858,8 +900,9 @@ class DataManager:
                     register_map_created_at,
                     register_map_modified_at,
                     snapshot_json,
-                    snapshot_created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    snapshot_created_at,
+                    token_consumption
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     device_name,
@@ -873,6 +916,7 @@ class DataManager:
                     register_map_created_at,
                     snapshot_json,
                     snapshot_created_at,
+                    token_consumption_json
                 ),
             )
             version_pk = cursor.lastrowid
@@ -882,13 +926,12 @@ class DataManager:
                 INSERT INTO task_models (
                     version_pk,
                     task_name,
-                    model_name,
-                    duration_ms
-                ) VALUES (?, ?, ?, ?)
+                    model_name
+                ) VALUES (?, ?, ?)
                 """,
                 (
-                    (version_pk, task_name, model_name, duration_ms)
-                    for task_name, model_name, duration_ms in task_model_set
+                    (version_pk, task_name, model_name)
+                    for task_name, model_name in task_model_set
                 ),
             )
 
@@ -901,7 +944,7 @@ class DataManager:
         result["operation_id"] = operation_id
         return result
 
-    def _get_latest_version(self, device_name: str) -> tuple[int, int]:
+    def get_latest_version(self, device_name: str) -> tuple[int, int]:
         row = self.connection.execute(
             """
             SELECT version_major, version_minor
@@ -976,16 +1019,16 @@ class DataManager:
             self,
             device_name: str,
             pdf_sha256: str,
-            task_models: list[tuple[str, str, int]],
+            task_models: list[tuple[str, str]],
     ) -> tuple[int, int]:
         try:
-            version_major, version_minor = self._get_latest_version(device_name)
+            version_major, version_minor = self.get_latest_version(device_name)
         except LookupError:
             return 1, 0
 
         new_task_model_map = {
             task_name: model_name
-            for task_name, model_name, _ in task_models
+            for task_name, model_name in task_models
         }
 
         current_task_models = self.get_major_task_model_map(
@@ -1365,6 +1408,7 @@ class DataManager:
         prepro_result["pages_json"] = json.loads(prepro_result["pages_json"])
         prepro_result["register_map_json"] = json.loads(prepro_result["register_map_json"])
         prepro_result["snapshot_json"] = json.loads(prepro_result["snapshot_json"])
+        prepro_result["token_consumption"] = json.loads(prepro_result["token_consumption"])
         return prepro_result
 
     def find_versions_by_pdf(self, device_name: str, pdf_sha256: str):

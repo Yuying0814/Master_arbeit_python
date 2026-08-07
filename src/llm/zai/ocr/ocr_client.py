@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from glmocr import GlmOcr
 from pathlib import Path
 from typing import Any, Literal
 
@@ -11,7 +10,7 @@ class GlmOcrClient:
         url:str = "http://localhost:11434",
         layout_device: str = "cpu",
     ) -> None:
-        self.url = url
+        self.url = url.rstrip("/")
         self.layout_device = layout_device
 
     def run_ocr(
@@ -20,7 +19,7 @@ class GlmOcrClient:
         model_name: str = "glm-ocr:latest",
         table_format: Literal["markdown", "html"] = "html",
         include_image: bool = True,
-        connection_poor_size:int = 1,
+        connection_pool_size:int = 1,
         max_workers:int = 1,
         batch_size:int = 1,
     ) -> dict[str, Any]:
@@ -33,6 +32,13 @@ class GlmOcrClient:
             raise ValueError("GLM-OCR supports HTML table output only.")
 
         try:
+            from glmocr import GlmOcr
+        except ImportError as error:
+            raise RuntimeError(
+                "Install glmocr[selfhosted] to use local GLM-OCR."
+            ) from error
+
+        try:
             with GlmOcr(
                 mode="selfhosted",
                 model=model_name,
@@ -40,7 +46,7 @@ class GlmOcrClient:
                 _dotted={
                     "pipeline.ocr_api.api_url": f"{self.url}/api/generate",
                     "pipeline.ocr_api.api_mode": "ollama_generate",
-                    "pipeline.ocr_api.connection_pool_size": connection_poor_size,
+                    "pipeline.ocr_api.connection_pool_size": connection_pool_size,
                     "pipeline.max_workers": max_workers,
                     "pipeline.layout.batch_size": batch_size,
                     "pipeline.result_formatter.output_format": "both",

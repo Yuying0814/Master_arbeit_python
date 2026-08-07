@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
+
+from pydantic.dataclasses import dataclass
 
 from src.config import BaseConfig, BaseProjectPath
 from src.models.page_output import PageClassification, PageDescription
@@ -9,20 +10,13 @@ from src.models.register_output import RegisterIndexOutput, RegisterMapOutput
 from src.models.task_config import ModelConfig,OcrConfig,PreprocessingTaskConfigs,TaskConfig
 
 
-
-@dataclass(frozen=True)
-class ProjectPath(BaseProjectPath):
-    pdf_path: Path
-
-
 class PreprocessingConfig(BaseConfig):
-    project_path: ProjectPath
     task_configs: PreprocessingTaskConfigs
     ocr: OcrConfig
 
     def __init__(
         self,
-        project_path: ProjectPath,
+        project_path: BaseProjectPath,
         preprocessing_task_configs: PreprocessingTaskConfigs,
         ocr_config: OcrConfig,
     ) -> None:
@@ -33,15 +27,9 @@ class PreprocessingConfig(BaseConfig):
     @classmethod
     def load_config(
         cls,
-        pdf: str | Path,
+        pdf: str | Path = "",
         env: str | Path = "",
-        *,
-        ocr_config: OcrConfig | None = None,
     ) -> "PreprocessingConfig":
-
-        pdf = Path(pdf).resolve()
-        if not pdf.is_file():
-            raise FileNotFoundError(f"No such PDF file: {pdf}")
 
         root_path = Path(__file__).resolve().parents[2]
 
@@ -59,9 +47,8 @@ class PreprocessingConfig(BaseConfig):
         if not env.is_file():
             raise FileNotFoundError(f"No such .env file: {env}")
 
-        project_path = ProjectPath(
+        project_path = BaseProjectPath(
             root_path=root_path,
-            pdf_path=pdf,
             input_path=root_path / "data" / "input",
             output_path=root_path / "data" / "output",
             prompt_path=root_path / "prompts",
@@ -75,13 +62,12 @@ class PreprocessingConfig(BaseConfig):
             preprocessing_task_configs=_build_preprocessing_task_configs(
                 project_path.prompt_path
             ),
-            ocr_config=ocr_config or _build_ocr_config(),
+            ocr_config=_build_ocr_config(),
         )
 
 
-def _build_preprocessing_task_configs(
-    prompt_path: Path,
-) -> PreprocessingTaskConfigs:
+def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskConfigs:
+
     classify_pages = TaskConfig(
         model=ModelConfig(
             provider="openai",

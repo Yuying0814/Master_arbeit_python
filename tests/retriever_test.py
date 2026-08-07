@@ -14,12 +14,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from dotenv import load_dotenv
 from typing import Any
 
-from llm.mistral.ocr.mistral_client import MistralClient
+from src.llm.ocr_task import OcrTask
 from src.models.structuredOutputModel import StructuredOutputModel
 
 from src.coding.retriever.retriever import PageRetriever
 from src.models.retriever import BinaryClassifierOutput, RetrievalTopic
-from src.models.task_config import TaskConfig, ModelConfig
+from src.models.task_config import TaskConfig, ModelConfig, OcrConfig
 
 class Test(StructuredOutputModel):
     random_number: int = Field(
@@ -37,8 +37,13 @@ def _read_instructions(prompt_path:str|Path|None) -> str:
     return Path(prompt_path).read_text(encoding="utf-8")
 
 def run_ocr(api_key:str, pdf_path:Path) -> list[dict[str,Any]]:
-    mistral = MistralClient(api_key)
-    ocr_result = mistral.run_ocr(pdf_path)
+    ocr_result = OcrTask(
+        OcrConfig(
+            provider="mistral",
+            model_name="mistral-ocr-latest",
+        ),
+        api_key,
+    ).run(pdf_path)
     return ocr_result["pages"]
 
 async def run():
