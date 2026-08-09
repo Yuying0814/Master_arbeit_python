@@ -14,7 +14,7 @@ from src.coding.filewriter.filewriter import FileWriter
 from src.coding.verifier.verifier import Verifier
 
 from src.models.coding_common import ProgrammingPlan,VerificationPlan,CodeFile
-from src.models.register_output import RegisterMapOutput
+from src.models.data_manager import RegisterMapRecord,DocumentRecord
 from src.models.planner import PlannerInput
 from src.models.retriever import RetrievalResult
 from src.models.coder import CoderInput,CoderOutput
@@ -29,7 +29,7 @@ class Controller:
     logs: list[ControllerLog]
     config:CodingConfig
 
-    def __init__(self,driver_name:str,config:CodingConfig,pages:list[dict[str,Any]],register_map:dict[str,Any]) -> None:
+    def __init__(self,driver_name:str,config:CodingConfig,documents:list[dict[str,Any]],register_maps:list[dict[str,Any]]) -> None:
         print(
             f"\n =============== initializing coding controller ===============\n"
             f"=================="
@@ -43,8 +43,8 @@ class Controller:
         self.code_path = Path()
 
         self.driver_name = driver_name
-        self.pages = pages
-        self.register_map = RegisterMapOutput.model_validate(register_map)
+        self.documents = [DocumentRecord.model_validate(document) for document in documents]
+        self.register_maps = [RegisterMapRecord.model_validate(item)for item in register_maps]
 
         self._check_valid_client()
         self._check_valid_fqbn()
@@ -57,10 +57,15 @@ class Controller:
             cls,
             driver_name:str,
             config:CodingConfig,
-            pages:list[dict[str,Any]],
-            register_map:dict[str,Any]
+            documents:list[dict[str,Any]],
+            register_maps:list[dict[str,Any]]
     ) -> "Controller":
-        return Controller(driver_name,config,pages,register_map)
+        return cls(
+            driver_name=driver_name,
+            config=config,
+            documents=documents,
+            register_maps=register_maps
+        )
 
     async def run(self, version_major:int, user_request: str = None,):
         self.code_path = self.config.project_path.code_dir/self.driver_name/str(version_major)
@@ -183,7 +188,7 @@ class Controller:
         )
 
         self.retriever = PageRetriever.load_from_task_config(
-            pages=self.pages,
+            documents=self.documents,
             task_config=task_configs.retrieval,
             api_key=self.config.get_apikey(task_configs.retrieval.model.provider),
             input_path=self.config.project_path.input_path / "retrieval.jsonl"
@@ -224,7 +229,7 @@ class Controller:
             driver_name=self.driver_name,
             enable_test_coder=self.config.enable_test_coder,
             user_request=user_request,
-            register_map=self.register_map,
+            register_maps=self.register_maps,
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,
             verifier_feedback=verifier_feedback,
@@ -233,7 +238,7 @@ class Controller:
     def _build_coder_input(self,programming_plan:ProgrammingPlan,retrieval_results:list[RetrievalResult]) -> CoderInput:
         return CoderInput(
             programming_plan=programming_plan,
-            register_map=self.register_map,
+            register_maps=self.register_maps,
             retrieval_results=retrieval_results,
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,
@@ -242,7 +247,7 @@ class Controller:
     def _build_verifier_input(self,verification_plan:VerificationPlan,retrieval_results:list[RetrievalResult]) -> VerifierInput:
         return VerifierInput(
             verification_plan=verification_plan,
-            register_map=self.register_map,
+            register_maps=self.register_maps,
             retrieval_results=retrieval_results,
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,

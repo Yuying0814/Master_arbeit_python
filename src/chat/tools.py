@@ -318,12 +318,11 @@ class ChatTools:
                 device_name,
                     version_major,
             )
-            pages = []
-            for version in major_result["pages"]:
-                for page in version["pages"]:
-                    pages.append({**page,"index":len(pages)})
 
-            if not pages:
+            documents = major_result["documents"]
+            register_maps = major_result["register_maps"]
+
+            if not documents:
                 raise ValueError(
                     f"No pages found for device: {device_name} v{version_major}"
                 )
@@ -332,8 +331,8 @@ class ChatTools:
             controller = Controller.load_controller(
                 driver_name=device_name,
                 config=coding_config,
-                pages=pages,
-                register_map=major_result["register_map"],
+                documents=documents,
+                register_maps=register_maps,
             )
             completed = asyncio.run(
                 controller.run(
@@ -386,7 +385,7 @@ class ChatTools:
             return manager.list_task_models(device_name)
 
     def get_major_version_result(self,device_name: str,version_major: int,) -> dict[str, Any]:
-        """Return all pages of processed PDF and the latest register map for a major preprocessing-version.
+        """Return all pages of processed PDF and all register maps for a major preprocessing-version.
 
         Args:
             device_name: Required existing device name.
@@ -411,18 +410,15 @@ class ChatTools:
                 version_major,
             )
 
-    def get_register_map(self,device_name: str,version_major: int,) -> dict[str, Any]:
-        """Return the latest register map for a major preprocessing-version.
+    def get_register_maps(self,device_name: str,version_major: int,) -> dict[str, Any]:
+        """Return all registers map for a major preprocessing-version.
 
         Args:
             device_name: Required existing device name.
             version_major: Required major version number.
         """
         with DataManager(self.database_path) as manager:
-            return manager.get_register_map(
-                device_name,
-                version_major,
-            )
+            return manager.get_register_maps(device_name, version_major)
 
     def get_snapshot(self,device_name: str,version_major: int,version_minor: int,) -> dict[str, Any]:
         """Return the preprocessing snapshot for an exact preprocessing-version.
@@ -657,7 +653,7 @@ class ChatTools:
             self.list_task_models,
             self.get_major_version_result,
             self.get_major_task_model_map,
-            self.get_register_map,
+            self.get_register_maps,
             self.get_snapshot,
             self.get_task_models,
             self.get_token_consumption,

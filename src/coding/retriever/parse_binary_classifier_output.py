@@ -1,16 +1,16 @@
 from typing import Any
 
-from src.models.retriever import BinaryClassifierOutput
+from src.models.retriever import BinaryClassifierOutput,RetrieverUserInput
 
 
 def parse_binary_classifier_output(
     contents: list[dict[str, Any]],
-    retrieval_requests: dict[str, Any],
+    retrieval_requests: RetrieverUserInput,
     len_topics: int,
 ) -> dict[str,list[list[int]]]:
 
-    user_requests = retrieval_requests["user_requests"]
-    request_references = retrieval_requests["request_references"]
+    user_requests = retrieval_requests.user_requests
+    request_references = retrieval_requests.request_references
 
     id_output_map = build_custom_id_output_map(contents)
 

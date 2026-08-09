@@ -2,10 +2,11 @@ from __future__ import annotations
 from pydantic import Field
 from typing import Any
 
+
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.coding_common import Operation,CodeFile,ProgrammingPlan
+from src.models.coding_common import CodeFile,ProgrammingPlan
 from src.models.retriever import RetrievalResult
-from src.models.register_output import RegisterMapOutput
+from src.models.data_manager import RegisterMapRecord
 
 # Coder states:
 # programming plan: ProgrammingPlan
@@ -21,8 +22,8 @@ class CoderInput(StructuredOutputModel):
         description="programming plan for generating code",
     )
 
-    register_map:RegisterMapOutput = Field(
-        description="extracted register map",
+    register_maps:list[RegisterMapRecord] = Field(
+        description="extracted register maps",
     )
 
     retrieval_results: list[RetrievalResult] = Field(

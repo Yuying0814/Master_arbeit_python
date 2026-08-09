@@ -3,20 +3,22 @@ import copy
 from pathlib import Path
 from typing import Any
 
+
 from src.llm.llm_task_runner import LLMTaskRunner
 from src.models.task_config import TaskConfig
-from src.models.retriever import RetrievalTopic, RetrievalResponse, RetrievalResult, RetrieverLog
+from src.models.retriever import RetrievalTopic, RetrievalResponse, RetrievalResult, RetrieverLog,RetrieverUserInput
 from src.models.batch import UserRequest
+from src.models.data_manager import DocumentRecord
 from src.coding.retriever.build_batch_request import build_user_requests
 from src.coding.retriever.parse_binary_classifier_output import parse_binary_classifier_output
 
 class PageRetriever:
     binary_classifier:LLMTaskRunner
-    documents: list[dict[str,Any]]
+    documents: list[DocumentRecord]
     request_id:int
     logs: list
 
-    def __init__(self,binary_classifier:LLMTaskRunner, documents:list[dict[str,Any]]) -> None:
+    def __init__(self,binary_classifier:LLMTaskRunner, documents:list[DocumentRecord]) -> None:
         self.binary_classifier = binary_classifier
         self.documents = documents
         self.request_id = 0
@@ -65,7 +67,7 @@ class PageRetriever:
     @classmethod
     def load_from_task_config(
             cls,
-            documents:list[dict[str,Any]],
+            documents:list[DocumentRecord],
             task_config: TaskConfig,
             api_key:str = None,
             input_path:str|Path = None
@@ -83,12 +85,12 @@ class PageRetriever:
 
     async def _run_classification_llm_task(
             self,
-            retrieval_requests:dict[str,Any],
+            retrieval_requests:RetrieverUserInput,
             len_topics:int
     ) -> dict[str, list[list[int]]]:
 
         contents = await self._run_classifier(
-            retrieval_requests["user_requests"]
+            retrieval_requests.user_requests,
         )
 
         return parse_binary_classifier_output(
@@ -143,8 +145,8 @@ class PageRetriever:
     ) -> list[dict[str,Any]]:
         pages = None
         for document in self.documents:
-            if document["pdf_sha256"] == pdf_sha256:
-                pages = document["pages"]
+            if document.pdf_sha256 == pdf_sha256:
+                pages = document.pages
                 break
 
         if pages is None:

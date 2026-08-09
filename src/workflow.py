@@ -60,7 +60,7 @@ async def run_preprocessor(
 
     return result
 
-def get_latest_data(
+def get_latest_major_result(
         database_path: Path,
         device_name:str,
 ) -> dict[str,Any]:
@@ -70,18 +70,8 @@ def get_latest_data(
             device_name=device_name,
             version_major=latest_version[0],
         )
-        pages = []
-        for item in result["pages"]:
-            for page in item["pages"]:
-                normalized_page = dict(page)
-                normalized_page["index"] = len(pages)
-                pages.append(normalized_page)
 
-        return {
-            "version_major": latest_version[0],
-            "pages": pages,
-            "register_map": result["register_map"]
-        }
+        return result
 
 
 
@@ -89,15 +79,15 @@ async def run_coding_controller(
         config:CodingConfig,
         driver_name:str,
         version_major:int,
-        pages:list[dict[str, Any]],
-        register_map:dict[str, Any],
+        documents:list[dict[str,Any]],
+        register_maps:list[dict[str,Any]],
         user_request:str | None = None,
 ) -> bool:
     controller = Controller.load_controller(
         driver_name=driver_name,
         config=config,
-        pages=pages,
-        register_map=register_map,
+        documents=documents,
+        register_maps=register_maps,
     )
 
     return await controller.run(user_request=user_request,version_major=version_major)

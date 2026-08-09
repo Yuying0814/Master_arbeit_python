@@ -8,7 +8,7 @@ from src.chat.config import ChatConfig
 from src.chat.main import start_chat
 from src.preprocessing.config import PreprocessingConfig
 from src.coding.config import CodingConfig
-from src.workflow import run_preprocessor,run_coding_controller,get_latest_data
+from src.workflow import run_preprocessor,run_coding_controller,get_latest_major_result
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -245,7 +245,7 @@ def main():
                     )
             )
 
-            data = get_latest_data(
+            data = get_latest_major_result(
                 database_path=Path(DATABASE_PATH),
                 device_name=result["device_name"],
             )
@@ -255,8 +255,8 @@ def main():
                     config=coding_config,
                     driver_name=result["device_name"],
                     version_major=result["version_major"],
-                    pages=data["pages"],
-                    register_map=data["register_map"],
+                    documents=data["pages"],
+                    register_maps=data["register_map"],
                     user_request=USER_REQUEST if USER_REQUEST else None,
                 )
             )
@@ -295,7 +295,7 @@ def main():
 
             unique_device_names = list(dict.fromkeys(device_names))
             for name in unique_device_names:
-                data = get_latest_data(
+                data = get_latest_major_result(
                     database_path=Path(DATABASE_PATH),
                     device_name=name
                 )
@@ -305,8 +305,8 @@ def main():
                         config=coding_config,
                         driver_name=name,
                         version_major=data["version_major"],
-                        pages=data["pages"],
-                        register_map=data["register_map"],
+                        documents=data["pages"],
+                        register_maps=data["register_map"],
                         user_request=USER_REQUEST if USER_REQUEST else None,
                     )
                 )

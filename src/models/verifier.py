@@ -8,6 +8,7 @@ from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding_common import CodeFile,VerificationPlan,FilePlan
 from src.models.retriever import RetrievalResult
 from src.models.register_output import RegisterMapOutput
+from src.models.data_manager import RegisterMapRecord
 
 # Verifier input
 class VerifierInput(StructuredOutputModel):
@@ -15,8 +16,8 @@ class VerifierInput(StructuredOutputModel):
         description="verification plan for the candidate files",
     )
 
-    register_map:RegisterMapOutput = Field(
-        description= "extracted register map",
+    register_maps:list[RegisterMapRecord] = Field(
+        description= "extracted register maps",
     )
 
     retrieval_results:list[RetrievalResult] = Field(

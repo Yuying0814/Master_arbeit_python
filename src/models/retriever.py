@@ -1,4 +1,6 @@
 from typing import Any
+
+from src.models.batch import UserRequest,RequestReference
 from src.models.structuredOutputModel import StructuredOutputModel
 
 # retriever input
@@ -9,6 +11,10 @@ class RetrievalTopic(StructuredOutputModel):
 class RetrievalRequest(StructuredOutputModel):
     request_id: str
     topics:list[RetrievalTopic]
+
+class RetrieverUserInput(StructuredOutputModel):
+    user_requests:list[UserRequest]
+    request_references:list[RequestReference]
 
 # binary classifier output
 class BinaryClassifierOutput(StructuredOutputModel):
