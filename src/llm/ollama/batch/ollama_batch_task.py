@@ -112,7 +112,7 @@ class OllamaBatchTask(HasLangChainOutput):
                 )
             existing_ids.add(request.custom_id)
 
-        self.user_requests.extend(user_requests)
+        self.user_requests = list(user_requests)
 
     async def retry_batch(self,callbacks:list[Any],max_retries:int = 3) -> list[dict[str,Any]]:
 
