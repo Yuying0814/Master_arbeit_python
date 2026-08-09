@@ -10,10 +10,10 @@ from anthropic import transform_schema
 from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.anthropic.batch.async_client import AsyncClaudeBatchClient
 from src.llm.common.batch_utils import get_output_schema, merge, parse_output_text,sum_normalized_usage
-
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
 from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage
 from src.models.task_config import TaskConfig
 
 
@@ -46,11 +46,11 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
         self.has_valid_output = False
         self.is_cleaned_up = False
-        self.total_usage: dict[str, Any] = {}
-        self.final_usage: dict[str, Any] = {}
+        self.total_usage: dict[str, NormalizedUsage] = {}
+        self.final_usage: dict[str, NormalizedUsage] = {}
 
-        self._total_usage_items: list[dict[str, Any]] = []
-        self._final_usage_by_id: dict[str, dict[str, Any]] = {}
+        self._total_usage_items: list[NormalizedUsage] = []
+        self._final_usage_by_id: dict[str, NormalizedUsage] = {}
 
     @classmethod
     def load_from_task_config(
@@ -322,7 +322,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 )
                 continue
 
-            record = result.model_dump(mode="json")
+            record = result.model_dump()
             records.append(record)
 
             result_type = result.result.type
@@ -337,7 +337,10 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
             message = result.result.message
 
-            usage = self._normalize_usage(message.usage.model_dump(mode="json"))
+            usage = self._normalize_usage(
+                message.usage.model_dump()
+            )
+
             self._total_usage_items.append(usage)
             self._final_usage_by_id[request.custom_id] = usage
 
@@ -383,8 +386,11 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
     def _update_usage_snapshots(self) -> None:
         self.total_usage = {
-            self.model: sum_normalized_usage(self._total_usage_items)
+            self.model: sum_normalized_usage(
+               self._total_usage_items,
+            )
         }
+
         self.final_usage = {
             self.model: sum_normalized_usage(
                 list(self._final_usage_by_id.values())
@@ -392,10 +398,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         }
 
     @staticmethod
-    def _build_incomplete_content(
-        custom_id: str,
-        reason: str,
-    ) -> dict[str, Any]:
+    def _build_incomplete_content(custom_id: str,reason: str,) -> dict[str, Any]:
         return {
             "custom_id": custom_id,
             "content": "",
@@ -412,7 +415,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         return str(data.get("type", "unknown_error"))
 
     @staticmethod
-    def _normalize_usage(usage: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_usage(usage: dict[str, Any]) -> NormalizedUsage:
         uncached_tokens = int(usage.get("input_tokens", 0) or 0)
         cache_creation_tokens = int(
             usage.get("cache_creation_input_tokens", 0)
@@ -422,23 +425,20 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             usage.get("cache_read_input_tokens", 0)
             or 0
         )
-        input_tokens = (
-            uncached_tokens
-            + cache_creation_tokens
-            + cache_read_tokens
-        )
+        input_tokens = uncached_tokens + cache_creation_tokens + cache_read_tokens
         output_tokens = int(usage.get("output_tokens", 0) or 0)
         output_tokens_details = usage.get("output_tokens_details") or {}
         reasoning_tokens = int(output_tokens_details.get("thinking_tokens", 0) or 0)
 
-        return {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": input_tokens + output_tokens,
-            "input_tokens_details": {
-                "cached_tokens": cache_read_tokens,
+        return NormalizedUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=output_tokens + input_tokens,
+            input_token_details={
+                "cache_creation":cache_creation_tokens,
+                "cache_read":cache_read_tokens,
             },
-            "output_tokens_details": {
-                "reasoning_tokens": reasoning_tokens,
-            },
-        }
+            output_token_details={
+                "reasoning":reasoning_tokens,
+            }
+        )
