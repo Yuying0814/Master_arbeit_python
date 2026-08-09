@@ -35,7 +35,8 @@ def parse_binary_classifier_output(
         )
 
         for topic_index,is_relevant in enumerate(raw_result):
-            topic_page_indices[topic_index].append(request_reference.page_index)
+            if is_relevant:
+                topic_page_indices[topic_index].append(request_reference.page_index)
 
     return pdf_sha256_page_indices
 
