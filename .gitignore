@@ -3,7 +3,13 @@ draft.py
 *.json
 *.jsonl
 *.pyc
+*.c
+*.cpp
+*.h
+*.ino
+.gitignore
 __pycache__/
 .idea/
 data/input_pdf/
 arduino/
+temp/
