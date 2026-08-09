@@ -17,7 +17,7 @@ class BinaryClassifierOutput(StructuredOutputModel):
 # retriever output
 class RetrievalResult(StructuredOutputModel):
     topic: RetrievalTopic
-    pages:list[dict[str,Any]]
+    documents:list[dict[str,Any]]
 
 class RetrievalResponse(StructuredOutputModel):
     request_id: int
