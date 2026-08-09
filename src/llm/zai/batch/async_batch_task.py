@@ -7,17 +7,14 @@ from typing import Any
 from pydantic import ValidationError
 from zai.types.batch import Batch
 
-from src.llm.common.batch_utils import (
-    merge,
-    parse_output_text,
-    sum_normalized_usage,
-)
+from src.llm.common.batch_utils import merge,parse_output_text,sum_normalized_usage
 from src.llm.common.common import HasOutputFormat, HasRunWithRetry
 from src.llm.common.types import ThinkingEffort, ValidOutputFormat
 from src.llm.zai.batch.async_client import AsyncGlmBatchClient
 from src.llm.zai.batch.input_file import GlmBatchInputFile
 from src.llm.llm_batch_task import LLMBatchTask
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage
 from src.models.task_config import TaskConfig
 
 NOT_RETRIABLE_REASONS = [
@@ -67,8 +64,10 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
 
         self.has_valid_output = False
         self.is_cleaned_up = False
+
         self.total_usage: dict[str, Any] = {}
         self.final_usage: dict[str, Any] = {}
+
         self._total_usage_items: list[dict[str, Any]] = []
         self._final_usage_by_id: dict[str, dict[str, Any]] = {}
 
@@ -455,45 +454,37 @@ class AsyncGlmBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask,):
         return "unknown_error"
 
     @staticmethod
-    def _normalize_usage(
-        usage: dict[str, Any],
-    ) -> dict[str, Any]:
-        input_tokens = int(
-            usage.get("prompt_tokens", 0) or 0
-        )
-        output_tokens = int(
-            usage.get("completion_tokens", 0) or 0
-        )
+    def _normalize_usage(usage: dict[str, Any],) -> NormalizedUsage:
+        input_tokens = int(usage.get("prompt_tokens", 0) or 0)
+
+        output_tokens = int(usage.get("completion_tokens", 0) or 0)
+
         total_tokens = int(
-            usage.get(
-                "total_tokens",
-                input_tokens + output_tokens,
-            )
+            usage.get("total_tokens",input_tokens + output_tokens,)
             or input_tokens + output_tokens
         )
 
-        prompt_details = (
-            usage.get("prompt_tokens_details") or {}
-        )
-        completion_details = (
-            usage.get("completion_tokens_details") or {}
-        )
+        prompt_details = (usage.get("prompt_tokens_details") or {})
 
-        cached_tokens = int(
-            prompt_details.get("cached_tokens", 0) or 0
-        )
-        reasoning_tokens = int(
-            completion_details.get("reasoning_tokens", 0) or 0
-        )
+        cached_tokens = int(prompt_details.get("cached_tokens", 0) or 0)
 
-        return {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
-            "input_tokens_details": {
-                "cached_tokens": cached_tokens,
+        completion_details = (usage.get("completion_tokens_details") or {})
+
+        reasoning_tokens = int(completion_details.get("reasoning_tokens", 0) or 0)
+
+        if reasoning_tokens != 0:
+            output_token_details = {
+                "reasoning":reasoning_tokens
+            }
+        else:
+            output_token_details = {}
+
+        return NormalizedUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            input_token_details={
+                "cache_read": cached_tokens,
             },
-            "output_tokens_details": {
-                "reasoning_tokens": reasoning_tokens,
-            },
-        }
+            output_token_details=output_token_details,
+        )
