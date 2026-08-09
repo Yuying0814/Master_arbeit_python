@@ -45,4 +45,4 @@ class PreprocessorOutput(StructuredOutputModel):
     register_map: dict[str, Any]
     snapshot:PreprocessorSnapshot
     task_models: TaskModelsByName
-    token_consumption: NormalizedTokenConsumption
+    token_consumption: PreprocessingTokenConsumption

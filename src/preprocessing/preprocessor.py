@@ -549,6 +549,8 @@ def _build_task_models(preprocessor: Preprocessor) -> TaskModelsByName:
     task_configs = preprocessor.config.task_configs
     task_models = {}
 
+    task_models["ocr"] = preprocessor.config.ocr.model_name
+
     for task_name in type(task_configs).model_fields:
         task_config = getattr(task_configs, task_name)
         model_name = task_config.model.model_name
