@@ -2,9 +2,11 @@ from typing import Protocol, Any
 from pathlib import Path
 
 
-from src.llm.llm_batch_task import LLMBatchTask
+
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage,NormalizedTokenConsumption
 from src.models.task_config import TaskConfig
+from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.llm_single_task import LLMSingleTask
 from src.llm.openai.batch.async_batch_task import AsyncOpenAIBatchTask
 from src.llm.anthropic.batch.async_batch_task import AsyncClaudeBatchTask
@@ -15,8 +17,9 @@ from src.llm.ollama.batch.ollama_batch_task import OllamaBatchTask
 
 class LLMTask(Protocol):
     has_valid_output:bool
-    total_usage:dict[str,Any]
-    final_usage:dict[str,Any]
+    final_usage: dict[str, NormalizedUsage]
+    total_usage:dict[str, NormalizedUsage]
+
     async def run(self) -> Any:
         ...
 
@@ -27,16 +30,13 @@ class LLMTaskRunner:
     task: LLMTask
     results: Any
     has_valid_output: bool
-    total_usage: dict[str,Any]
-    final_usage: dict[str,Any]
+    token_consumption: NormalizedTokenConsumption
 
     def __init__(self, task: LLMTask) -> None:
         self.task = task
         self.results = None
         self.has_valid_output = False
-        self.token_usage = None
-        self.final_usage = {}
-        self.total_usage = {}
+        self.token_consumption = NormalizedTokenConsumption()
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
 
@@ -103,6 +103,8 @@ class LLMTaskRunner:
             case _:
                 raise ValueError(f"Unsupported provider {task_config.model.provider}")
 
-    def get_token_usage(self):
-        self.total_usage = self.task.total_usage
-        self.final_usage = self.task.final_usage
+    def get_token_usage(self) -> None:
+        self.token_consumption = NormalizedTokenConsumption(
+            final_usage=self.task.final_usage,
+            total_usage=self.task.total_usage,
+        )

@@ -567,15 +567,11 @@ def _build_task_models(preprocessor: Preprocessor) -> TaskModelsByName:
 
     return TaskModelsByName.model_validate(task_models_by_name)
 
-def _get_usage_from_task_runner(task:LLMTaskRunner | None) -> NormalizedTokenConsumption:
-    if task is not None:
-        return NormalizedTokenConsumption(
-            final_usage = getattr(task, "final_usage",{}),
-            total_usage = getattr(task, "total_usage",{}),
-        )
-
-    else:
+def _get_usage_from_task_runner(task: LLMTaskRunner | None) -> NormalizedTokenConsumption:
+    if task is None:
         return NormalizedTokenConsumption()
+
+    return task.token_consumption
 
 def _validate_pdf_path(pdf_path: str|Path) -> Path:
     path = Path(pdf_path).expanduser().resolve()

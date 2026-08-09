@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import json
+
 from typing import Any
+from src.models.llm.common import NormalizedUsage
 from src.llm.common.types import ValidOutputFormat
 
 
@@ -35,47 +36,32 @@ def merge(
             current.append(item)
 
 
-def sum_normalized_usage(usages: list[dict[str, Any]]) -> dict[str, Any]:
+def sum_normalized_usage(usages: list[NormalizedUsage]) -> NormalizedUsage:
 
-    total = {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "input_tokens_details": {
-            "cached_tokens": 0,
-        },
-        "output_tokens_details": {
-            "reasoning_tokens": 0,
-        },
-    }
+    input_tokens = 0
+    output_tokens = 0
+
+    input_token_details: dict[str, int] = {}
+    output_token_details: dict[str, int] = {}
 
     for usage in usages:
-        if not usage:
-            continue
+        input_tokens += usage.input_tokens
+        output_tokens += usage.output_tokens
 
-        input_tokens = int(usage.get("input_tokens", 0) or 0)
-        output_tokens = int(usage.get("output_tokens", 0) or 0)
-        total_tokens = int(
-            usage.get("total_tokens", input_tokens + output_tokens)
-            or input_tokens + output_tokens
-        )
-        cached_tokens = int(
-            usage
-            .get("input_tokens_details", {})
-            .get("cached_tokens", 0)
-            or 0
-        )
-        reasoning_tokens = int(
-            usage
-            .get("output_tokens_details", {})
-            .get("reasoning_tokens", 0)
-            or 0
-        )
+        for key, value in usage.input_token_details.items():
+            input_token_details[key] = (
+                input_token_details.get(key, 0) + value
+            )
 
-        total["input_tokens"] += input_tokens
-        total["output_tokens"] += output_tokens
-        total["total_tokens"] += total_tokens
-        total["input_tokens_details"]["cached_tokens"] += cached_tokens
-        total["output_tokens_details"]["reasoning_tokens"] += reasoning_tokens
+        for key, value in usage.output_token_details.items():
+            output_token_details[key] = (
+                output_token_details.get(key, 0) + value
+            )
 
-    return total
+    return NormalizedUsage(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=input_tokens + output_tokens,
+        input_token_details=input_token_details,
+        output_token_details=output_token_details,
+    )

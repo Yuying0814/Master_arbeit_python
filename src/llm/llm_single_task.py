@@ -8,6 +8,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.runnables import RunnableLambda
 
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage
 from src.models.task_config import TaskConfig
 from src.llm.model_factory import build_chat_model
 from src.llm.common.common import HasOutputFormat, ValidOutputFormat
@@ -17,8 +18,8 @@ class LLMSingleTask(HasOutputFormat):
     user_input: str
     has_valid_output: bool
     model_name:str
-    total_usage: dict[str, Any]
-    final_usage: dict[str, Any]
+    total_usage: dict[str, NormalizedUsage]
+    final_usage: dict[str, NormalizedUsage]
 
     def __init__(
         self,
@@ -35,8 +36,8 @@ class LLMSingleTask(HasOutputFormat):
         self.output_format = self.validate_output_format(output_format)
         self.user_input = ""
         self.has_valid_output = False
-        self.total_usage = {}
-        self.final_usage = {}
+        self.total_usage = {"":NormalizedUsage()}
+        self.final_usage = {"":NormalizedUsage()}
 
     @classmethod
     def load_from_task_config(
@@ -99,10 +100,12 @@ class LLMSingleTask(HasOutputFormat):
             result = response["parsed"]
             raw_message = response["raw"]
 
-            self.total_usage = callback.usage_metadata or {}
+            self.total_usage = normalize_usage_map(callback.usage_metadata or {})
             self.final_usage = {
-                                   self.model_name:raw_message.usage_metadata or {}
-                               }
+                self.model_name: NormalizedUsage.model_validate(
+                    raw_message.usage_metadata or {}
+                )
+            }
             self.has_valid_output = True
 
             return result
@@ -113,7 +116,7 @@ class LLMSingleTask(HasOutputFormat):
         self.total_usage = callback.usage_metadata or {}
         self.final_usage = {
             self.model_name:response.usage_metadata or {}
-                           }
+        }
 
         self.has_valid_output = True
         return response.content
@@ -161,3 +164,13 @@ def _with_langchain_retry(runnable):
         stop_after_attempt=3,
         wait_exponential_jitter=True,
     )
+
+def normalize_usage(usage: dict[str, Any],) -> NormalizedUsage:
+    return NormalizedUsage.model_validate(usage)
+
+
+def normalize_usage_map(usage_by_model: dict[str, dict[str, Any]],) -> dict[str, NormalizedUsage]:
+    return {
+        model_name: normalize_usage(usage)
+        for model_name, usage in usage_by_model.items()
+    }
