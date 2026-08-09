@@ -12,13 +12,13 @@ from src.coding.retriever.parse_binary_classifier_output import parse_binary_cla
 
 class PageRetriever:
     binary_classifier:LLMTaskRunner
-    pages: list[dict[str,Any]]
+    documents: list[dict[str,Any]]
     request_id:int
     logs: list
 
-    def __init__(self,binary_classifier:LLMTaskRunner, pages:list[dict[str,Any]]) -> None:
+    def __init__(self,binary_classifier:LLMTaskRunner, documents:list[dict[str,Any]]) -> None:
         self.binary_classifier = binary_classifier
-        self.pages = pages
+        self.documents = documents
         self.request_id = 0
         self.logs = []
         print("retriever created")
@@ -33,60 +33,141 @@ class PageRetriever:
             self.request_id += 1
             return response
 
-        retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, pages=self.pages)
+        retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, documents=self.documents)
 
         text = "\n".join(str(topic.topic_keywords) for topic in topics)
         print(
             f" -> start retrieving pages related to:\n"
             f"{text}\n"
         )
-        page_indices = await self._run_classification_llm_task(retrieval_requests,len(topics))
-        text = "\n".join(str(item) for item in page_indices)
-        print(
-            f" -> retrieving pages completed\n"
-            f"==================\n"
-            f"page indices for evry topic:\n"
-            f"{text}\n"
-            f"==================\n"
-        )
+        page_indices_by_pdf= await self._run_classification_llm_task(retrieval_requests, len(topics))
 
-        result = self._generate_retrieval_response(page_indices, topics)
+        lines = [
+            " -> retrieving pages completed",
+            "==================",
+        ]
+
+        for pdf_sha256, page_indices_by_topics in page_indices_by_pdf.items():
+            lines.append(f"pdf_sha256: {pdf_sha256}")
+            lines.append("page indices for every topic:")
+            lines.extend(str(page_indices) for page_indices in page_indices_by_topics)
+
+        lines.append("==================")
+
+        print("\n".join(lines))
+
+        result = self._generate_retrieval_response(page_indices_by_pdf, topics)
         self._update_logs(topics, result.results)
         self.request_id += 1
 
         return result
 
     @classmethod
-    def load_from_task_config(cls,pages:list[dict[str,Any]] ,task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "PageRetriever":
-        classifier = LLMTaskRunner.load_from_task_config(task_config, api_key, input_path)
-        return cls(binary_classifier=classifier,pages=pages)
+    def load_from_task_config(
+            cls,
+            documents:list[dict[str,Any]],
+            task_config: TaskConfig,
+            api_key:str = None,
+            input_path:str|Path = None
+    ) -> "PageRetriever":
 
-    async def _run_classification_llm_task(self,retrieval_requests:list[UserRequest],len_topics:int) -> list[list[int]]:
-        contents = await self._run_classifier(retrieval_requests)
-        return parse_binary_classifier_output(contents,retrieval_requests,len_topics)
-
-    async def _run_classifier(self,retrieval_requests) -> list[dict[str,Any]]:
-        return await self.binary_classifier.run(retrieval_requests)
-
-    def _generate_retrieval_response(self,page_indices:list[list[int]], topics:list[RetrievalTopic]) -> RetrievalResponse:
-        return RetrievalResponse(
-            request_id=self.request_id,
-            results=[
-                RetrievalResult(
-                    topic=topic,
-                    pages = self._get_page_by_position(page_index)
-                ) for page_index,topic in zip(page_indices, topics)
-            ],
+        classifier = LLMTaskRunner.load_from_task_config(
+            task_config,
+            api_key,
+            input_path
+        )
+        return cls(
+            binary_classifier=classifier,
+            documents=documents
         )
 
-    def _get_page_by_position(self,page_index:list[int]) -> list[dict[str,Any]]:
-        return [self.pages[index] for index in page_index]
+    async def _run_classification_llm_task(
+            self,
+            retrieval_requests:dict[str,Any],
+            len_topics:int
+    ) -> dict[str, list[list[int]]]:
+
+        contents = await self._run_classifier(
+            retrieval_requests["user_requests"]
+        )
+
+        return parse_binary_classifier_output(
+            contents,
+            retrieval_requests,
+            len_topics
+        )
+
+    async def _run_classifier(
+            self,
+            retrieval_requests:list[UserRequest]
+    ) -> list[dict[str,Any]]:
+
+        return await self.binary_classifier.run(
+            retrieval_requests
+        )
+
+    def _generate_retrieval_response(
+            self,
+            page_indices_by_pdfs:dict[str,list[list[int]]],
+            topics:list[RetrievalTopic]
+    ) -> RetrievalResponse:
+
+        results = []
+        for topic_index,topic in enumerate(topics):
+            documents = []
+            for pdf_sha256, page_indices_by_topics in page_indices_by_pdfs.items():
+                documents.append(
+                    {
+                        "pdf_sha256": pdf_sha256 ,
+                        "pages": self._get_page_by_index(pdf_sha256, page_indices_by_topics[topic_index]),
+                    }
+                )
+            results.append(
+                RetrievalResult(
+                    topic=topic,
+                    documents=documents,
+                )
+            )
+
+        response = RetrievalResponse(
+            request_id=self.request_id,
+            results=results
+        )
+
+        return response
+
+    def _get_page_by_index(
+            self,
+            pdf_sha256:str,
+            page_indices:list[int]
+    ) -> list[dict[str,Any]]:
+        pages = None
+        for document in self.documents:
+            if document["pdf_sha256"] == pdf_sha256:
+                pages = document["pages"]
+                break
+
+        if pages is None:
+            raise ValueError(
+                f"No document found for pdf_sha256: {pdf_sha256}"
+            )
+
+        pages_by_index = {
+            page["index"]: page
+            for page in pages
+        }
+
+        return [
+            pages_by_index[index]
+            for index in page_indices
+        ]
 
     def _update_logs(
             self,
             topics: list[RetrievalTopic],
             retrieval_results: list[RetrievalResult],
     ) -> None:
+
         self.logs.append(
             RetrieverLog(
                 request_id=self.request_id,
