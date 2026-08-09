@@ -14,6 +14,7 @@ from src.llm.common.batch_utils import sum_normalized_usage,normalize_usage_map,
 class OllamaBatchTask(HasLangChainOutput):
     contents: list[dict[str,Any]]
     model: ChatOllama
+    model_name:str
     user_requests: list[UserRequest]
     system:str
     retries:list[dict[str,Any]]
@@ -23,7 +24,7 @@ class OllamaBatchTask(HasLangChainOutput):
     final_usage: dict[str, NormalizedUsage]
     _final_usage_by_id: dict[str, NormalizedUsage]
 
-    def __init__(self, *, model: ChatOllama,model_name:str, system:str, output_format:ValidOutputFormat) -> None:
+    def __init__(self, *, model: ChatOllama, model_name:str, system:str, output_format:ValidOutputFormat) -> None:
         self.contents = []
         self.user_requests = []
         self.model = model
@@ -101,6 +102,15 @@ class OllamaBatchTask(HasLangChainOutput):
     def add_user_inputs(self, user_requests: str| list[UserRequest]) -> None:
         if isinstance(user_requests, str):
             raise ValueError("OllamaBatchTaskProcessor expects a list of UserRequest.")
+
+        existing_ids: set[str] = set()
+
+        for request in user_requests:
+            if request.custom_id in existing_ids:
+                raise ValueError(
+                    f"Duplicate custom_id: {request.custom_id}"
+                )
+
         self.user_requests.extend(user_requests)
 
     async def retry_batch(self,callbacks:list[Any],max_retries:int = 3) -> list[dict[str,Any]]:
@@ -142,6 +152,7 @@ class OllamaBatchTask(HasLangChainOutput):
         return self.contents
 
     def reset(self) -> None:
+        self.user_requests = []
         self.contents = []
         self.retries = []
         self.has_valid_output = False
