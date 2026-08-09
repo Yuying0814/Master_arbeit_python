@@ -18,10 +18,7 @@ def parse_output_text(content: str,output_format: ValidOutputFormat) -> Any:
 
     return output_format.model_validate_json(content).model_dump()
 
-def merge(
-    current: list[dict[str, Any]],
-    updates: list[dict[str, Any]],
-) -> None:
+def merge(current: list[dict[str, Any]],updates: list[dict[str, Any]],) -> None:
 
     current_index_map = {
         item["custom_id"]: index for index,item in enumerate(current)

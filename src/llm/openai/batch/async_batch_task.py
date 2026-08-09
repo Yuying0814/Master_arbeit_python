@@ -2,12 +2,13 @@ from __future__ import annotations
 import warnings
 
 from pathlib import Path
-from typing import Any,TypeVar
+from typing import Any
 
 from pydantic import ValidationError
 
 from src.models.task_config import TaskConfig
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage
 from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
 from src.llm.common.types import ValidOutputFormat,ThinkingEffort
@@ -16,7 +17,6 @@ from src.llm.openai.batch.batch_job import BatchJob
 from src.llm.openai.batch.input_file import OpenaiBatchInputFile
 from src.llm.common.batch_utils import parse_output_text,merge,sum_normalized_usage
 
-T = TypeVar("T")
 NOT_RETRIABLE_REASON = ["refusal","model_context_window_exceeded"]
 
 class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
@@ -42,8 +42,8 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
     outputs:list[dict[str,Any]]
     records:list[dict[str,Any]]
 
-    total_usage:dict[str,Any]
-    final_usage:dict[str,Any]
+    total_usage:dict[str, NormalizedUsage]
+    final_usage:dict[str, NormalizedUsage]
 
 
     def __init__(self,
@@ -312,18 +312,52 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
         return contents
 
-    def _has_user_request(self):
+    def _has_user_request(self) -> bool:
         return len(self.custom_ids) > 0 and len(self.user_inputs) > 0
 
-    def _get_final_usage(self):
+    @staticmethod
+    def _normalize_usage(usage: dict[str, Any], ) -> NormalizedUsage:
+        input_tokens = int(usage.get("input_tokens", 0) or 0)
+        output_tokens = int(usage.get("output_tokens", 0) or 0)
+        input_details = usage.get("input_tokens_details", {}) or {}
+        output_details = usage.get("output_tokens_details", {}) or {}
+
+        return NormalizedUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=input_tokens + output_tokens,
+            input_token_details={
+                "cache_read": int(
+                    input_details.get("cached_tokens", 0) or 0
+                ),
+            },
+            output_token_details={
+                "reasoning": int(
+                    output_details.get("reasoning_tokens", 0) or 0
+                ),
+            },
+        )
+
+    def _extract_record_usages(self, records: list[dict[str, Any]]) -> list[NormalizedUsage]:
         usages = []
 
-        for record in self.records:
-            usage = record.get("response",{}).get("body",{}).get("usage",{})
+        for record in records:
+            usage = (
+                record
+                .get("response", {})
+                .get("body", {})
+                .get("usage", {})
+            )
 
             if usage:
-                usages.append(usage)
+                usages.append(
+                    self._normalize_usage(usage)
+                )
 
+        return usages
+
+    def _get_final_usage(self) -> None:
+        usages = self._extract_record_usages(self.records)
         self.final_usage = {
             self.model: sum_normalized_usage(usages)
         }
@@ -335,9 +369,11 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             batch_usage = self.batch_job.batch_info.get("usage", {}) or {}
 
             if batch_usage:
-                usages.append(batch_usage)
+                usages.append(
+                    self._normalize_usage(batch_usage)
+                )
             else:
-                usages.extend(_extract_record_usages(self.records))
+                usages.extend(self._extract_record_usages(self.records))
 
         for retry in self.retries:
             retry_job = retry.get("retry_job")
@@ -347,52 +383,14 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 retry_usage = retry_job.batch_info.get("usage", {}) or {}
 
                 if retry_usage:
-                    usages.append(retry_usage)
+                    usages.append(
+                        self._normalize_usage(retry_usage)
+                    )
                 else:
-                    usages.extend(_extract_record_usages(retry_records))
+                    usages.extend(
+                        self._extract_record_usages(retry_records)
+                    )
 
         self.total_usage = {
             self.model: sum_normalized_usage(usages)
         }
-
-# Helper
-def update_retry_result(old_items:list[dict[str,Any]],new_items:list[dict[str,Any]]) -> None:
-    result_index_map = {
-        old_item["custom_id"]: index
-        for index, old_item in enumerate(old_items)
-    }
-
-    for new_item in new_items:
-        custom_id = new_item["custom_id"]
-        if custom_id in result_index_map:
-            index = result_index_map[custom_id]
-            old_items[index] = new_item
-        else:
-            old_items.append(new_item)
-
-def _extract_record_usages(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    usages = []
-
-    for record in records:
-        usage = (
-            record
-            .get("response", {})
-            .get("body", {})
-            .get("usage", {})
-        )
-
-        if usage:
-            usages.append(usage)
-
-    return usages
-
-
-
-
-
-
-
-
-
-
-
