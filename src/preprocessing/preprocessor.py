@@ -575,7 +575,7 @@ def _get_usage_from_task_runner(task:LLMTaskRunner | None) -> NormalizedTokenCon
         )
 
     else:
-        return PreprocessingTokenConsumption()
+        return NormalizedTokenConsumption()
 
 def _validate_pdf_path(pdf_path: str|Path) -> Path:
     path = Path(pdf_path).expanduser().resolve()
