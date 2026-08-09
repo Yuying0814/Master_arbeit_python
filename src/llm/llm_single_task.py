@@ -12,6 +12,7 @@ from src.models.llm.common import NormalizedUsage
 from src.models.task_config import TaskConfig
 from src.llm.model_factory import build_chat_model
 from src.llm.common.common import HasOutputFormat, ValidOutputFormat
+from src.llm.common.types import LLMProvider
 
 
 class LLMSingleTask(HasOutputFormat):
@@ -25,6 +26,7 @@ class LLMSingleTask(HasOutputFormat):
         self,
         *,
         model: BaseChatModel,
+        provider: LLMProvider,
         model_name: str,
         system: str,
         output_format: ValidOutputFormat = None,
@@ -32,19 +34,16 @@ class LLMSingleTask(HasOutputFormat):
 
         self.model = model
         self.model_name = model_name
+        self.provider = provider
         self.system = system
         self.output_format = self.validate_output_format(output_format)
         self.user_input = ""
         self.has_valid_output = False
-        self.total_usage = {"":NormalizedUsage()}
-        self.final_usage = {"":NormalizedUsage()}
+        self.total_usage = {}
+        self.final_usage = {}
 
     @classmethod
-    def load_from_task_config(
-        cls,
-        task_config: TaskConfig,
-        api_key: str | None = None,
-    ) -> "LLMSingleTask":
+    def load_from_task_config(cls,task_config: TaskConfig,api_key: str | None = None,) -> "LLMSingleTask":
 
         if task_config.model.provider != "ollama" and not api_key:
             raise ValueError(f"{task_config.model.provider} expects a valid API key.")
@@ -60,6 +59,7 @@ class LLMSingleTask(HasOutputFormat):
 
         return cls(
             model=model,
+            provider=task_config.model.provider,
             model_name=task_config.model.model_name,
             system=task_config.system,
             output_format=task_config.output_format,
@@ -84,11 +84,34 @@ class LLMSingleTask(HasOutputFormat):
         }
 
         if self._is_structured_format(self.output_format):
-            structured_model = self.model.with_structured_output(
-                self.output_format,
-                method="json_schema",
-                include_raw=True,
-            )
+            if self.provider == "zai":
+                output_schema = self.output_format.model_json_schema()
+
+                messages = [
+                    (
+                        "system",
+                        (
+                            f"{self.system}\n\n"
+                            "Return only one JSON object that conforms to the "
+                            "following JSON Schema:\n"
+                            f"{json.dumps(output_schema, ensure_ascii=False)}"
+                        ),
+                    ),
+                    ("human", self.user_input),
+                ]
+
+                structured_model = self.model.with_structured_output(
+                    self.output_format,
+                    method="json_mode",
+                    include_raw=True,
+                )
+
+            else:
+                structured_model = self.model.with_structured_output(
+                    self.output_format,
+                    method="json_schema",
+                    include_raw=True,
+                )
 
             checked_model = structured_model | RunnableLambda(
                 _raise_if_structured_output_invalid

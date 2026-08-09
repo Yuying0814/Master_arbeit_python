@@ -70,6 +70,31 @@ def build_chat_model(
                 reasoning_effort=thinking_effort if model_name=="kimi-k3" else None,
             )
 
+        case "zai":
+            if not api_key:
+                raise ValueError(
+                    "ZAI API key is required for provider='zai'."
+                )
+
+            extra_body = {}
+
+            if thinking_effort is not None:
+                extra_body["thinking"] = {
+                    "type": "enabled",
+                }
+
+                if model_name == "glm-5.2":
+                    extra_body["reasoning_effort"] = thinking_effort
+
+            return ChatOpenAI(
+                model=model_name,
+                api_key=api_key,
+                base_url="https://api.z.ai/api/paas/v4/",
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+                extra_body=extra_body or None,
+            )
+
         case "ollama":
             return ChatOllama(
                 model=model_name,

@@ -36,6 +36,8 @@ class BaseConfig:
                 api_key = os.getenv("GEMINI_API_KEY", "").strip()
             case "kimi":
                 api_key = os.getenv("KIMI_API_KEY", "").strip()
+            case "zai":
+                api_key = os.getenv("ZAI_API_KEY", "").strip()
             case _:
                 api_key = ""
 
