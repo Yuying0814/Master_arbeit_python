@@ -13,6 +13,7 @@ from src.models.task_config import TaskConfig
 from src.llm.model_factory import build_chat_model
 from src.llm.common.common import HasOutputFormat, ValidOutputFormat
 from src.llm.common.types import LLMProvider
+from src.llm.common.batch_utils import normalize_usage,normalize_usage_map
 
 
 class LLMSingleTask(HasOutputFormat):
@@ -136,9 +137,12 @@ class LLMSingleTask(HasOutputFormat):
         retry_model = _with_langchain_retry(self.model)
         response = await retry_model.ainvoke(messages, **invoke_kwargs)
 
-        self.total_usage = callback.usage_metadata or {}
+        self.total_usage = normalize_usage_map(callback.usage_metadata or {})
+
         self.final_usage = {
-            self.model_name:response.usage_metadata or {}
+            self.model_name: normalize_usage(
+                response.usage_metadata or {}
+            )
         }
 
         self.has_valid_output = True
@@ -187,13 +191,3 @@ def _with_langchain_retry(runnable):
         stop_after_attempt=3,
         wait_exponential_jitter=True,
     )
-
-def normalize_usage(usage: dict[str, Any],) -> NormalizedUsage:
-    return NormalizedUsage.model_validate(usage)
-
-
-def normalize_usage_map(usage_by_model: dict[str, dict[str, Any]],) -> dict[str, NormalizedUsage]:
-    return {
-        model_name: normalize_usage(usage)
-        for model_name, usage in usage_by_model.items()
-    }

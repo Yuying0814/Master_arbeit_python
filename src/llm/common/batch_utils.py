@@ -32,6 +32,15 @@ def merge(current: list[dict[str, Any]],updates: list[dict[str, Any]],) -> None:
         else:
             current.append(item)
 
+def normalize_usage(usage: dict[str, Any],) -> NormalizedUsage:
+    return NormalizedUsage.model_validate(usage)
+
+def normalize_usage_map(usage_by_model: dict[str, dict[str, Any]],) -> dict[str, NormalizedUsage]:
+    return {
+        model_name: normalize_usage(usage)
+        for model_name, usage in usage_by_model.items()
+    }
+
 
 def sum_normalized_usage(usages: list[NormalizedUsage]) -> NormalizedUsage:
 
