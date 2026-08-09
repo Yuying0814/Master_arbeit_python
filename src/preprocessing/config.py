@@ -5,8 +5,8 @@ from pathlib import Path
 from pydantic.dataclasses import dataclass
 
 from src.config import BaseConfig, BaseProjectPath
-from src.models.page_output import PageClassification, PageDescription
-from src.models.register_output import RegisterIndexOutput, RegisterMapOutput
+from src.models.preprocessing.page_output import PageClassification, PageDescription
+from src.models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
 from src.models.task_config import ModelConfig,OcrConfig,PreprocessingTaskConfigs,TaskConfig
 
 

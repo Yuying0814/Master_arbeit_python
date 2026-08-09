@@ -4,9 +4,10 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Any
+from src.llm.ocr_task import OcrTask
 from src.models.register_output import RegisterMapOutput
+from src.models.task_config import OcrConfig
 from src.openai.openai_task import OpenAITask
-from llm.mistral.ocr.mistral_client import MistralClient
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -21,8 +22,13 @@ def test_without_preprocessing(pdf_name:str):
     openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
     mistralai_api_key = os.getenv("MISTRALAI_API_KEY", "").strip()
 
-    mistral = MistralClient(mistralai_api_key)
-    ocr_result = mistral.run_ocr(pdf_path)
+    ocr_result = OcrTask(
+        OcrConfig(
+            provider="mistral",
+            model_name="mistral-ocr-latest",
+        ),
+        mistralai_api_key,
+    ).run(pdf_path)
 
     pages = [
         {

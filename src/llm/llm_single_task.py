@@ -7,7 +7,7 @@ from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.runnables import RunnableLambda
 
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.models.task_config import TaskConfig
 from src.llm.model_factory import build_chat_model
 from src.llm.common.common import HasOutputFormat, ValidOutputFormat

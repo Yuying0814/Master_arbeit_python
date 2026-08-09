@@ -7,7 +7,7 @@ from typing import Any,TypeVar
 from pydantic import ValidationError
 
 from src.models.task_config import TaskConfig
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.llm.llm_batch_task import LLMBatchTask
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
 from src.llm.common.types import ValidOutputFormat,ThinkingEffort

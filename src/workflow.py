@@ -30,7 +30,7 @@ async def run_preprocessor(
     preprocessing_result = await preprocessor.run(pdf_path)
     completed_at = datetime.now(timezone.utc).isoformat()
     with DataManager(database_path) as manager:
-        existing_names = manager.list_devices()
+        existing_names = manager.list_all_devices()
         for existing_name in existing_names:
             if existing_name.casefold().strip() == device_name.casefold().strip():
                 device_name = existing_name

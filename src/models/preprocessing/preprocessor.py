@@ -1,0 +1,48 @@
+from typing import Any
+
+from pydantic import RootModel
+from pathlib import Path
+
+from src.models.llm.common import NormalizedTokenConsumption
+from src.models.structuredOutputModel import StructuredOutputModel
+
+
+class PreprocessorSnapshot(RootModel[dict[str, Any]]):
+    pdf_path:Path
+    toc_page_idx: list[int]
+    toc_entries: list[dict[str,Any]]
+    reg_page_idx_from_toc: list[int]
+    reg_page_idx_from_retrieval: list[int]
+    reg_page_idx_from_llm: list[int]
+    reg_page_candidate_idx: list[int]
+    reg_page_idx: list[int]
+    reg_sum_idx_from_toc: list[int]
+    reg_sum_idx_from_retrieval: list[int]
+    reg_sum_idx_from_llm: list[int]
+    reg_sum_candidate_idx: list[int]
+    reg_sum_page_idx: list[int]
+    reg_summary: dict[str, Any]
+    reg_map: dict[str, Any]
+
+class TaskModelsByName(StructuredOutputModel):
+    ocr:str
+    classify_pages: str
+    verify_reg_sum_pages: str
+    verify_reg_pages: str
+    add_page_description: str
+    extract_reg_index: str
+    extract_reg_map: str
+
+class PreprocessingTokenConsumption(StructuredOutputModel):
+    classification: NormalizedTokenConsumption
+    reg_sum_verification: NormalizedTokenConsumption
+    reg_page_verification : NormalizedTokenConsumption
+    reg_index_extraction : NormalizedTokenConsumption
+    reg_map_extraction : NormalizedTokenConsumption
+
+class PreprocessorOutput(StructuredOutputModel):
+    pages: list[dict[str, Any]]
+    register_map: dict[str, Any]
+    snapshot:PreprocessorSnapshot
+    task_models: TaskModelsByName
+    token_consumption: NormalizedTokenConsumption

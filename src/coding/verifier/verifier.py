@@ -5,7 +5,7 @@ from collections.abc import Callable
 from langchain.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.verifier import VerifierInput, VerifierOutput, SemanticVerifierInput, ExecutionVerifierInput, \
+from src.models.coding.verifier import VerifierInput, VerifierOutput, SemanticVerifierInput, ExecutionVerifierInput, \
     VerifierLog
 
 from src.llm.llm_agent import LLMAgent
@@ -127,7 +127,7 @@ class Verifier:
 def _build_semantic_input(verifier_input:VerifierInput):
     return SemanticVerifierInput(
         verification_plan=verifier_input.verification_plan.semantic_plan,
-        register_map=verifier_input.register_map,
+        register_maps=verifier_input.register_maps,
         retrieval_results=verifier_input.retrieval_results,
         candidate_files=verifier_input.candidate_files,
         accepted_files=verifier_input.accepted_files,

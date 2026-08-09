@@ -141,7 +141,7 @@ class AsyncGlmBatchClient:
         try:
             raw_output = file_content.content
         finally:
-            await asyncio.to_thread(file_content.close)
+            await asyncio.to_thread(file_content._close)
 
         text = raw_output.decode("utf-8")
         records: list[dict[str, Any]] = []

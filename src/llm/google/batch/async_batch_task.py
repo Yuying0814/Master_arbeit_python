@@ -18,7 +18,7 @@ from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 from src.llm.google.batch.async_client import AsyncGeminiBatchClient
 from src.llm.google.batch.input_file import GeminiBatchInputFile
 from src.llm.llm_batch_task import LLMBatchTask
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.models.task_config import TaskConfig
 
 

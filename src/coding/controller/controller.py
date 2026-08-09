@@ -13,13 +13,13 @@ from src.coding.coder.coder import Coder
 from src.coding.filewriter.filewriter import FileWriter
 from src.coding.verifier.verifier import Verifier
 
-from src.models.coding_common import ProgrammingPlan,VerificationPlan,CodeFile
+from src.models.coding.coding_common import ProgrammingPlan, VerificationPlan, CodeFile
 from src.models.data_manager import RegisterMapRecord,DocumentRecord
-from src.models.planner import PlannerInput
-from src.models.retriever import RetrievalResult
-from src.models.coder import CoderInput,CoderOutput
-from src.models.verifier import VerifierInput,VerifierOutput
-from src.models.controller import ControllerLog, Snapshot, SubLogs, TokenConsumption
+from src.models.coding.planner import PlannerInput
+from src.models.coding.retriever import RetrievalResult
+from src.models.coding.coder import CoderInput, CoderOutput
+from src.models.coding.verifier import VerifierInput, VerifierOutput
+from src.models.coding.controller import ControllerLog, Snapshot, SubLogs, TokenConsumption
 
 
 class Controller:

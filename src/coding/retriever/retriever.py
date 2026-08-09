@@ -6,8 +6,8 @@ from typing import Any
 
 from src.llm.llm_task_runner import LLMTaskRunner
 from src.models.task_config import TaskConfig
-from src.models.retriever import RetrievalTopic, RetrievalResponse, RetrievalResult, RetrieverLog,RetrieverUserInput
-from src.models.batch import UserRequest
+from src.models.coding.retriever import RetrievalTopic, RetrievalResponse, RetrievalResult, RetrieverLog, RetrieverUserInput
+from src.models.llm.batch import UserRequest
 from src.models.data_manager import DocumentRecord
 from src.coding.retriever.build_batch_request import build_user_requests
 from src.coding.retriever.parse_binary_classifier_output import parse_binary_classifier_output

@@ -2,7 +2,7 @@ from typing import Any
 from langchain_ollama import ChatOllama
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.models.task_config import TaskConfig
 from src.llm.common.common import HasLangChainOutput
 from src.llm.common.types import ValidOutputFormat

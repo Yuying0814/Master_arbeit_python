@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any,TypeVar
 
 from src.models.task_config import TaskConfig
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.llm.common.common import ValidOutputFormat,HasRunWithRetry
 from src.llm.openai.batch.client import OpenAIBatchClient
 from src.llm.openai.batch.batch_job import BatchJob

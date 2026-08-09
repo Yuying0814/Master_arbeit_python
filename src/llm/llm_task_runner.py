@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 from src.llm.llm_batch_task import LLMBatchTask
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.models.task_config import TaskConfig
 from src.llm.llm_single_task import LLMSingleTask
 from src.llm.openai.batch.async_batch_task import AsyncOpenAIBatchTask

@@ -13,7 +13,7 @@ from src.llm.common.batch_utils import get_output_schema, merge, parse_output_te
 
 from src.llm.common.common import HasRunWithRetry,HasOutputFormat
 from src.llm.common.types import ValidOutputFormat,ThinkingEffort
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.models.task_config import TaskConfig
 
 

@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.models.batch import UserRequest,RequestReference
+from src.models.llm.batch import UserRequest, RequestReference
 from src.models.structuredOutputModel import StructuredOutputModel
 
 # retriever input

@@ -7,16 +7,17 @@ import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from pydantic import BaseModel
 
 from src.chat.config import ChatConfig
-from src.coding.config import CodingConfig
-from src.coding.controller.controller import Controller
 from src.data_manager.data_manager import DataManager
 from src.llm.ocr_task import OcrTask
 from src.llm.llm_single_task import LLMSingleTask
-from src.preprocessing.config import PreprocessingConfig
-from src.preprocessing.preprocessor import Preprocessor
+
+if TYPE_CHECKING:
+    from src.coding.config import CodingConfig
+    from src.preprocessing.config import PreprocessingConfig
 
 
 class QuitChatRequested(BaseException):
@@ -204,40 +205,44 @@ class ChatTools:
 
                     if not approved:
                         self.preprocessing_sessions.pop(preprocessing_session_id, None)
-                        return {"success":False,"status":"cancelled"}
+                        return {
+                            "success":False,
+                            "status":"cancelled"
+                        }
 
             config = self.preprocessing_config
+
+            from src.preprocessing.preprocessor import Preprocessor
 
             preprocessor = Preprocessor(
                 config,
                 session["ocr_result"],
             )
-            result = asyncio.run(preprocessor.run(session["pdf_path"]))
+            preprocessing_result = asyncio.run(
+                preprocessor.run(session["pdf_path"])
+            )
 
             completed_at = datetime.now(timezone.utc).isoformat()
 
             with DataManager(self.database_path) as manager:
-                result = manager.save_preprocessing_result(
+                feedback = manager.save_preprocessing_result(
                     device_name=device_name,
                     input_pdf_sha256=pdf_sha256,
-                    pages=result["pages"],
-                    register_map=result["register_map"],
-                    snapshot=result["snapshot"],
+                    pages=preprocessing_result["pages"],
+                    register_map=preprocessing_result["register_map"],
+                    snapshot=preprocessing_result["snapshot"],
                     pages_created_at=completed_at,
                     register_map_created_at=completed_at,
                     snapshot_created_at=completed_at,
-                    task_models=result["task_models"],
-                    token_consumption=result["token_consumption"],
+                    task_models=preprocessing_result["task_models"],
+                    token_consumption=preprocessing_result["token_consumption"],
                 )
 
             self.preprocessing_sessions.pop(preprocessing_session_id, None)
             return {
                 "success":True,
                 "status":"completed",
-                "device_name":result["device_name"],
-                "version_pk":result["version_pk"],
-                "version_major":result["version_major"],
-                "version_minor":result["version_minor"],
+                "operation_feedback":_parse_model(feedback),
             }
         except Exception as error:
             return {
@@ -328,6 +333,8 @@ class ChatTools:
                 )
 
             coding_config = self.coding_config
+            from src.coding.controller.controller import Controller
+
             controller = Controller.load_controller(
                 driver_name=device_name,
                 config=coding_config,
@@ -364,7 +371,7 @@ class ChatTools:
     def list_devices(self) -> list[str]:
         """Return all stored device names; no parameters are required."""
         with DataManager(self.database_path) as manager:
-            return manager.list_devices()
+            return manager.list_all_devices()
 
     def list_versions(self, device_name: str) -> list[dict[str, Any]]:
         """Return all preprocessing-versions for a device.
@@ -373,7 +380,8 @@ class ChatTools:
             device_name: Required existing device name.
         """
         with DataManager(self.database_path) as manager:
-            return manager.list_versions(device_name)
+            versions = manager.list_all_versions(device_name)
+            return[_parse_model(version) for version in versions]
 
     def list_task_models(self,device_name: str,) -> list[dict[str, Any]]:
         """Return recorded task models for every preprocessing-version of a device.
@@ -382,7 +390,28 @@ class ChatTools:
             device_name: Required existing device name.
         """
         with DataManager(self.database_path) as manager:
-            return manager.list_task_models(device_name)
+            devices = manager.list_all_major_version_task_models(device_name)
+            return [_parse_model(device) for device in devices]
+
+    def list_major_versions(self, device_name: str) -> dict[str, Any]:
+        """Return all major preprocessing-version numbers for a device.
+
+        Args:
+            device_name: Required existing device name.
+        """
+        with DataManager(self.database_path) as manager:
+            return _parse_model(
+                manager.list_all_major_version_number(device_name)
+            )
+
+    def get_latest_version(self, device_name: str) -> dict[str, Any]:
+        """Return the latest preprocessing version for a device.
+
+        Args:
+            device_name: Required existing device name.
+        """
+        with DataManager(self.database_path) as manager:
+            return _parse_model(manager.get_latest_version(device_name))
 
     def get_major_version_result(self,device_name: str,version_major: int,) -> dict[str, Any]:
         """Return all pages of processed PDF and all register maps for a major preprocessing-version.
@@ -392,66 +421,98 @@ class ChatTools:
             version_major: Required major version number.
         """
         with DataManager(self.database_path) as manager:
-            return manager.get_major_version_result(
-                device_name,
-                version_major,
+            return _parse_model(
+                manager.get_major_version_result(
+                    device_name,
+                    version_major,
+                )
             )
 
-    def get_major_task_model_map(self,device_name: str,version_major: int,) -> dict[str,str]:
-        """Return the task-model mapping(what task uses what model) for a certain major preprocessing-version.
+    def get_version_result(
+            self,
+            device_name: str,
+            version_pk: int,
+    ) -> dict[str, Any]:
+        """Return the complete stored result for one preprocessing version.
+
+        Args:
+            device_name: Required existing device name.
+            version_pk: Required database identifier of the version.
+        """
+        with DataManager(self.database_path) as manager:
+            return _parse_model(
+                manager.get_version_result(device_name, version_pk)
+            )
+
+    def get_major_version_register_maps(
+            self,
+            device_name: str,
+            version_major: int,
+    ) -> list[dict[str, Any]]:
+        """Return all register maps for a major preprocessing version.
 
         Args:
             device_name: Required existing device name.
             version_major: Required major version number.
         """
         with DataManager(self.database_path) as manager:
-            return manager.get_major_task_model_map(
-                device_name,
-                version_major,
+            return _parse_model(
+                manager.get_major_version_register_maps(
+                    device_name,
+                    version_major,
+                )
             )
 
-    def get_register_maps(self,device_name: str,version_major: int,) -> dict[str, Any]:
-        """Return all registers map for a major preprocessing-version.
-
-        Args:
-            device_name: Required existing device name.
-            version_major: Required major version number.
-        """
-        with DataManager(self.database_path) as manager:
-            return manager.get_register_maps(device_name, version_major)
-
-    def get_snapshot(self,device_name: str,version_major: int,version_minor: int,) -> dict[str, Any]:
-        """Return the preprocessing snapshot for an exact preprocessing-version.
-
-        Args:
-            device_name: Required existing device name.
-            version_major: Required major version number.
-            version_minor: Required minor version number.
-        """
-        with DataManager(self.database_path) as manager:
-            return manager.get_snapshot(
-                device_name,
-                version_major,
-                version_minor,
-            )
-
-    def get_task_models(self, version_pk: int) -> list[dict[str, Any]]:
-        """Return task model records for one preprocessing version.
+    def get_version_snapshot(self, version_pk: int) -> dict[str, Any]:
+        """Return the preprocessing snapshot for one version.
 
         Args:
             version_pk: Required database identifier of the version.
         """
         with DataManager(self.database_path) as manager:
-            return manager.get_task_models(version_pk)
+            return _parse_model(manager.get_version_snapshot(version_pk))
 
-    def get_token_consumption(self,version_pk: int,) -> dict[str,Any]:
+    def get_major_version_task_models(
+            self,
+            device_name: str,
+            version_major: int,
+    ) -> dict[str, Any]:
+        """Return the task-model mapping for one major version.
+
+        Args:
+            device_name: Required existing device name.
+            version_major: Required major version number.
+        """
+        with DataManager(self.database_path) as manager:
+            return _parse_model(
+                manager.get_major_version_task_models(
+                    device_name,
+                    version_major,
+                )
+            )
+
+    def get_version_task_models(self, version_pk: int) -> dict[str, Any]:
+        """Return task models for one preprocessing version.
+
+        Args:
+            version_pk: Required database identifier of the version.
+        """
+        with DataManager(self.database_path) as manager:
+            return _parse_model(manager.get_version_task_models(version_pk))
+
+    def get_version_token_consumption(
+            self,
+            version_pk: int,
+    ) -> dict[str, Any]:
         """Return token consumption for one preprocessing version.
 
         Args:
             version_pk: Required database identifier of the version.
         """
         with DataManager(self.database_path) as manager:
-            return manager.get_token_consumption(version_pk)
+            return _parse_model(
+                manager.get_version_token_consumption(version_pk)
+            )
 
     def get_version_pk(
             self,
@@ -473,16 +534,16 @@ class ChatTools:
                 version_minor,
             )
 
-    def get_info_of_version_pk(self,version_pk:int,) -> dict[str,Any]:
+    def get_version_info(self,version_pk:int,) -> dict[str,Any]:
         """Return version identity and metadata for a database version ID.
 
         Args:
             version_pk: Required database identifier of the version.
         """
         with DataManager(self.database_path) as manager:
-            return manager.get_info_of_version_pk(version_pk)
+            return _parse_model(manager.get_version_info(version_pk))
 
-    def find_versions_by_pdf(self,device_name: str,pdf_sha256: str,) -> list[dict[str, Any]]:
+    def get_versions_by_pdf(self,device_name: str,pdf_sha256: str,) -> list[dict[str, Any]]:
         """Find device versions created from a PDF SHA-256 value.
 
         Args:
@@ -490,9 +551,8 @@ class ChatTools:
             pdf_sha256: Required 64-character SHA-256 value.
         """
         with DataManager(self.database_path) as manager:
-            return manager.find_versions_by_pdf(
-                device_name,
-                pdf_sha256,
+            return _parse_model(
+                manager.get_versions_by_pdf(device_name, pdf_sha256)
             )
 
     def update_register_map_field(self,version_pk: int,json_path: str,new_value: Any,) -> dict[str, Any]:
@@ -533,18 +593,18 @@ class ChatTools:
             version_minor: Optional replacement minor version number.
         """
         with DataManager(self.database_path) as m:
-            row_info =  m.get_info_of_version_pk(version_pk)
+            row_info = m.get_version_info(version_pk)
 
         return self._write_with_confirmation(
             "reassign_version_identity",
             {
                 "version_pk":version_pk,
-                "old_device_name": row_info["device_name"],
-                "old_version_major": row_info["version_major"],
-                "old_version_minor": row_info["version_minor"],
-                "new_device_name":device_name if device_name is not None else row_info["device_name"],
-                "new_version_major":version_major if version_major is not None else row_info["version_major"],
-                "new_version_minor":version_minor if version_minor is not None else row_info["version_minor"],
+                "old_device_name": row_info.device_name,
+                "old_version_major": row_info.version_major,
+                "old_version_minor": row_info.version_minor,
+                "new_device_name":device_name if device_name is not None else row_info.device_name,
+                "new_version_major":version_major if version_major is not None else row_info.version_major,
+                "new_version_minor":version_minor if version_minor is not None else row_info.version_minor,
             },
             lambda manager: manager.reassign_version_identity(
                 version_pk,
@@ -601,14 +661,14 @@ class ChatTools:
             self,
             action: str,
             parameters: dict[str, Any],
-            operation: Callable[[DataManager],
-            dict[str, Any]],) -> dict[str, Any]:
+            operation: Callable[[DataManager], Any],
+    ) -> dict[str, Any]:
 
         if not self._confirm(action,parameters):
             return {"success": False, "status": "cancelled"}
 
         with DataManager(self.database_path) as manager:
-            result = operation(manager)
+            result = _parse_model(operation(manager))
 
         return {
             "success": True,
@@ -651,15 +711,18 @@ class ChatTools:
             self.list_devices,
             self.list_versions,
             self.list_task_models,
+            self.list_major_versions,
+            self.get_latest_version,
             self.get_major_version_result,
-            self.get_major_task_model_map,
-            self.get_register_maps,
-            self.get_snapshot,
-            self.get_task_models,
-            self.get_token_consumption,
+            self.get_version_result,
+            self.get_major_version_register_maps,
+            self.get_version_snapshot,
+            self.get_major_version_task_models,
+            self.get_version_task_models,
+            self.get_version_token_consumption,
             self.get_version_pk,
-            self.get_info_of_version_pk,
-            self.find_versions_by_pdf,
+            self.get_version_info,
+            self.get_versions_by_pdf,
             self.update_register_map_field,
             self.reassign_version_identity,
             self.delete_version,
@@ -720,3 +783,21 @@ def _calculate_sha256(pdf_path: Path) -> str:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+def _parse_model(value: Any) -> Any:
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+
+    if isinstance(value, list):
+        return [_parse_model(item) for item in value]
+
+    if isinstance(value, tuple):
+        return [_parse_model(item) for item in value]
+
+    if isinstance(value, dict):
+        return {
+            key: _parse_model(item)
+            for key, item in value.items()
+        }
+
+    return value

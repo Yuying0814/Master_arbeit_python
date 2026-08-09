@@ -60,7 +60,7 @@ def test_glm_ocr_client_run() -> None:
         model_name=model_name,
         table_format="html",
         include_image=False,
-        connection_poor_size=1,
+        connection_pool_size=1,
         max_workers=1,
         batch_size=1,
     )

@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.config import BaseConfig,BaseProjectPath
-from src.models.retriever import BinaryClassifierOutput
-from src.models.coder import CoderOutput
-from src.models.planner import PlannerOutput
-from src.models.verifier import SemanticVerifierOutput,TestCode
+from src.models.coding.retriever import BinaryClassifierOutput
+from src.models.coding.coder import CoderOutput
+from src.models.coding.planner import PlannerOutput
+from src.models.coding.verifier import SemanticVerifierOutput, TestCode
 from src.models.task_config import TaskConfig,ModelConfig,CodingTaskConfigs
 
 

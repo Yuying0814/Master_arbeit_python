@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Any
 
-from src.models.batch import UserRequest
-from src.models.page_output import PageClassification,PageDescription
+from src.models.llm.batch import UserRequest
+from src.models.preprocessing.page_output import PageClassification, PageDescription
 
 def parse_verification_contents(
         contents: list[dict[str,Any]],

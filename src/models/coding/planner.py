@@ -5,9 +5,9 @@ from pydantic import Field
 
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.coding_common import CodeFile,VerificationPlan,ProgrammingPlan
-from src.models.verifier import VerifierOutput
-from src.models.retriever import RetrievalTopic
+from src.models.coding.coding_common import CodeFile, VerificationPlan, ProgrammingPlan
+from src.models.coding.verifier import VerifierOutput
+from src.models.coding.retriever import RetrievalTopic
 from src.models.data_manager import RegisterMapRecord
 
 # Planner:

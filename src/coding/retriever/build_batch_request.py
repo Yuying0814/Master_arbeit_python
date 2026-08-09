@@ -3,8 +3,8 @@ import math
 import re
 from typing import Any
 from src.preprocessing.utils.text_utils import extract_text_from_page
-from src.models.batch import UserRequest, RequestReference
-from src.models.retriever import RetrievalTopic,RetrieverUserInput
+from src.models.llm.batch import UserRequest, RequestReference
+from src.models.coding.retriever import RetrievalTopic, RetrieverUserInput
 from src.models.data_manager import DocumentRecord
 
 def build_user_requests(

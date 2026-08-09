@@ -11,7 +11,7 @@ from collections.abc import Callable
 from langchain.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.verifier import (TestCoderInput,TestCoderOutput,
+from src.models.coding.verifier import (TestCoderInput,TestCoderOutput,
                                  ExecutionVerifierInput,ExecutionVerifierOutput,
                                  CompilerMsg,ExecutionVerifierLog,TestCoderLog,TestCoderConfig)
 from src.llm.llm_agent import LLMAgent

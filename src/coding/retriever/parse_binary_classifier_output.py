@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.models.retriever import BinaryClassifierOutput,RetrieverUserInput
+from src.models.coding.retriever import BinaryClassifierOutput, RetrieverUserInput
 
 
 def parse_binary_classifier_output(

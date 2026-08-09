@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.config import BaseConfig, BaseProjectPath
 from src.models.task_config import ModelConfig, OcrConfig, TaskConfig,ChatTaskConfigs
-from src.models.chat import DeviceIdentificationResult
+from src.models.chat.chat import DeviceIdentificationResult
 
 
 @dataclass

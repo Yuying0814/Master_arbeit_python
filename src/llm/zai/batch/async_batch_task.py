@@ -17,7 +17,7 @@ from src.llm.common.types import ThinkingEffort, ValidOutputFormat
 from src.llm.zai.batch.async_client import AsyncGlmBatchClient
 from src.llm.zai.batch.input_file import GlmBatchInputFile
 from src.llm.llm_batch_task import LLMBatchTask
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 from src.models.task_config import TaskConfig
 
 NOT_RETRIABLE_REASONS = [

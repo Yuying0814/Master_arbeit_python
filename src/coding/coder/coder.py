@@ -4,7 +4,7 @@ from collections.abc import Callable
 from langchain.tools import BaseTool
 
 from src.models.task_config import TaskConfig
-from src.models.coder import CoderInput,CoderOutput,CoderLog
+from src.models.coding.coder import CoderInput, CoderOutput, CoderLog
 from src.llm.llm_agent import LLMAgent
 
 class Coder:

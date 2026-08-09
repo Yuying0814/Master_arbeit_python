@@ -8,7 +8,17 @@ from contextlib import contextmanager
 from collections.abc import Iterator
 from typing import Any
 from uuid import uuid4
-from src.models.register_output import RegisterMapOutput
+
+from src.models.data_manager.data_manager import (
+    VersionInfo, MajorVersionNumber, MajorTaskModelInfo, TaskModelInfo,
+    VersionResult, MajorVersionResult, DocumentRecord, RegisterMapRecord,
+    SnapshotRecord, PreprocessingTokenConsumptionRecord, OperationFeedback, LatestVersion,
+    MajorVersionDeletionRecord, RenumberedMajorVersion,
+    PreprocessorSnapshot, TaskModelsByName,
+)
+
+from src.models.preprocessing.preprocessor import PreprocessingTokenConsumption
+from src.models.preprocessing.register_output import RegisterMapOutput
 
 
 class SchemaMismatchError(RuntimeError):
@@ -614,7 +624,6 @@ class DataManager:
         return self._current_json_path
 
     def initialize(self) -> None:
-
         self._check_table_fields()
 
         try:
@@ -630,16 +639,18 @@ class DataManager:
                 self.connection.rollback()
             raise
 
-    def list_devices(self) -> list[str]:
+# List-tools
+    def list_all_devices(self) -> list[str]:
         rows = self.connection.execute(
             "SELECT device_name FROM devices ORDER BY device_name"
         ).fetchall()
         return [row["device_name"] for row in rows]
 
-    def list_versions(self, device_name: str) -> list[dict]:
+    def list_all_versions(self, device_name: str) -> list[VersionInfo]:
         rows = self.connection.execute(
             """
             SELECT
+                device_name,
                 version_pk,
                 version_major,
                 version_minor,
@@ -654,39 +665,56 @@ class DataManager:
             """,
             (device_name,),
         ).fetchall()
-        return [dict(row) for row in rows]
+        return [VersionInfo.model_validate(dict(row)) for row in rows]
 
-    def list_task_models(self,device_name: str,) -> list[dict[str, Any]]:
+    def list_all_major_version_task_models(self,device_name: str,) -> list[MajorTaskModelInfo]:
         with self._read_transaction():
-            versions = self.list_versions(device_name)
+            major_version_numbers = self.list_all_major_version_number(device_name)
 
-            results: list[dict[str, Any]] = []
-            processed_major_versions: set[int] = set()
-
-            for version in versions:
-                version_major = version["version_major"]
-
-                if version_major in processed_major_versions:
-                    continue
-
-                rows = self.get_task_models(version["version_pk"])
-
-                results.append(
-                    {
-                        "device_name": device_name,
-                        "version_major": version_major,
-                        "task_models": {
-                            row["task_name"]: row["model_name"]
-                            for row in rows
-                        },
-                    }
+            return [
+                self.get_major_version_task_models(
+                    device_name=device_name,
+                    version_major = major_version,
                 )
+                for major_version in major_version_numbers.major_versions
+            ]
 
-                processed_major_versions.add(version_major)
+    def list_all_major_version_number(self,device_name:str) -> MajorVersionNumber:
+        versions = self.list_all_versions(device_name)
 
-            return results
+        major_versions = {
+            version.version_major
+            for version in versions
+        }
 
-    def get_major_version_result(self, device_name: str, version_major: int) -> dict[str, Any]:
+        return MajorVersionNumber(
+            device_name=device_name,
+            major_versions=tuple(sorted(major_versions)),
+        )
+
+# Get-tools
+    def get_latest_version(self, device_name: str) -> LatestVersion:
+        row = self.connection.execute(
+            """
+            SELECT version_major, version_minor
+            FROM preprocessing_versions
+            WHERE device_name = ?
+            ORDER BY version_major DESC, version_minor DESC
+            LIMIT 1
+            """,
+            (device_name,),
+        ).fetchone()
+
+        if row is None:
+            raise LookupError(f"No versions found for device: {device_name}")
+
+        return LatestVersion(
+            device_name=device_name,
+            version_major=row["version_major"],
+            version_minor=row["version_minor"],
+        )
+
+    def get_major_version_result(self, device_name: str, version_major: int) -> MajorVersionResult:
         with self._read_transaction():
             if not self._device_exists(device_name):
                 raise LookupError(f"Device not found: {device_name}")
@@ -713,30 +741,65 @@ class DataManager:
                     f"{device_name} v{version_major}"
                 )
 
-            return {
-                "device_name": device_name,
-                "version_major": version_major,
-                "documents": [
-                    {
-                        "version_pk": row["version_pk"],
-                        "version_minor": row["version_minor"],
-                        "pdf_sha256": row["input_pdf_sha256"],
-                        "pages": json.loads(row["pages_json"]),
-                    }
-                    for row in rows
+            return MajorVersionResult(
+                device_name=device_name,
+                version_major=version_major,
+                documents=[
+                    DocumentRecord(
+                        device_name=device_name,
+                        version_pk=row["version_pk"],
+                        version_major=version_major,
+                        version_minor=row["version_minor"],
+                        pdf_sha256=row["input_pdf_sha256"],
+                        pages=json.loads(row["pages_json"]),
+                    ) for row in rows
                 ],
-                "register_maps": [
-                    {
-                        "version_pk": row["version_pk"],
-                        "version_minor": row["version_minor"],
-                        "pdf_sha256": row["input_pdf_sha256"],
-                        "register_map": json.loads(row["register_map_json"]),
-                    }
-                    for row in rows
-                ],
-            }
+                register_maps=[
+                    RegisterMapRecord(
+                        device_name=device_name,
+                        version_pk=row["version_pk"],
+                        version_major=version_major,
+                        version_minor=row["version_minor"],
+                        pdf_sha256=row["input_pdf_sha256"],
+                        register_map=json.loads(row["register_map_json"]),
+                    ) for row in rows
+                ]
+            )
 
-    def get_register_maps(self, device_name: str, version_major: int) -> dict[str, Any]:
+    def get_version_result(self, device_name: str, version_pk:int) -> VersionResult:
+        row = self.connection.execute(
+            """
+            SELECT *
+            FROM preprocessing_versions
+            WHERE device_name = ?
+              AND version_pk = ?
+            """,
+            (device_name, version_pk),
+        ).fetchone()
+
+        if row is None:
+            raise LookupError(
+                f"VersionInfo not found: {device_name}\n "
+                f"version_pk {version_pk}"
+            )
+
+        return VersionResult(
+            device_name=device_name,
+            version_pk=version_pk,
+            version_major=row["version_major"],
+            version_minor=row["version_minor"],
+            input_pdf_sha256=row["input_pdf_sha256"],
+            pages_json=json.loads(row["pages_json"]),
+            pages_json_created_at=row["pages_json_created_at"],
+            register_map_json=json.loads(row["register_map_json"]),
+            register_map_created_at=row["register_map_created_at"],
+            register_map_modified_at=row["register_map_modified_at"],
+            snapshot_json=json.loads(row["snapshot_json"]),
+            snapshot_created_at=row["snapshot_created_at"],
+            token_consumption=json.loads(row["token_consumption"]),
+        )
+
+    def get_major_version_register_maps(self, device_name: str, version_major: int) -> list[RegisterMapRecord]:
         rows = self.connection.execute(
             """
             SELECT version_pk, register_map_json, input_pdf_sha256,version_minor
@@ -751,67 +814,158 @@ class DataManager:
         if not rows:
             raise LookupError(f"Major version {version_major} of device {device_name} not found")
 
-        return {
-            "register_maps": [
-                {
-                    "version_pk": row["version_pk"],
-                    "version_minor": row["version_minor"],
-                    "pdf_sha256": row["input_pdf_sha256"],
-                    "register_map": json.loads(row["register_map_json"]),
-                }
+        return [
+            RegisterMapRecord(
+                device_name=device_name,
+                version_pk=row["version_pk"],
+                version_major=version_major,
+                version_minor=row["version_minor"],
+                pdf_sha256=row["input_pdf_sha256"],
+                register_map=json.loads(row["register_map_json"]),
+            ) for row in rows
+        ]
+
+    def get_version_snapshot(self, version_pk:int) -> SnapshotRecord:
+        with self._read_transaction():
+            version_info = self.get_version_info(version_pk)
+
+            row = self.connection.execute(
+                """
+                SELECT device_name, version_major, version_minor, snapshot_json
+                FROM preprocessing_versions
+                WHERE version_pk = ?
+                LIMIT 1
+                """,
+                (version_pk,),
+
+            ).fetchone()
+
+            if row is None:
+                raise LookupError(
+                    f"Snapshot not found: version_pk={version_pk}"
+                )
+
+            snapshot = PreprocessorSnapshot.model_validate_json(
+                row["snapshot_json"]
+            )
+
+        return SnapshotRecord(
+            device_name = version_info.device_name,
+            version_pk = version_pk,
+            version_major = version_info.version_major,
+            version_minor = version_info.version_minor,
+            snapshot=snapshot,
+        )
+
+    def get_major_version_task_models(self, device_name: str, version_major: int,) -> MajorTaskModelInfo:
+        with self._read_transaction():
+            rows = self.connection.execute(
+                """
+                SELECT
+                    preprocessing_versions.version_pk,
+                    preprocessing_versions.version_minor,
+                    task_models.task_name,
+                    task_models.model_name
+                FROM preprocessing_versions
+                LEFT JOIN task_models
+                    ON task_models.version_pk = preprocessing_versions.version_pk
+                WHERE preprocessing_versions.device_name = ?
+                  AND preprocessing_versions.version_major = ?
+                ORDER BY
+                    preprocessing_versions.version_minor,
+                    task_models.task_name
+                """,
+                (device_name, version_major),
+            ).fetchall()
+
+        if not rows:
+            raise LookupError(
+                f"Major version not found: {device_name} v{version_major}"
+            )
+
+        task_models_by_version_pk: dict[int, dict[str, str]] = {}
+
+        for row in rows:
+            task_models_by_name = task_models_by_version_pk.setdefault(
+                row["version_pk"],
+                {},
+            )
+            if row["task_name"] is not None:
+                task_models_by_name[row["task_name"]] = row["model_name"]
+
+        reference_version_pk, reference_task_models = next(
+            iter(task_models_by_version_pk.items())
+        )
+
+        for version_pk, task_models_by_name in task_models_by_version_pk.items():
+            if task_models_by_name != reference_task_models:
+                raise RuntimeError(
+                    "Inconsistent task-model mappings in "
+                    f"{device_name} v{version_major}: "
+                    f"version_pk={reference_version_pk} and "
+                    f"version_pk={version_pk}"
+                )
+
+        return MajorTaskModelInfo(
+            device_name = device_name,
+            version_major=version_major,
+            task_models=TaskModelsByName.model_validate(reference_task_models),
+        )
+
+    def get_version_task_models(self, version_pk: int) -> TaskModelInfo:
+        with self._read_transaction():
+            version_info = self.get_version_info(version_pk)
+
+            rows = self.connection.execute(
+                """
+                SELECT task_name, model_name
+                FROM task_models
+                WHERE version_pk = ?
+                """,
+                (version_pk,),
+            ).fetchall()
+
+            task_models_by_name = {
+                row["task_name"]: row["model_name"]
                 for row in rows
-            ],
-        }
+            }
 
-    def get_snapshot(self, device_name: str, version_major: int, version_minor: int) -> dict[str, Any]:
-        row = self.connection.execute(
-            """
-            SELECT snapshot_json
-            FROM preprocessing_versions
-            WHERE device_name = ?
-                AND version_major = ?
-                AND version_minor = ?
-            LIMIT 1
-            """,
-            (device_name, version_major, version_minor),
-        ).fetchone()
+        return TaskModelInfo(
+            device_name = version_info.device_name,
+            version_pk = version_pk,
+            version_major = version_info.version_major,
+            version_minor= version_info.version_minor,
+            task_models= TaskModelsByName.model_validate(task_models_by_name),
+        )
 
-        if not row:
-            raise LookupError(
-                f"Version not found: "
-                f"{device_name} v{version_major}.{version_minor}"
-            )
+    def get_version_token_consumption(self,version_pk:int)->PreprocessingTokenConsumptionRecord:
+        with self._read_transaction():
+            version_info = self.get_version_info(version_pk)
 
-        return json.loads(row["snapshot_json"])
+            row = self.connection.execute(
+                """
+                SELECT token_consumption
+                FROM preprocessing_versions
+                WHERE version_pk = ?
+                LIMIT 1
+                """,
+                (version_pk,),
+            ).fetchone()
 
-    def get_task_models(self, version_pk: int) -> list[dict]:
-        rows = self.connection.execute(
-            """
-            SELECT task_name, model_name
-            FROM task_models
-            WHERE version_pk = ?
-            """,
-            (version_pk,),
-        ).fetchall()
-        return [dict(row) for row in rows]
+            if row is None:
+                raise LookupError(
+                    f"Token consumption not found: version_pk={version_pk}"
+                )
 
-    def get_token_consumption(self,version_pk:int)->dict[str, Any]:
-        row = self.connection.execute(
-            """
-            SELECT token_consumption
-            FROM preprocessing_versions
-            WHERE version_pk = ?
-            LIMIT 1
-            """,
-            (version_pk,),
-        ).fetchone()
-
-        if row is None:
-            raise LookupError(
-                f"Token consumption not found: version_pk={version_pk}"
-            )
-
-        return json.loads(row["token_consumption"])
+        return PreprocessingTokenConsumptionRecord(
+            device_name = version_info.device_name,
+            version_pk = version_pk,
+            version_major = version_info.version_major,
+            version_minor = version_info.version_minor,
+            token_consumption=PreprocessingTokenConsumption.model_validate_json(
+                row["token_consumption"]
+            ),
+        )
 
     def get_version_pk(self,device_name: str,version_major:int,version_minor:int)->int:
         row = self.connection.execute(
@@ -828,24 +982,24 @@ class DataManager:
 
         if row is None:
             raise LookupError(
-                f"Version not found: "
+                f"VersionInfo not found: "
                 f"{device_name} v{version_major}.{version_minor}"
             )
         return row["version_pk"]
 
-    def get_info_of_version_pk(self,version_pk:int)->dict[Any, Any]:
+    def get_version_info(self,version_pk:int)->VersionInfo:
         row = self.connection.execute(
             """
             SELECT 
                 device_name,
+                version_pk,
                 version_major,
                 version_minor,
                 input_pdf_sha256,
                 pages_json_created_at,
                 register_map_created_at,
                 register_map_modified_at,
-                snapshot_created_at,
-                token_consumption
+                snapshot_created_at
             FROM preprocessing_versions
             WHERE version_pk = ?
             """,
@@ -853,25 +1007,61 @@ class DataManager:
         ).fetchone()
 
         if row is None:
-            raise LookupError(f"Version not found: version_pk={version_pk}")
+            raise LookupError(f"VersionInfo not found: \n version_pk {version_pk}")
 
-        return dict(row)
+        return VersionInfo.model_validate(dict(row))
 
+    def get_versions_by_pdf(self, device_name: str, pdf_sha256: str) -> list[VersionInfo]:
+        rows = self.connection.execute(
+            """
+            SELECT
+                device_name,
+                version_pk,
+                version_major,
+                version_minor,
+                input_pdf_sha256,
+                pages_json_created_at,
+                register_map_created_at,
+                register_map_modified_at,
+                snapshot_created_at
+            FROM preprocessing_versions
+            WHERE device_name = ? AND input_pdf_sha256 = ?
+            ORDER BY version_major, version_minor
+            """,
+            (device_name, pdf_sha256),
+        ).fetchall()
+        return [VersionInfo.model_validate(dict(row)) for row in rows]
+
+    def _device_exists(self, device_name: str) -> bool:
+        row = self.connection.execute(
+            "SELECT 1 FROM devices WHERE device_name = ? LIMIT 1",
+            (device_name,),
+        ).fetchone()
+        return row is not None
+
+# Insert-tool
     def save_preprocessing_result(
             self,
             *,
             device_name: str,
             input_pdf_sha256: str,
-            pages: Any,
-            register_map: dict[str, Any],
-            snapshot: Any,
+            pages: list[dict[str,Any]],
+            register_map: RegisterMapOutput,
+            snapshot: PreprocessorSnapshot,
             pages_created_at: str,
             register_map_created_at: str,
             snapshot_created_at: str,
-            token_consumption: dict[str, Any],
-            task_models: dict[str, str],
-    ) -> dict[str, Any]:
+            token_consumption: PreprocessingTokenConsumption,
+            task_models: TaskModelsByName | dict[str, str],
+    ) -> OperationFeedback:
         device_name = device_name.strip()
+
+        register_map = RegisterMapOutput.model_validate(register_map)
+        snapshot = PreprocessorSnapshot.model_validate(snapshot)
+        token_consumption = PreprocessingTokenConsumption.model_validate(
+            token_consumption
+        )
+        task_models = TaskModelsByName.model_validate(task_models)
 
         pages_json = json.dumps(
             pages,
@@ -880,19 +1070,19 @@ class DataManager:
             allow_nan=False,
         )
         register_map_json = json.dumps(
-            register_map,
+            register_map.model_dump(mode="json"),
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
         )
         snapshot_json = json.dumps(
-            snapshot,
+            snapshot.model_dump(mode="json"),
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
         )
         token_consumption_json = json.dumps(
-            token_consumption,
+            token_consumption.model_dump(mode="json"),
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
@@ -900,7 +1090,7 @@ class DataManager:
 
         task_model_set = []
 
-        for task_name, model_name in task_models.items():
+        for task_name, model_name in task_models.model_dump(mode="json").items():
             task_model_set.append(
                 (
                     task_name.strip(),
@@ -968,126 +1158,24 @@ class DataManager:
                 ),
             )
 
-        result = self._get_version_result(
-            device_name,
-            version_major,
-            version_minor,
-        )
-        result["task_models"] = self.get_task_models(version_pk)
-        result["operation_id"] = operation_id
-        return result
+        version_info = self.get_version_info(version_pk)
 
-    def get_latest_version(self, device_name: str) -> tuple[int, int]:
-        row = self.connection.execute(
-            """
-            SELECT version_major, version_minor
-            FROM preprocessing_versions
-            WHERE device_name = ?
-            ORDER BY version_major DESC, version_minor DESC
-            LIMIT 1
-            """,
-            (device_name,),
-        ).fetchone()
-
-        if row is None:
-            raise LookupError(f"No versions found for device: {device_name}")
-
-        return row["version_major"], row["version_minor"]
-
-    def get_major_task_model_map(
-            self,
-            device_name: str,
-            version_major: int,
-    ) -> dict[str, str]:
-        rows = self.connection.execute(
-            """
-            SELECT
-                preprocessing_versions.version_pk,
-                preprocessing_versions.version_minor,
-                task_models.task_name,
-                task_models.model_name
-            FROM preprocessing_versions
-            LEFT JOIN task_models
-                ON task_models.version_pk = preprocessing_versions.version_pk
-            WHERE preprocessing_versions.device_name = ?
-              AND preprocessing_versions.version_major = ?
-            ORDER BY
-                preprocessing_versions.version_minor,
-                task_models.task_name
-            """,
-            (device_name, version_major),
-        ).fetchall()
-
-        if not rows:
-            raise LookupError(
-                f"Major version not found: {device_name} v{version_major}"
-            )
-
-        task_models_by_version: dict[int, dict[str, str]] = {}
-
-        for row in rows:
-            version_task_models = task_models_by_version.setdefault(
-                row["version_pk"],
-                {},
-            )
-            if row["task_name"] is not None:
-                version_task_models[row["task_name"]] = row["model_name"]
-
-        reference_version_pk, reference_task_models = next(
-            iter(task_models_by_version.items())
+        return OperationFeedback(
+            operation_name="save_preprocessing_result",
+            operation_id=operation_id,
+            succeeded=True,
+            details=version_info
         )
 
-        for version_pk, version_task_models in task_models_by_version.items():
-            if version_task_models != reference_task_models:
-                raise RuntimeError(
-                    "Inconsistent task-model mappings in "
-                    f"{device_name} v{version_major}: "
-                    f"version_pk={reference_version_pk} and "
-                    f"version_pk={version_pk}"
-                )
 
-        return reference_task_models
-
-    def _get_next_version(
-            self,
-            device_name: str,
-            pdf_sha256: str,
-            task_models: list[tuple[str, str]],
-    ) -> tuple[int, int]:
-        try:
-            version_major, version_minor = self.get_latest_version(device_name)
-        except LookupError:
-            return 1, 0
-
-        new_task_model_map = {
-            task_name: model_name
-            for task_name, model_name in task_models
-        }
-
-        current_task_models = self.get_major_task_model_map(
-            device_name,
-            version_major,
-        )
-
-        pdf_repeated = self._pdf_exists_in_major(
-            device_name,
-            version_major,
-            pdf_sha256,
-        )
-
-        models_changed = new_task_model_map != current_task_models
-
-        if pdf_repeated or models_changed:
-            return version_major + 1, 0
-
-        return version_major, version_minor + 1
-
+# Update-tools
     def update_register_map_field(
             self,
             version_pk: int,
             json_path: str,
             new_value: Any,
-    ) -> dict[str, Any]:
+    ) -> OperationFeedback:
+
         json_path = json_path.strip()
         if not json_path:
             raise ValueError("json_path must not be empty")
@@ -1110,15 +1198,16 @@ class DataManager:
                     version_minor,
                     register_map_json,
                     json_type(register_map_json, ?) AS value_type,
+                    json_extract(register_map_json, ?) AS old_value,
                     json_set(register_map_json, ?, json(?)) AS updated_json
                 FROM preprocessing_versions
                 WHERE version_pk = ?
                 """,
-                (json_path, json_path, new_value_json, version_pk),
+                (json_path, json_path, json_path, new_value_json, version_pk,),
             ).fetchone()
 
             if row is None:
-                raise LookupError(f"Version not found: version_pk={version_pk}")
+                raise LookupError(f"VersionInfo not found: version_pk={version_pk}")
             if row["value_type"] is None:
                 raise LookupError(f"JSON path not found: {json_path}")
 
@@ -1140,16 +1229,114 @@ class DataManager:
                     (row["updated_json"], version_pk),
                 )
 
-        result = self._get_version_result(
-            row["device_name"],
-            row["version_major"],
-            row["version_minor"],
-        )
-        result["changed"] = changed
-        result["operation_id"] = operation_id
-        return result
+        version_info = self.get_version_info(version_pk)
 
-    def delete_version(self, version_pk: int) -> dict[str, Any]:
+        return OperationFeedback(
+            operation_name="update_register_map_field",
+            operation_id=operation_id,
+            details={
+                "device_name": version_info.device_name,
+                "version_pk": version_pk,
+                "version_major": version_info.version_major,
+                "version_minor": version_info.version_minor,
+                "changed": changed,
+                "modified_at":version_info.register_map_modified_at,
+                "json_path": json_path,
+                "old_value": row["old_value"],
+                "new_value": new_value,
+            }
+        )
+
+    def reassign_version_identity(
+            self,
+            version_pk: int,
+            *,
+            device_name: str | None = None,
+            version_major: int | None = None,
+            version_minor: int | None = None,
+    ) -> OperationFeedback:
+
+        if not isinstance(version_pk, int) or isinstance(version_pk, bool):
+            raise TypeError("version_pk must be an integer")
+        if version_pk < 1:
+            raise ValueError("version_pk must be greater than or equal to 1")
+
+        if device_name is not None:
+            if not isinstance(device_name, str):
+                raise TypeError("device_name must be a string")
+            device_name = device_name.strip()
+            if not device_name:
+                raise ValueError("device_name must not be empty")
+
+        if version_major is not None:
+            if not isinstance(version_major, int) or isinstance(version_major, bool):
+                raise TypeError("version_major must be an integer")
+            if version_major < 1:
+                raise ValueError("version_major must be greater than or equal to 1")
+
+        if version_minor is not None:
+            if not isinstance(version_minor, int) or isinstance(version_minor, bool):
+                raise TypeError("version_minor must be an integer")
+            if version_minor < 0:
+                raise ValueError("version_minor must be greater than or equal to 0")
+
+        with self._write_operation("reassign_version_identity") as operation_id:
+
+            version_info = self.get_version_info(version_pk)
+
+            new_device_name = (
+                version_info.device_name if device_name is None else device_name
+            )
+            new_version_major = (
+                version_info.version_major if version_major is None else version_major
+            )
+            new_version_minor = (
+                version_info.version_minor if version_minor is None else version_minor
+            )
+
+            if not self._device_exists(new_device_name):
+                raise LookupError(f"Device not found: {new_device_name}")
+
+            changed = (
+                    version_info.device_name != new_device_name
+                    or version_info.version_major != new_version_major
+                    or version_info.version_minor != new_version_minor
+            )
+
+            if changed:
+                self.connection.execute(
+                    """
+                    UPDATE preprocessing_versions
+                    SET
+                        device_name = ?,
+                        version_major = ?,
+                        version_minor = ?
+                    WHERE version_pk = ?
+                    """,
+                    (
+                        new_device_name,
+                        new_version_major,
+                        new_version_minor,
+                        version_pk,
+                    ),
+                )
+
+        return OperationFeedback(
+            operation_name="reassign_version_identity",
+            operation_id=operation_id,
+            details={
+                "changed": changed,
+                "old_device_name": version_info.device_name,
+                "new_device_name": new_device_name,
+                "old_version_major": version_info.version_major,
+                "new_version_major": new_version_major,
+                "old_version_minor": version_info.version_minor,
+                "new_version_minor": new_version_minor,
+            }
+        )
+
+# Delete-tools
+    def delete_version(self, version_pk: int) -> OperationFeedback:
         with self._write_operation("delete_version") as operation_id:
             row = self.connection.execute(
                 """
@@ -1161,7 +1348,7 @@ class DataManager:
             ).fetchone()
 
             if row is None:
-                raise LookupError(f"Version not found: version_pk={version_pk}")
+                raise LookupError(f"VersionInfo not found: version_pk={version_pk}")
 
             newer_version = self.connection.execute(
                 """
@@ -1200,7 +1387,7 @@ class DataManager:
                     row["device_name"],
                     row["version_major"],
                 )
-                renumbered_major_versions = deletion["renumbered_major_versions"]
+                renumbered_major_versions = deletion.renumbered_major_versions
             else:
                 self.connection.execute(
                     "DELETE FROM preprocessing_versions WHERE version_pk = ?",
@@ -1208,32 +1395,109 @@ class DataManager:
                 )
                 renumbered_major_versions = []
 
-        return {
-            "operation_id": operation_id,
-            "version_pk": version_pk,
-            "device_name": row["device_name"],
-            "version_major": row["version_major"],
-            "version_minor": row["version_minor"],
-            "renumbered_major_versions": renumbered_major_versions,
-        }
+        return OperationFeedback(
+            operation_name="delete_version",
+            operation_id=operation_id,
+            succeeded=True,
+            details={
+                "device_name": row["device_name"],
+                "version_pk": version_pk,
+                "version_major": row["version_major"],
+                "version_minor": row["version_minor"],
+                "renumbered_major_versions": renumbered_major_versions,
+            }
+        )
 
-    def delete_major_version(self, device_name: str, version_major: int) -> dict[str, Any]:
+    def delete_major_version(self, device_name: str, version_major: int) -> OperationFeedback:
         with self._write_operation("delete_major_version") as operation_id:
             deletion = self._delete_major_version(device_name, version_major)
 
-        return {
-            "operation_id": operation_id,
-            "device_name": device_name,
-            "deleted_version_major": version_major,
-            "deleted_versions": deletion["deleted_versions"],
-            "renumbered_major_versions": deletion["renumbered_major_versions"],
+        return OperationFeedback(
+            operation_name="delete_major_version",
+            operation_id=operation_id,
+            details={
+                "device_name": device_name,
+                "deleted_version_major": version_major,
+                "deleted_versions": deletion.deleted_versions,
+                "renumbered_major_versions": deletion.renumbered_major_versions,
+            }
+        )
+
+    def delete_device(self, device_name: str, ) -> OperationFeedback:
+        with self._write_operation("delete_device") as operation_id:
+            if not self._device_exists(device_name):
+                raise LookupError(f"Device not found: {device_name}")
+
+            counts = self.connection.execute(
+                """
+                SELECT
+                    COUNT(DISTINCT preprocessing_versions.version_major) AS version_major_count
+                FROM devices
+                LEFT JOIN preprocessing_versions
+                    ON preprocessing_versions.device_name = devices.device_name
+                WHERE devices.device_name = ?
+                """,
+                (device_name,),
+            ).fetchone()
+
+            self.connection.execute(
+                "DELETE FROM devices WHERE device_name = ?",
+                (device_name,),
+            )
+
+        return OperationFeedback(
+            operation_name="delete_device",
+            operation_id=operation_id,
+
+            details={
+                "device_name": device_name,
+                "deleted_major_versions": counts["version_major_count"]
+            }
+        )
+
+# Private Methods
+    def _get_next_version(
+            self,
+            device_name: str,
+            pdf_sha256: str,
+            task_models: list[tuple[str, str]],
+    ) -> tuple[int, int]:
+
+        try:
+            latest_version = self.get_latest_version(device_name)
+            version_major = latest_version.version_major
+            version_minor = latest_version.version_minor
+        except LookupError:
+            return 1, 0
+
+        new_task_model_map = {
+            task_name: model_name
+            for task_name, model_name in task_models
         }
+
+        current_task_models = self.get_major_version_task_models(
+            device_name,
+            version_major,
+        ).task_models.model_dump()
+
+        pdf_repeated = self._pdf_exists_in_major(
+            device_name,
+            version_major,
+            pdf_sha256,
+        )
+
+        models_changed = new_task_model_map != current_task_models
+
+        if pdf_repeated or models_changed:
+            return version_major + 1, 0
+
+        return version_major, version_minor + 1
 
     def _delete_major_version(
             self,
             device_name: str,
             version_major: int,
-    ) -> dict[str, Any]:
+    ) -> MajorVersionDeletionRecord:
         version_count = self.connection.execute(
             """
             SELECT COUNT(*) AS version_count
@@ -1256,15 +1520,12 @@ class DataManager:
             (device_name, version_major),
         )
 
-        return {
-            "deleted_versions": version_count,
-            "renumbered_major_versions": self._renumber_major_versions_after(
-                device_name,
-                version_major,
-            ),
-        }
+        return MajorVersionDeletionRecord(
+            deleted_versions=version_count,
+            renumbered_major_versions=self._renumber_major_versions_after(device_name,version_major),
+        )
 
-    def _renumber_major_versions_after(self, device_name: str, deleted_version_major: int, ) -> list[dict[str, int]]:
+    def _renumber_major_versions_after(self, device_name: str, deleted_version_major: int, ) -> list[RenumberedMajorVersion]:
         rows = self.connection.execute(
             """
             SELECT DISTINCT version_major
@@ -1289,180 +1550,15 @@ class DataManager:
                 (new_version_major, device_name, old_version_major),
             )
             renumbered.append(
-                {
-                    "old_version_major": old_version_major,
-                    "new_version_major": new_version_major,
-                }
+                RenumberedMajorVersion(
+                    old_version_major=old_version_major,
+                    new_version_major=new_version_major,
+                )
             )
 
         return renumbered
 
-    def delete_device(self, device_name: str, ) -> dict[str, Any]:
-        with self._write_operation("delete_device") as operation_id:
-            if not self._device_exists(device_name):
-                raise LookupError(f"Device not found: {device_name}")
-
-            counts = self.connection.execute(
-                """
-                SELECT
-                    COUNT(DISTINCT preprocessing_versions.version_major) AS version_major_count
-                FROM devices
-                LEFT JOIN preprocessing_versions
-                    ON preprocessing_versions.device_name = devices.device_name
-                WHERE devices.device_name = ?
-                """,
-                (device_name,),
-            ).fetchone()
-
-            self.connection.execute(
-                "DELETE FROM devices WHERE device_name = ?",
-                (device_name,),
-            )
-
-        return {
-            "operation_id": operation_id,
-            "device_name": device_name,
-            "deleted_major_versions": counts["version_major_count"],
-        }
-
-    def reassign_version_identity(
-            self,
-            version_pk: int,
-            *,
-            device_name: str | None = None,
-            version_major: int | None = None,
-            version_minor: int | None = None,
-    ) -> dict[str, Any]:
-
-        if not isinstance(version_pk, int) or isinstance(version_pk, bool):
-            raise TypeError("version_pk must be an integer")
-        if version_pk < 1:
-            raise ValueError("version_pk must be greater than or equal to 1")
-
-        if device_name is not None:
-            if not isinstance(device_name, str):
-                raise TypeError("device_name must be a string")
-            device_name = device_name.strip()
-            if not device_name:
-                raise ValueError("device_name must not be empty")
-
-        if version_major is not None:
-            if not isinstance(version_major, int) or isinstance(version_major, bool):
-                raise TypeError("version_major must be an integer")
-            if version_major < 1:
-                raise ValueError("version_major must be greater than or equal to 1")
-
-        if version_minor is not None:
-            if not isinstance(version_minor, int) or isinstance(version_minor, bool):
-                raise TypeError("version_minor must be an integer")
-            if version_minor < 0:
-                raise ValueError("version_minor must be greater than or equal to 0")
-
-        with self._write_operation("reassign_version_identity") as operation_id:
-
-            row = self.get_info_of_version_pk(version_pk)
-
-            new_device_name = (
-                row["device_name"] if device_name is None else device_name
-            )
-            new_version_major = (
-                row["version_major"] if version_major is None else version_major
-            )
-            new_version_minor = (
-                row["version_minor"] if version_minor is None else version_minor
-            )
-
-            if not self._device_exists(new_device_name):
-                raise LookupError(f"Device not found: {new_device_name}")
-
-            changed = (
-                    row["device_name"] != new_device_name
-                    or row["version_major"] != new_version_major
-                    or row["version_minor"] != new_version_minor
-            )
-
-            if changed:
-                self.connection.execute(
-                    """
-                    UPDATE preprocessing_versions
-                    SET
-                        device_name = ?,
-                        version_major = ?,
-                        version_minor = ?
-                    WHERE version_pk = ?
-                    """,
-                    (
-                        new_device_name,
-                        new_version_major,
-                        new_version_minor,
-                        version_pk,
-                    ),
-                )
-
-        return {
-            "operation_id": operation_id,
-            "changed": changed,
-            "old_device_name": row["device_name"],
-            "new_device_name": new_device_name,
-            "old_version_major": row["version_major"],
-            "new_version_major": new_version_major,
-            "old_version_minor": row["version_minor"],
-            "new_version_minor": new_version_minor,
-        }
-
-    def _get_version_result(self, device_name: str, version_major: int, version_minor: int) -> dict:
-        row = self.connection.execute(
-            """
-            SELECT *
-            FROM preprocessing_versions
-            WHERE device_name = ?
-              AND version_major = ?
-              AND version_minor = ?
-            """,
-            (device_name, version_major, version_minor),
-        ).fetchone()
-
-        if row is None:
-            raise LookupError(
-                f"Version not found: {device_name} "
-                f"v{version_major}.{version_minor}"
-            )
-
-        prepro_result = dict(row)
-        prepro_result["pages_json"] = json.loads(prepro_result["pages_json"])
-        prepro_result["register_map_json"] = json.loads(prepro_result["register_map_json"])
-        prepro_result["snapshot_json"] = json.loads(prepro_result["snapshot_json"])
-        prepro_result["token_consumption"] = json.loads(prepro_result["token_consumption"])
-        return prepro_result
-
-    def find_versions_by_pdf(self, device_name: str, pdf_sha256: str):
-        rows = self.connection.execute(
-            """
-            SELECT
-                version_pk,
-                version_major,
-                version_minor,
-                input_pdf_sha256,
-                pages_json_created_at,
-                register_map_created_at,
-                register_map_modified_at,
-                snapshot_created_at
-            FROM preprocessing_versions
-            WHERE device_name = ? AND input_pdf_sha256 = ?
-            ORDER BY version_major, version_minor
-            """,
-            (device_name, pdf_sha256),
-        ).fetchall()
-        return [dict(row) for row in rows]
-
-    def _device_exists(self, device_name: str):
-        row = self.connection.execute(
-            "SELECT 1 FROM devices WHERE device_name = ? LIMIT 1",
-            (device_name,),
-        ).fetchone()
-        return row is not None
-
-    def _pdf_exists_in_major(self, device_name: str, version_major: int, pdf_sha256: str):
+    def _pdf_exists_in_major(self, device_name: str, version_major: int, pdf_sha256: str) -> bool:
         row = self.connection.execute(
             """
             SELECT 1
@@ -1523,7 +1619,7 @@ class DataManager:
             if owns_transaction:
                 self.connection.commit()
 
-    def close(self) -> None:
+    def _close(self) -> None:
         if self._connection is not None:
             self._connection.close()
             self._connection = None
@@ -1559,9 +1655,9 @@ class DataManager:
         try:
             self.initialize()
         except Exception:
-            self.close()
+            self._close()
             raise
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.close()
+        self._close()

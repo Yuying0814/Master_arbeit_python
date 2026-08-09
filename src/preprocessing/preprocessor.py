@@ -7,7 +7,10 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from src.models.page_output import PageClassification
+from src.models.preprocessing.preprocessor import Snapshot,TaskModelsByName,PreprocessorOutput,PreprocessingTokenConsumption
+from src.models.preprocessing.page_output import PageClassification
+from src.models.llm.common import NormalizedTokenConsumption
+
 from src.llm.ocr_task import OcrTask
 from src.llm.llm_task_runner import LLMTaskRunner
 from src.preprocessing.page.build_page_request import build_page_requests
@@ -472,19 +475,19 @@ class Preprocessor:
                 return_exceptions=True,
             )
 
-    def build_outputs(self) -> dict[str, Any]:
+    def build_outputs(self)-> PreprocessorOutput:
 
         snapshot = _build_preprocessor_snapshot(self)
         token_consumption = _build_token_consumption_snapshot(self)
         task_models = _build_task_models(self)
 
-        return{
-            "pages": self.pages,
-            "register_map": self.reg_map,
-            "snapshot": snapshot,
-            "task_models": task_models,
-            "token_consumption": token_consumption,
-        }
+        return PreprocessorOutput(
+            pages=self.pages,
+            register_map=self.reg_map,
+            snapshot=snapshot,
+            task_models=task_models,
+            token_consumption=token_consumption,
+        )
 
 # def _all_classification_false(pages: list[dict[str, Any]]) -> bool:
 #     for page in pages:
@@ -513,37 +516,36 @@ def _select_extraction_pages(pages:list[dict[str,Any]],page_index:list[int]) -> 
         for page in selected_pages
     ]
 
-def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> dict[str, Any]:
-    return {
-        "pdf_path": preprocessor.pdf_path,
-        "toc_page_idx": preprocessor.toc_page_idx,
-        "toc_entries": preprocessor.toc_entries,
-        "reg_page_idx_from_toc": preprocessor.reg_page_idx_from_toc,
-        "reg_page_idx_from_retrieval": preprocessor.reg_page_idx_from_retrieval,
-        "reg_page_idx_from_llm": preprocessor.reg_page_idx_from_llm,
-        "reg_page_candidate_idx": preprocessor.reg_page_candidate_idx,
-        "reg_page_idx": preprocessor.reg_page_idx,
-        "reg_sum_idx_from_toc": preprocessor.reg_sum_idx_from_toc,
-        "reg_sum_idx_from_retrieval": preprocessor.reg_sum_idx_from_retrieval,
-        "reg_sum_idx_from_llm": preprocessor.reg_sum_idx_from_llm,
-        "reg_sum_candidate_idx": preprocessor.reg_sum_candidate_idx,
-        "reg_sum_page_idx": preprocessor.reg_sum_page_idx,
-        "reg_summary": preprocessor.reg_summary,
-        "reg_map": preprocessor.reg_map,
-    }
+def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> Snapshot:
+    return Snapshot(
+        pdf_path = preprocessor.pdf_path,
+        toc_page_idx = preprocessor.toc_page_idx,
+        toc_entries = preprocessor.toc_entries,
+        reg_page_idx_from_toc = preprocessor.reg_page_idx_from_toc,
+        reg_page_idx_from_retrieval = preprocessor.reg_page_idx_from_retrieval,
+        reg_page_idx_from_llm = preprocessor.reg_page_idx_from_llm,
+        reg_page_candidate_idx = preprocessor.reg_page_candidate_idx,
+        reg_page_idx = preprocessor.reg_page_idx,
+        reg_sum_idx_from_toc = preprocessor.reg_sum_idx_from_toc,
+        reg_sum_idx_from_retrieval = preprocessor.reg_sum_idx_from_retrieval,
+        reg_sum_idx_from_llm = preprocessor.reg_sum_idx_from_llm,
+        reg_sum_candidate_idx = preprocessor.reg_sum_candidate_idx,
+        reg_sum_page_idx = preprocessor.reg_sum_page_idx,
+        reg_summary = preprocessor.reg_summary,
+        reg_map = preprocessor.reg_map,
+    )
 
-def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> dict[str,Any]:
-    token_consumption= {
-        "classification": _get_usage_from_task(preprocessor.classifier),
-        "reg_sum_verification": _get_usage_from_task(preprocessor.reg_sum_verifier),
-        "reg_page_verification": _get_usage_from_task(preprocessor.reg_page_verifier),
-        "reg_index_extraction": _get_usage_from_task(preprocessor.reg_index_extractor),
-        "reg_map_extraction": _get_usage_from_task(preprocessor.reg_map_extractor)
-    }
-
+def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> PreprocessingTokenConsumption:
+    token_consumption= PreprocessingTokenConsumption(
+        classification = _get_usage_from_task(preprocessor.classifier),
+        reg_sum_verification = _get_usage_from_task(preprocessor.reg_sum_verifier),
+        reg_page_verification = _get_usage_from_task(preprocessor.reg_page_verifier),
+        reg_index_extraction = _get_usage_from_task(preprocessor.reg_index_extractor),
+        reg_map_extraction = _get_usage_from_task(preprocessor.reg_map_extractor)
+    )
     return token_consumption
 
-def _build_task_models(preprocessor: Preprocessor) -> dict[str,Any]:
+def _build_task_models(preprocessor: Preprocessor) -> TaskModelsByName:
     task_configs = preprocessor.config.task_configs
     task_models = {}
 
@@ -552,19 +554,17 @@ def _build_task_models(preprocessor: Preprocessor) -> dict[str,Any]:
         model_name = task_config.model.model_name
         task_models[task_name] = model_name
 
-    return task_models
+    return TaskModelsByName.model_validate(task_models)
 
-def _get_usage_from_task(task:LLMTaskRunner | None) -> dict[str,Any]:
+def _get_usage_from_task(task:LLMTaskRunner | None) -> NormalizedTokenConsumption:
     if task is not None:
-        return {
-        "final_usage": getattr(task, "final_usage",{}),
-        "total_usage": getattr(task, "total_usage",{}),
-    }
+        return NormalizedTokenConsumption(
+            final_usage = getattr(task, "final_usage",{}),
+            total_usage = getattr(task, "total_usage",{}),
+        )
+
     else:
-        return{
-            "final_usage": {},
-            "total_usage": {},
-        }
+        return NormalizedTokenConsumption()
 
 def _validate_pdf_path(pdf_path: str|Path) -> Path:
     path = Path(pdf_path).expanduser().resolve()

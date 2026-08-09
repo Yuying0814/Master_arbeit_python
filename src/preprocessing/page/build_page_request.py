@@ -3,7 +3,7 @@ import math
 import re
 from typing import Any
 from src.preprocessing.utils.text_utils import extract_text_from_page
-from src.models.batch import UserRequest
+from src.models.llm.batch import UserRequest
 
 def build_page_requests(
         request_name:str,
