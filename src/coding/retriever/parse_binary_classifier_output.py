@@ -1,41 +1,43 @@
-import json
 from typing import Any
 
-from src.models.batch import UserRequest
 from src.models.retriever import BinaryClassifierOutput
 
 
 def parse_binary_classifier_output(
     contents: list[dict[str, Any]],
-    retrieval_requests: list[UserRequest],
+    retrieval_requests: dict[str, Any],
     len_topics: int,
-) -> list[list[int]]:
-    results: list[list[bool]] = []
+) -> dict[str,list[list[int]]]:
+
+    user_requests = retrieval_requests["user_requests"]
+    request_references = retrieval_requests["request_references"]
 
     id_output_map = build_custom_id_output_map(contents)
 
-    for user_request in retrieval_requests:
+    raw_results: list[list[bool]] = []
+    for user_request in user_requests:
         content = id_output_map.get(user_request.custom_id)
 
         if content is None:
-            results.append([False] * len_topics)
+            raw_results.append([False] * len_topics)
             continue
 
-        output = parse_binary_output_content(content)
-        results.append(normalize_binary_result(output.result, len_topics))
+        structured_output = parse_binary_output_content(content) # BinaryClassifierOutput
+        result = structured_output.result # result is a field of BinaryClassifierOutput, list[bool], relevance to topics in one page
+        raw_results.append(normalize_binary_result(result, len_topics))
 
-    page_indices: list[list[int]] = []
+    pdf_sha256_page_indices = {}
+    for request_reference,raw_result in zip(request_references, raw_results):
 
-    for topic_index in range(len_topics):
-        matched_pages: list[int] = []
+        topic_page_indices = pdf_sha256_page_indices.setdefault(
+            request_reference.pdf_sha256,
+            [[]for _ in range(len_topics)],
+        )
 
-        for page_position, result in enumerate(results):
-            if result[topic_index]:
-                matched_pages.append(page_position)
+        for topic_index,is_relevant in enumerate(raw_result):
+            topic_page_indices[topic_index].append(request_reference.page_index)
 
-        page_indices.append(matched_pages)
-
-    return page_indices
+    return pdf_sha256_page_indices
 
 
 def parse_binary_output_content(content: Any) -> BinaryClassifierOutput:

@@ -656,37 +656,34 @@ class DataManager:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def list_task_models(self, device_name: str) -> list[dict[str, Any]]:
+    def list_task_models(self,device_name: str,) -> list[dict[str, Any]]:
         with self._read_transaction():
             versions = self.list_versions(device_name)
 
-            results = []
+            results: list[dict[str, Any]] = []
+            processed_major_versions: set[int] = set()
 
             for version in versions:
-                rows = self.connection.execute(
-                    """
-                    SELECT task_name, model_name
-                    FROM task_models
-                    WHERE version_pk = ?
-                    """
-                    ,
-                    (version["version_pk"],),
-                ).fetchall()
+                version_major = version["version_major"]
+
+                if version_major in processed_major_versions:
+                    continue
+
+                rows = self.get_task_models(version["version_pk"])
 
                 results.append(
                     {
                         "device_name": device_name,
-                        "version_pk": version["version_pk"],
-                        "version_major": version["version_major"],
-                        "version_minor": version["version_minor"],
-                        "task_models": [
-                            {
-                                "task_name": row["task_name"],
-                                "model_name": row["model_name"],
-                            } for row in rows
-                        ]
+                        "version_major": version_major,
+                        "task_models": {
+                            row["task_name"]: row["model_name"]
+                            for row in rows
+                        },
                     }
                 )
+
+                processed_major_versions.add(version_major)
+
             return results
 
     def get_major_version_result(self, device_name: str, version_major: int) -> dict[str, Any]:
@@ -716,12 +713,10 @@ class DataManager:
                     f"{device_name} v{version_major}"
                 )
 
-            latest = rows[-1]
-
             return {
                 "device_name": device_name,
                 "version_major": version_major,
-                "pages": [
+                "documents": [
                     {
                         "version_pk": row["version_pk"],
                         "version_minor": row["version_minor"],
@@ -730,28 +725,43 @@ class DataManager:
                     }
                     for row in rows
                 ],
-                "register_map": json.loads(
-                    latest["register_map_json"]
-                ),
+                "register_maps": [
+                    {
+                        "version_pk": row["version_pk"],
+                        "version_minor": row["version_minor"],
+                        "pdf_sha256": row["input_pdf_sha256"],
+                        "register_map": json.loads(row["register_map_json"]),
+                    }
+                    for row in rows
+                ],
             }
 
-    def get_register_map(self, device_name: str, version_major: int) -> dict[str, Any]:
-        row = self.connection.execute(
+    def get_register_maps(self, device_name: str, version_major: int) -> dict[str, Any]:
+        rows = self.connection.execute(
             """
-            SELECT register_map_json, version_minor
+            SELECT version_pk, register_map_json, input_pdf_sha256,version_minor
             FROM preprocessing_versions
             WHERE device_name = ?
                 AND version_major = ?
-            ORDER BY version_minor DESC
-            LIMIT 1
+            ORDER BY version_minor ASC
             """,
             (device_name, version_major),
-        ).fetchone()
+        ).fetchall()
 
-        if not row:
+        if not rows:
             raise LookupError(f"Major version {version_major} of device {device_name} not found")
 
-        return json.loads(row["register_map_json"])
+        return {
+            "register_maps": [
+                {
+                    "version_pk": row["version_pk"],
+                    "version_minor": row["version_minor"],
+                    "pdf_sha256": row["input_pdf_sha256"],
+                    "register_map": json.loads(row["register_map_json"]),
+                }
+                for row in rows
+            ],
+        }
 
     def get_snapshot(self, device_name: str, version_major: int, version_minor: int) -> dict[str, Any]:
         row = self.connection.execute(
@@ -780,7 +790,6 @@ class DataManager:
             SELECT task_name, model_name
             FROM task_models
             WHERE version_pk = ?
-            ORDER BY task_name
             """,
             (version_pk,),
         ).fetchall()
