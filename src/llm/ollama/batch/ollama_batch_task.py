@@ -110,6 +110,7 @@ class OllamaBatchTask(HasLangChainOutput):
                 raise ValueError(
                     f"Duplicate custom_id: {request.custom_id}"
                 )
+            existing_ids.add(request.custom_id)
 
         self.user_requests.extend(user_requests)
 
@@ -152,7 +153,6 @@ class OllamaBatchTask(HasLangChainOutput):
         return self.contents
 
     def reset(self) -> None:
-        self.user_requests = []
         self.contents = []
         self.retries = []
         self.has_valid_output = False
