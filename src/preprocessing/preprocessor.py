@@ -7,7 +7,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from src.models.preprocessing.preprocessor import Snapshot,TaskModelsByName,PreprocessorOutput,PreprocessingTokenConsumption
+from models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
+from src.models.preprocessing.preprocessor import PreprocessorSnapshot,TaskModelsByName,PreprocessorOutput,PreprocessingTokenConsumption
 from src.models.preprocessing.page_output import PageClassification
 from src.models.llm.common import NormalizedTokenConsumption
 
@@ -42,8 +43,8 @@ class Preprocessor:
     reg_sum_candidate_idx: list[int]
     reg_sum_page_idx: list[int]
 
-    reg_summary: dict[str,Any]
-    reg_map: dict[str,Any]
+    reg_summary: RegisterIndexOutput
+    reg_map: RegisterMapOutput
 
     classifier: LLMTaskRunner | None
     reg_sum_verifier:LLMTaskRunner | None
@@ -80,8 +81,8 @@ class Preprocessor:
         self.reg_sum_candidate_idx = []
         self.reg_sum_page_idx = []
 
-        self.reg_summary = {}
-        self.reg_map = {}
+        self.reg_summary = RegisterIndexOutput(registers=[])
+        self.reg_map = RegisterMapOutput(registers=[])
 
         self.classifier = None
         self.reg_sum_verifier = None
@@ -90,7 +91,7 @@ class Preprocessor:
         self.reg_map_extractor = None
 
 
-    async def run(self,pdf_path:str|Path) -> dict[str,Any]:
+    async def run(self,pdf_path:str|Path) -> PreprocessorOutput:
         self.pdf_path = _validate_pdf_path(pdf_path)
         try:
             await self.pipeline()
@@ -105,7 +106,7 @@ class Preprocessor:
         print("-----------------------------------------------------------------------\n")
         self.run_ocr()
         await self.classify_pages()
-        self.get_page_candidates()
+        self.update_page_candidates()
 
         reg_sum_verify_task = asyncio.create_task(self.verify_reg_sum_pages())
         reg_page_verify_task = asyncio.create_task(self.verify_reg_pages())
@@ -134,7 +135,7 @@ class Preprocessor:
 
             raise
 
-    def run_ocr(self):
+    def run_ocr(self) -> list[dict[str,Any]]:
         if not self.ocr_result:
             api_key = (
                 self.config.get_apikey("mistral")
@@ -163,7 +164,9 @@ class Preprocessor:
         self.pages = remove_header_footer(pages)
         print("Ocr completed\n")
 
-    def save_ocr_result(self,**opts):
+        return pages
+
+    def save_ocr_result(self,**opts) -> bool:
         if "output_path" in opts and opts["output_path"]:
             output_path = Path(opts["output_path"])
         else:
@@ -174,7 +177,9 @@ class Preprocessor:
         except OSError as error:
             raise OSError(f"write ocr failed\n") from error
 
-    def get_page_candidates(self):
+        return True
+
+    def update_page_candidates(self) -> bool:
         pages = find_toc_pages(self.pages)
         self.toc_page_idx = [
             page["index"] for page in pages if page["result_toc"]["is_toc"]
@@ -204,7 +209,9 @@ class Preprocessor:
         self.reg_sum_candidate_idx = sorted(set(self.reg_sum_idx_from_toc+self.reg_sum_idx_from_retrieval+self.reg_sum_idx_from_llm))
         print("Page candidates updated\n")
 
-    async def classify_pages(self):
+        return True
+
+    async def classify_pages(self) -> bool:
         task_config = self.config.task_configs.classify_pages
         task_name = inspect.currentframe().f_code.co_name
         input_Path = self.config.project_path.input_path/f"{task_name}.jsonl"
@@ -237,8 +244,9 @@ class Preprocessor:
             pages = self.pages)
 
         print("Classification completed\n")
+        return True
 
-    async def verify_reg_sum_pages(self):
+    async def verify_reg_sum_pages(self) -> list[int]:
         if not self.reg_sum_candidate_idx:
             self.reg_sum_page_idx = []
             print("No verification task for register summary\n")
@@ -278,7 +286,7 @@ class Preprocessor:
         print("Verification of register summary pages completed\n")
         return self.reg_sum_page_idx
 
-    async def verify_reg_pages(self):
+    async def verify_reg_pages(self) -> list[int]:
         if not self.reg_page_candidate_idx:
             self.reg_page_idx = []
             print("No verification task for register map\n")
@@ -318,11 +326,10 @@ class Preprocessor:
         print("Verification of register pages completed\n")
         return self.reg_page_idx
 
-    async def extract_reg_index(self):
+    async def extract_reg_index(self) -> dict[str,Any]:
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction\n")
-            self.reg_summary = {}
-            return {}
+            return RegisterIndexOutput(registers=[])
 
         task_config = self.config.task_configs.extract_reg_index
 
@@ -352,13 +359,12 @@ class Preprocessor:
 
         self.reg_summary = result
         print("Register index information extraction completed\n")
-        return result
+        return result.model_dump()
 
-    async def extract_reg_map(self):
+    async def extract_reg_map(self) -> dict[str,Any]:
         if not self.reg_page_idx:
             print("No register page for register map extraction\n")
-            self.reg_map = {}
-            return {}
+            return RegisterMapOutput(registers=[])
 
         task_config = self.config.task_configs  .extract_reg_map
 
@@ -370,7 +376,7 @@ class Preprocessor:
         user_input = json.dumps(
             {
                 "pages": selected_pages,
-                "registers": self.reg_summary.get("registers", [])
+                "registers": self.reg_summary.model_dump()["registers"],
             },
             ensure_ascii=False,
         )
@@ -389,9 +395,9 @@ class Preprocessor:
 
         self.reg_map = result
         print("Register map extraction completed\n")
-        return result
+        return result.model_dump()
 
-    def refine_classification(self):
+    def refine_classification(self) -> bool:
         sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
         reg_page_diff_idx = set(self.reg_page_idx) ^ set(self.reg_page_idx_from_llm)
 
@@ -414,8 +420,9 @@ class Preprocessor:
             classification["is_register_map_relevant"] = (
                 not classification["is_register_map_relevant"]
             )
-
         print("Refinement completed\n")
+
+        return True
 
     # def create_add_description_task(self):
     #     if all_classification_false(self.pages):
@@ -457,7 +464,7 @@ class Preprocessor:
     #     if not task.has_valid_output:
     #         raise RuntimeError(f"Invalid output from {task.name}")
     #
-    async def cleanup(self) -> None:
+    async def cleanup(self) -> bool:
         cleanup_tasks = []
 
         if self.classifier is not None:
@@ -474,6 +481,7 @@ class Preprocessor:
                 *cleanup_tasks,
                 return_exceptions=True,
             )
+        return True
 
     def build_outputs(self)-> PreprocessorOutput:
 
@@ -516,8 +524,8 @@ def _select_extraction_pages(pages:list[dict[str,Any]],page_index:list[int]) -> 
         for page in selected_pages
     ]
 
-def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> Snapshot:
-    return Snapshot(
+def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> PreprocessorSnapshot:
+    return PreprocessorSnapshot(
         pdf_path = preprocessor.pdf_path,
         toc_page_idx = preprocessor.toc_page_idx,
         toc_entries = preprocessor.toc_entries,
@@ -547,16 +555,17 @@ def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> Preprocessi
 
 def _build_task_models(preprocessor: Preprocessor) -> TaskModelsByName:
     task_configs = preprocessor.config.task_configs
-    task_models = {}
 
-    task_models["ocr"] = preprocessor.config.ocr.model_name
+    task_models_by_name = {
+        "ocr":preprocessor.config.ocr.model_name
+    }
 
     for task_name in type(task_configs).model_fields:
         task_config = getattr(task_configs, task_name)
         model_name = task_config.model.model_name
-        task_models[task_name] = model_name
+        task_models_by_name[task_name] = model_name
 
-    return TaskModelsByName.model_validate(task_models)
+    return TaskModelsByName.model_validate(task_models_by_name)
 
 def _get_usage_from_task(task:LLMTaskRunner | None) -> NormalizedTokenConsumption:
     if task is not None:

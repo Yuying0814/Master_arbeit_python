@@ -1,6 +1,6 @@
 from typing import Any
 
-from models.structuredOutputModel import StructuredOutputModel
+from src.models.structuredOutputModel import StructuredOutputModel
 
 class NormalizedUsage(StructuredOutputModel):
     input_tokens:int

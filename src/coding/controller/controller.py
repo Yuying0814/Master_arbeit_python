@@ -29,7 +29,7 @@ class Controller:
     logs: list[ControllerLog]
     config:CodingConfig
 
-    def __init__(self,driver_name:str,config:CodingConfig,documents:list[dict[str,Any]],register_maps:list[dict[str,Any]]) -> None:
+    def __init__(self,driver_name:str,config:CodingConfig,documents:list[DocumentRecord],register_maps:list[RegisterMapRecord]) -> None:
         print(
             f"\n =============== initializing coding controller ===============\n"
             f"=================="
@@ -57,8 +57,8 @@ class Controller:
             cls,
             driver_name:str,
             config:CodingConfig,
-            documents:list[dict[str,Any]],
-            register_maps:list[dict[str,Any]]
+            documents:list[DocumentRecord],
+            register_maps:list[RegisterMapRecord]
     ) -> "Controller":
         return cls(
             driver_name=driver_name,

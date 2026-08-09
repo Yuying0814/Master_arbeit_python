@@ -3,7 +3,6 @@ from typing import Any
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.preprocessing.register_output import RegisterMapOutput
 from src.models.preprocessing.preprocessor import PreprocessorSnapshot,TaskModelsByName,PreprocessingTokenConsumption
-from src.models.llm.common import NormalizedTokenConsumption
 
 
 class DocumentRecord(StructuredOutputModel):
@@ -35,7 +34,7 @@ class VersionResult(StructuredOutputModel):
     register_map_modified_at: str
     snapshot_json: PreprocessorSnapshot
     snapshot_created_at: str
-    token_consumption: NormalizedTokenConsumption
+    token_consumption: PreprocessingTokenConsumption
 
 class MajorVersionResult(StructuredOutputModel):
     device_name: str
@@ -92,6 +91,7 @@ class OperationFeedback(StructuredOutputModel):
 
 class LatestVersion(StructuredOutputModel):
     device_name: str
+    version_pk: int
     version_major: int
     version_minor: int
 

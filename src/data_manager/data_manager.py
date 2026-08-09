@@ -696,7 +696,7 @@ class DataManager:
     def get_latest_version(self, device_name: str) -> LatestVersion:
         row = self.connection.execute(
             """
-            SELECT version_major, version_minor
+            SELECT version_pk, version_major, version_minor
             FROM preprocessing_versions
             WHERE device_name = ?
             ORDER BY version_major DESC, version_minor DESC
@@ -710,6 +710,7 @@ class DataManager:
 
         return LatestVersion(
             device_name=device_name,
+            version_pk = row["version_pk"],
             version_major=row["version_major"],
             version_minor=row["version_minor"],
         )

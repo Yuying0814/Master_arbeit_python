@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Any
 from datetime import datetime, timezone
 
+from src.models.data_manager import MajorVersionResult,VersionResult,DocumentRecord, RegisterMapRecord
+from src.models.preprocessing.preprocessor import PreprocessorOutput
+
 from src.data_manager.data_manager import DataManager
 from src.preprocessing.preprocessor import Preprocessor
 from src.preprocessing.config import PreprocessingConfig
@@ -16,7 +19,7 @@ async def run_preprocessor(
         pdf_path: Path,
         database_path: str | Path,
         device_name: str,
-) -> dict[str, Any]:
+) -> VersionResult:
     pdf_path = Path(pdf_path).expanduser().resolve()
     device_name = device_name.strip()
 
@@ -36,39 +39,44 @@ async def run_preprocessor(
                 device_name = existing_name
                 break
 
-        result = manager.save_preprocessing_result(
+        feedback = manager.save_preprocessing_result(
             device_name=device_name,
             input_pdf_sha256=_calculate_sha256(pdf_path),
-            pages=preprocessing_result["pages"],
-            register_map=preprocessing_result["register_map"],
-            snapshot=preprocessing_result["snapshot"],
+            pages=preprocessing_result.pages,
+            register_map=preprocessing_result.register_map,
+            snapshot=preprocessing_result.snapshot,
             pages_created_at=completed_at,
             register_map_created_at=completed_at,
             snapshot_created_at=completed_at,
-            token_consumption=preprocessing_result["token_consumption"],
-            task_models=preprocessing_result["task_models"],
+            token_consumption=preprocessing_result.token_consumption,
+            task_models=preprocessing_result.task_models,
         )
 
-        version = manager.get_latest_version(device_name)
+        version_info = feedback.details
 
         save_preprocessing_outputs(
             device_name=device_name,
-            version=f"v{version[0]}_{version[1]}",
+            version=f"v{version_info.version_major}_{version_info.version_minor}",
             output_dir=config.project_path.output_path,
             result=preprocessing_result,
         )
 
-    return result
+        version_result = manager.get_version_result(
+            device_name = version_info.device_name,
+            version_pk= version_info.version_pk,
+        )
+
+    return version_result
 
 def get_latest_major_result(
         database_path: Path,
         device_name:str,
-) -> dict[str,Any]:
+) -> MajorVersionResult:
     with DataManager(database_path) as manager:
         latest_version = manager.get_latest_version(device_name)
         result = manager.get_major_version_result(
             device_name=device_name,
-            version_major=latest_version[0],
+            version_major=latest_version.version_major,
         )
 
         return result
@@ -79,8 +87,8 @@ async def run_coding_controller(
         config:CodingConfig,
         driver_name:str,
         version_major:int,
-        documents:list[dict[str,Any]],
-        register_maps:list[dict[str,Any]],
+        documents:list[DocumentRecord],
+        register_maps:list[RegisterMapRecord],
         user_request:str | None = None,
 ) -> bool:
     controller = Controller.load_controller(
@@ -96,32 +104,32 @@ def save_preprocessing_outputs(
         device_name:str,
         version: str,
         output_dir:Path,
-        result:dict[str,Any],
+        result:PreprocessorOutput,
 ) -> bool:
 
     _write_json(
         output_dir /device_name/version/"preprocessor_snapshot.json",
-        result["snapshot"],
+        result.snapshot.model_dump_json(indent=2),
     )
 
     _write_json(
         output_dir /device_name/version/"register_map.json",
-        result["register_map"],
+        result.register_map.model_dump_json(indent=2),
     )
 
     _write_json(
         output_dir /device_name/version/"pages.json",
-        result["pages"],
+        result.pages,
     )
 
     _write_json(
         output_dir /device_name/version/"token_consumption.json",
-        result["token_consumption"],
+        result.token_consumption.model_dump_json(indent=2),
     )
 
     _write_json(
         output_dir /device_name/version/"task_models.json",
-        result["task_models"],
+        result.task_models.model_dump_json(indent=2),
     )
 
     return True

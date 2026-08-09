@@ -247,16 +247,16 @@ def main():
 
             data = get_latest_major_result(
                 database_path=Path(DATABASE_PATH),
-                device_name=result["device_name"],
+                device_name=result.device_name,
             )
 
             asyncio.run(
                 run_coding_controller(
                     config=coding_config,
-                    driver_name=result["device_name"],
-                    version_major=result["version_major"],
-                    documents=data["pages"],
-                    register_maps=data["register_map"],
+                    driver_name=result.device_name,
+                    version_major=result.version_major,
+                    documents=data.documents,
+                    register_maps=data.register_maps,
                     user_request=USER_REQUEST if USER_REQUEST else None,
                 )
             )
@@ -304,9 +304,9 @@ def main():
                     run_coding_controller(
                         config=coding_config,
                         driver_name=name,
-                        version_major=data["version_major"],
-                        documents=data["pages"],
-                        register_maps=data["register_map"],
+                        version_major=data.version_major,
+                        documents=data.documents,
+                        register_maps=data.register_maps,
                         user_request=USER_REQUEST if USER_REQUEST else None,
                     )
                 )

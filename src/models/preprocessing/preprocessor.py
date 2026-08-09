@@ -7,7 +7,7 @@ from src.models.llm.common import NormalizedTokenConsumption
 from src.models.structuredOutputModel import StructuredOutputModel
 
 
-class PreprocessorSnapshot(RootModel[dict[str, Any]]):
+class PreprocessorSnapshot(StructuredOutputModel):
     pdf_path:Path
     toc_page_idx: list[int]
     toc_entries: list[dict[str,Any]]

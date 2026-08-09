@@ -228,14 +228,14 @@ class ChatTools:
                 feedback = manager.save_preprocessing_result(
                     device_name=device_name,
                     input_pdf_sha256=pdf_sha256,
-                    pages=preprocessing_result["pages"],
-                    register_map=preprocessing_result["register_map"],
-                    snapshot=preprocessing_result["snapshot"],
+                    pages=preprocessing_result.pages,
+                    register_map=preprocessing_result.register_map,
+                    snapshot=preprocessing_result.snapshot,
                     pages_created_at=completed_at,
                     register_map_created_at=completed_at,
                     snapshot_created_at=completed_at,
-                    task_models=preprocessing_result["task_models"],
-                    token_consumption=preprocessing_result["token_consumption"],
+                    task_models=preprocessing_result.task_models,
+                    token_consumption=preprocessing_result.token_consumption,
                 )
 
             self.preprocessing_sessions.pop(preprocessing_session_id, None)
@@ -290,7 +290,7 @@ class ChatTools:
             if version_major is None:
                 task_models_by_major = {}
                 for major_version in available_major_versions:
-                    task_models_by_major[major_version] = self.get_major_task_model_map(
+                    task_models_by_major[major_version] = self.get_major_version_task_models(
                         device_name,
                         major_version
                     )
@@ -428,11 +428,7 @@ class ChatTools:
                 )
             )
 
-    def get_version_result(
-            self,
-            device_name: str,
-            version_pk: int,
-    ) -> dict[str, Any]:
+    def get_version_result(self,device_name: str,version_pk: int,) -> dict[str, Any]:
         """Return the complete stored result for one preprocessing version.
 
         Args:
@@ -444,11 +440,7 @@ class ChatTools:
                 manager.get_version_result(device_name, version_pk)
             )
 
-    def get_major_version_register_maps(
-            self,
-            device_name: str,
-            version_major: int,
-    ) -> list[dict[str, Any]]:
+    def get_major_version_register_maps(self,device_name: str,version_major: int,) -> list[dict[str, Any]]:
         """Return all register maps for a major preprocessing version.
 
         Args:
