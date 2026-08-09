@@ -1,11 +1,14 @@
 from typing import Any
 from langchain_ollama import ChatOllama
 from langchain_core.callbacks import UsageMetadataCallbackHandler
+from langchain_core.messages import AIMessage
 
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage
 from src.models.task_config import TaskConfig
 from src.llm.common.common import HasLangChainOutput
 from src.llm.common.types import ValidOutputFormat
+from src.llm.common.batch_utils import sum_normalized_usage,normalize_usage_map,normalize_usage
 
 
 class OllamaBatchTask(HasLangChainOutput):
@@ -16,13 +19,15 @@ class OllamaBatchTask(HasLangChainOutput):
     retries:list[dict[str,Any]]
     max_concurrency:int
     has_valid_output:bool
-    total_usage: dict
-    final_usage: dict
+    total_usage: dict[str, NormalizedUsage]
+    final_usage: dict[str, NormalizedUsage]
+    _final_usage_by_id: dict[str, NormalizedUsage]
 
-    def __init__(self, *, model: ChatOllama, system:str, output_format:ValidOutputFormat) -> None:
+    def __init__(self, *, model: ChatOllama,model_name:str, system:str, output_format:ValidOutputFormat) -> None:
         self.contents = []
         self.user_requests = []
         self.model = model
+        self.model_name = model_name
         self.system = system
         self.output_format = self.validate_output_format(output_format)
         self.retries = []
@@ -30,6 +35,7 @@ class OllamaBatchTask(HasLangChainOutput):
         self.has_valid_output = False
         self.total_usage = {}
         self.final_usage = {}
+        self._final_usage_by_id = {}
 
     @classmethod
     def load_from_task_config(cls,task_config:TaskConfig) -> "OllamaBatchTask":
@@ -40,6 +46,7 @@ class OllamaBatchTask(HasLangChainOutput):
         )
         return cls(
             model = model,
+            model_name=task_config.model.model_name,
             system = task_config.system,
             output_format = task_config.output_format,
         )
@@ -81,7 +88,14 @@ class OllamaBatchTask(HasLangChainOutput):
         self.contents = contents
         
         final_contents = await self.retry_batch([callback])
-        self.total_usage = callback.usage_metadata
+        self.total_usage = normalize_usage_map(callback.usage_metadata or {})
+
+        self.final_usage = {
+            self.model_name: sum_normalized_usage(
+                list(self._final_usage_by_id.values())
+            )
+        }
+
         return final_contents
 
     def add_user_inputs(self, user_requests: str| list[UserRequest]) -> None:
@@ -133,14 +147,18 @@ class OllamaBatchTask(HasLangChainOutput):
         self.has_valid_output = False
         self.total_usage = {}
         self.final_usage = {}
+        self._final_usage_by_id = {}
 
     def cleanup_user_requests(self) -> None:
         self.user_requests = []
 
     def _build_runnable_model(self):
         if self._is_structured_format(self.output_format):
-            return self.model.with_structured_output(self.output_format).with_retry(
-                stop_after_attempt=3
+            return self.model.with_structured_output(
+                self.output_format,
+                include_raw=True,
+            ).with_retry(
+                stop_after_attempt=3,
             )
 
         return self.model.with_retry(
@@ -170,7 +188,14 @@ class OllamaBatchTask(HasLangChainOutput):
                 continue
 
             try:
-                parsed_content = self.parse_result(result)
+                raw_message = self._get_raw_message(result)
+
+                if raw_message.usage_metadata:
+                    self._final_usage_by_id[user_request.custom_id] = (
+                        normalize_usage(raw_message.usage_metadata)
+                    )
+
+                parsed_content = self._parse_result(result)
 
                 contents.append(
                     {
@@ -192,6 +217,49 @@ class OllamaBatchTask(HasLangChainOutput):
                 )
 
         return contents
+
+    def _get_raw_message(self,result: Any,) -> AIMessage:
+        if self._is_structured_format(self.output_format):
+            raw_message = result.get("raw")
+
+            if not isinstance(raw_message, AIMessage):
+                raise TypeError(
+                    "Structured output must contain a raw AIMessage."
+                )
+
+            return raw_message
+
+        if not isinstance(result, AIMessage):
+            raise TypeError(
+                "Text output must be an AIMessage."
+            )
+
+        return result
+
+    def _parse_result(self,result: Any,) -> Any:
+        if self._is_structured_format(self.output_format):
+            parsing_error = result.get("parsing_error")
+
+            if parsing_error is not None:
+                raise ValueError(
+                    f"Structured output parsing failed: {parsing_error}"
+                )
+
+            parsed = result.get("parsed")
+
+            if parsed is None:
+                raise ValueError(
+                    "Structured output parsing returned None."
+                )
+
+            return parsed.model_dump()
+
+        if not isinstance(result, AIMessage):
+            raise TypeError(
+                "Text output must be an AIMessage."
+            )
+
+        return result.content
 
     def _record_retry(self,retry_user_requests: list[UserRequest],retry_contents: list[dict[str,Any]]) -> None:
             self.retries.append(
