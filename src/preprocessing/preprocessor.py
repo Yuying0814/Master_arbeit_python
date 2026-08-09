@@ -326,10 +326,10 @@ class Preprocessor:
         print("Verification of register pages completed\n")
         return self.reg_page_idx
 
-    async def extract_reg_index(self) -> dict[str,Any]:
+    async def extract_reg_index(self) -> RegisterIndexOutput:
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction\n")
-            return RegisterIndexOutput(registers=[]).model_dump()
+            return RegisterIndexOutput(registers=[])
 
         task_config = self.config.task_configs.extract_reg_index
 
@@ -359,12 +359,12 @@ class Preprocessor:
 
         self.reg_summary = result
         print("Register index information extraction completed\n")
-        return result.model_dump()
+        return result
 
-    async def extract_reg_map(self) -> dict[str,Any]:
+    async def extract_reg_map(self) -> RegisterMapOutput:
         if not self.reg_page_idx:
             print("No register page for register map extraction\n")
-            return RegisterMapOutput(registers=[]).model_dump()
+            return RegisterMapOutput(registers=[])
 
         task_config = self.config.task_configs  .extract_reg_map
 
@@ -395,7 +395,7 @@ class Preprocessor:
 
         self.reg_map = result
         print("Register map extraction completed\n")
-        return result.model_dump()
+        return result
 
     def refine_classification(self) -> bool:
         sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
