@@ -19,6 +19,7 @@ from src.llm.google.batch.async_client import AsyncGeminiBatchClient
 from src.llm.google.batch.input_file import GeminiBatchInputFile
 from src.llm.llm_batch_task import LLMBatchTask
 from src.models.llm.batch import UserRequest
+from src.models.llm.common import NormalizedUsage
 from src.models.task_config import TaskConfig
 
 
@@ -66,11 +67,11 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
         self.has_valid_output = False
         self.is_cleaned_up = False
-        self.total_usage: dict[str, Any] = {}
-        self.final_usage: dict[str, Any] = {}
+        self.total_usage: dict[str, NormalizedUsage] = {}
+        self.final_usage: dict[str, NormalizedUsage] = {}
 
-        self._total_usage_items: list[dict[str, Any]] = []
-        self._final_usage_by_id: dict[str, dict[str, Any]] = {}
+        self._total_usage_items: list[NormalizedUsage] = []
+        self._final_usage_by_id: dict[str, NormalizedUsage] = {}
 
     @classmethod
     def load_from_task_config(
@@ -477,33 +478,29 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         return "Unknown error"
 
     @staticmethod
-    def _normalize_usage(usage: dict[str, Any]) -> dict[str, Any]:
-        input_tokens = int(usage.get("prompt_token_count", 0) or 0)
-        output_tokens = int(
-            usage.get("candidates_token_count", 0) or 0
-        )
-        total_tokens = int(
-            usage.get(
-                "total_token_count",
-                input_tokens + output_tokens,
-            )
-            or input_tokens + output_tokens
-        )
-        cached_tokens = int(
-            usage.get("cached_content_token_count", 0) or 0
-        )
-        reasoning_tokens = int(
-            usage.get("thoughts_token_count", 0) or 0
-        )
+    def _normalize_usage(usage: dict[str, Any]) -> NormalizedUsage:
 
-        return {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": total_tokens,
-            "input_tokens_details": {
-                "cached_tokens": cached_tokens,
+        prompt_tokens = int(usage.get("prompt_token_count", 0) or 0)
+
+        tool_use_tokens = int(usage.get("tool_use_prompt_token_count", 0) or 0)
+
+        candidate_tokens = int(usage.get("candidates_token_count", 0) or 0)
+
+        reasoning_tokens = int(usage.get("thoughts_token_count", 0) or 0)
+
+        cached_tokens = int(usage.get("cached_content_token_count", 0) or 0)
+
+        input_tokens = prompt_tokens + tool_use_tokens
+        output_tokens = candidate_tokens + reasoning_tokens
+
+        return NormalizedUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=input_tokens + output_tokens,
+            input_token_details={
+                "cache_read": cached_tokens,
             },
-            "output_tokens_details": {
-                "reasoning_tokens": reasoning_tokens,
+            output_token_details={
+                "reasoning": reasoning_tokens,
             },
-        }
+    )

@@ -322,7 +322,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
                 )
                 continue
 
-            record = result.model_dump()
+            record = result.model_dump(mode="json")
             records.append(record)
 
             result_type = result.result.type
@@ -338,7 +338,7 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             message = result.result.message
 
             usage = self._normalize_usage(
-                message.usage.model_dump()
+                message.usage.model_dump(mode="json")
             )
 
             self._total_usage_items.append(usage)
