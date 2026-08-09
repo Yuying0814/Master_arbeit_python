@@ -7,7 +7,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
+from src.models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
 from src.models.preprocessing.preprocessor import PreprocessorSnapshot,TaskModelsByName,PreprocessorOutput,PreprocessingTokenConsumption
 from src.models.preprocessing.page_output import PageClassification
 from src.models.llm.common import NormalizedTokenConsumption
@@ -223,7 +223,7 @@ class Preprocessor:
 
         if not user_requests:
             print("No pages for classification task\n")
-            return
+            return True
 
         self.classifier = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
@@ -329,7 +329,7 @@ class Preprocessor:
     async def extract_reg_index(self) -> dict[str,Any]:
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction\n")
-            return RegisterIndexOutput(registers=[])
+            return RegisterIndexOutput(registers=[]).model_dump()
 
         task_config = self.config.task_configs.extract_reg_index
 
@@ -364,7 +364,7 @@ class Preprocessor:
     async def extract_reg_map(self) -> dict[str,Any]:
         if not self.reg_page_idx:
             print("No register page for register map extraction\n")
-            return RegisterMapOutput(registers=[])
+            return RegisterMapOutput(registers=[]).model_dump()
 
         task_config = self.config.task_configs  .extract_reg_map
 
@@ -545,11 +545,11 @@ def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> PreprocessorSnap
 
 def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> PreprocessingTokenConsumption:
     token_consumption= PreprocessingTokenConsumption(
-        classification = _get_usage_from_task(preprocessor.classifier),
-        reg_sum_verification = _get_usage_from_task(preprocessor.reg_sum_verifier),
-        reg_page_verification = _get_usage_from_task(preprocessor.reg_page_verifier),
-        reg_index_extraction = _get_usage_from_task(preprocessor.reg_index_extractor),
-        reg_map_extraction = _get_usage_from_task(preprocessor.reg_map_extractor)
+        classification =_get_usage_from_task_runner(preprocessor.classifier),
+        reg_sum_verification =_get_usage_from_task_runner(preprocessor.reg_sum_verifier),
+        reg_page_verification =_get_usage_from_task_runner(preprocessor.reg_page_verifier),
+        reg_index_extraction =_get_usage_from_task_runner(preprocessor.reg_index_extractor),
+        reg_map_extraction =_get_usage_from_task_runner(preprocessor.reg_map_extractor)
     )
     return token_consumption
 
@@ -567,7 +567,7 @@ def _build_task_models(preprocessor: Preprocessor) -> TaskModelsByName:
 
     return TaskModelsByName.model_validate(task_models_by_name)
 
-def _get_usage_from_task(task:LLMTaskRunner | None) -> NormalizedTokenConsumption:
+def _get_usage_from_task_runner(task:LLMTaskRunner | None) -> NormalizedTokenConsumption:
     if task is not None:
         return NormalizedTokenConsumption(
             final_usage = getattr(task, "final_usage",{}),
@@ -575,7 +575,7 @@ def _get_usage_from_task(task:LLMTaskRunner | None) -> NormalizedTokenConsumptio
         )
 
     else:
-        return NormalizedTokenConsumption()
+        return PreprocessingTokenConsumption()
 
 def _validate_pdf_path(pdf_path: str|Path) -> Path:
     path = Path(pdf_path).expanduser().resolve()

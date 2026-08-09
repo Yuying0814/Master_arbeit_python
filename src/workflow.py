@@ -109,12 +109,12 @@ def save_preprocessing_outputs(
 
     _write_json(
         output_dir /device_name/version/"preprocessor_snapshot.json",
-        result.snapshot.model_dump_json(indent=2),
+        result.snapshot.model_dump(),
     )
 
     _write_json(
         output_dir /device_name/version/"register_map.json",
-        result.register_map.model_dump_json(indent=2),
+        result.register_map.model_dump(),
     )
 
     _write_json(
@@ -124,12 +124,12 @@ def save_preprocessing_outputs(
 
     _write_json(
         output_dir /device_name/version/"token_consumption.json",
-        result.token_consumption.model_dump_json(indent=2),
+        result.token_consumption.model_dump(),
     )
 
     _write_json(
         output_dir /device_name/version/"task_models.json",
-        result.task_models.model_dump_json(indent=2),
+        result.task_models.model_dump(),
     )
 
     return True
@@ -141,6 +141,7 @@ def _calculate_sha256(pdf_path: Path) -> str:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
 def _write_json(output_path: Path, data: Any) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -1,8 +1,9 @@
 from typing import Any
 
-from pydantic import RootModel
+
 from pathlib import Path
 
+from src.models.preprocessing.register_output import RegisterMapOutput,RegisterIndexOutput
 from src.models.llm.common import NormalizedTokenConsumption
 from src.models.structuredOutputModel import StructuredOutputModel
 
@@ -21,8 +22,8 @@ class PreprocessorSnapshot(StructuredOutputModel):
     reg_sum_idx_from_llm: list[int]
     reg_sum_candidate_idx: list[int]
     reg_sum_page_idx: list[int]
-    reg_summary: dict[str, Any]
-    reg_map: dict[str, Any]
+    reg_summary: RegisterIndexOutput
+    reg_map: RegisterMapOutput
 
 class TaskModelsByName(StructuredOutputModel):
     ocr:str
@@ -42,7 +43,7 @@ class PreprocessingTokenConsumption(StructuredOutputModel):
 
 class PreprocessorOutput(StructuredOutputModel):
     pages: list[dict[str, Any]]
-    register_map: dict[str, Any]
+    register_map: RegisterMapOutput
     snapshot:PreprocessorSnapshot
     task_models: TaskModelsByName
     token_consumption: PreprocessingTokenConsumption

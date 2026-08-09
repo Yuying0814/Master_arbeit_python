@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
+from src.models.chat.chat import DeviceIdentificationResult
 from src.chat.config import ChatConfig
 from src.data_manager.data_manager import DataManager
 from src.llm.ocr_task import OcrTask
@@ -82,14 +83,14 @@ class ChatTools:
                 )
             )
 
-            identification = asyncio.run(task.run())
-            detected_device_name = str(identification["detected_device_name"]).strip()
+            identification:DeviceIdentificationResult = asyncio.run(task.run())
+            detected_device_name = identification.detected_device_name.strip()
 
             if not detected_device_name:
                 raise ValueError("Device identification returned an empty name.")
 
             existing_device_name = _optional_text(
-                identification["existing_device_name"]
+                identification.existing_device_name
             )
             existing_devices = {
                 name.casefold():name for name in device_names
@@ -109,7 +110,7 @@ class ChatTools:
                     detected_device_name.casefold()
                 )
 
-            is_consistent = bool(identification["is_consistent"])
+            is_consistent = bool(identification.is_consistent)
             if existing_device_name is None or expected_device_name is None:
                 is_consistent = True
 

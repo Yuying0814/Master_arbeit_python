@@ -27,7 +27,7 @@ class GeminiBatchInputFile:
         thinking_effort:ThinkingEffort,
         max_output_tokens: int,
 
-        temperature: float,
+        temperature: float|None,
     ) -> None:
 
         if custom_id in self.custom_ids:
@@ -36,8 +36,9 @@ class GeminiBatchInputFile:
         if not user.strip():
             raise ValueError("User input must not be empty.")
 
-        if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
-            raise ValueError("temperature must be between 0.0 and 2.0.")
+        if temperature is not None:
+            if not math.isfinite(temperature) or not 0.0 <= temperature <= 2.0:
+                raise ValueError("temperature must be between 0.0 and 2.0.")
 
         if not system.strip():
             system = "You are a helpful assistant."
