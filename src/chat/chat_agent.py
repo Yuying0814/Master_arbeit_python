@@ -27,6 +27,7 @@ class ChatAgent:
                 preprocessing_config=preprocessing_config,
                 coding_config=coding_config,
             ),
+            api_key=chat_config.get_apikey(chat_config.task_configs.chat.model.provider),
             thread_id=thread_id or uuid.uuid4().hex,
         )
 

@@ -47,7 +47,6 @@ class ChatConfig(BaseConfig):
             ocr_config=_build_ocr_config(),
         )
 
-
 def _build_task_config(prompt_path: Path) -> ChatTaskConfigs:
     return ChatTaskConfigs(
         chat=TaskConfig(
