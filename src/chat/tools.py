@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
+
 from src.models.chat.chat import DeviceIdentificationResult
 from src.chat.config import ChatConfig
 from src.data_manager.data_manager import DataManager
@@ -18,6 +19,7 @@ from src.llm.llm_single_task import LLMSingleTask
 
 if TYPE_CHECKING:
     from src.coding.config import CodingConfig
+    from src.coding.controller.controller import Controller
     from src.preprocessing.config import PreprocessingConfig
 
 
@@ -326,7 +328,7 @@ class ChatTools:
 
             major_result = self.get_major_version_result(
                 device_name,
-                    version_major,
+                version_major,
             )
 
             documents = major_result["documents"]
@@ -338,7 +340,7 @@ class ChatTools:
                 )
 
             coding_config = self.coding_config
-            from src.coding.controller.controller import Controller
+
 
             controller = Controller.load_controller(
                 driver_name=device_name,
@@ -346,7 +348,7 @@ class ChatTools:
                 documents=documents,
                 register_maps=register_maps,
             )
-            completed = asyncio.run(
+            completed,code_path = asyncio.run(
                 controller.run(
                     version_major=version_major,
                     user_request=_optional_text(user_request)),
@@ -364,7 +366,7 @@ class ChatTools:
                 "status":"completed",
                 "device_name":device_name,
                 "version_major":version_major,
-                "output_path":self.coding_config.project_path.code_dir / device_name/ str(version_major),
+                "output_path":code_path,
             }
         except Exception as error:
             return {
