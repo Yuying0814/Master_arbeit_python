@@ -692,8 +692,6 @@ class DataManager:
             major_versions=tuple(sorted(major_versions)),
         )
 
-    def list
-
 # Get-tools
     def get_latest_version(self, device_name: str) -> LatestVersion:
         row = self.connection.execute(
