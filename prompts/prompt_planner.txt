@@ -41,76 +41,83 @@ The user's coding request.
 The default task is to generate an Arduino Wire.h-based C++ driver library with one `.ino` entrance file, one `.h` file, and one `.cpp` file.
 Use this request as the highest-level functional goal, unless it conflicts with the available register-map evidence.
 
-### 3. `register_map`: RegisterMapOutput
-The extracted structured register map.
-The top-level field is usually `registers`.
+### 3. `register_maps`: Array<InputRegisterMap>
+An array of structured register maps extracted from multiple PDFs associated with the same device.
+Each InputRegisterMap contains the following fields:
 
-#### 3.1 `registers`: Array<Register>
+#### 3.1 `pdf_sha256`: String
+The SHA-256 hash of the source PDF file, used to uniquely identify the document and detect content changes.
+
+#### 3.2 `register_map`: RegisterMapOutput
+The extracted structured register map.
+The top-level JSON key inside this object is usually `registers`.
+
+##### 3.2.1 `registers`: Array<Register>
 The final array of extracted logical register objects.
 Each `Register` represents exactly one logical register and contains the following fields:
 
-##### 3.1.1 `index`: Integer
+###### 3.2.1.1 `index`: Integer
 Sequential positive integer starting from 1.
 
-##### 3.1.2 `name`: String
+###### 3.2.1.2 `name`: String
 The register name.
 
-##### 3.1.3 `is_multi_address`: Boolean
+###### 3.2.1.3 `is_multi_address`: Boolean
 Whether the logical register occupies more than one physical address.
 * `true` if there is more than one physical address object.
 * `false` if there are zero or one physical address object.
 
-##### 3.1.4 `physical_address`: Array<PhysicalAddress>
+###### 3.2.1.4 `physical_address`: Array<PhysicalAddress>
 Physical addresses occupied by this logical register.
 Each `PhysicalAddress` contains the following fields:
 
-###### 3.1.4.1 `hex`: String
+####### 3.2.1.4.1 `hex`: String
 Uppercase hexadecimal address with `0x` prefix.
 
-###### 3.1.4.2 `decimal`: String
+####### 3.2.1.4.2 `decimal`: String
 Decimal integer string without prefix.
 
-###### 3.1.4.3 `bank`: String
+####### 3.2.1.4.3 `bank`: String
 Register bank information only when explicitly stated or explicitly provided by input `registers`.
 
-###### 3.1.4.4 `page`: String
+####### 3.2.1.4.4 `page`: String
 Device register page, memory page, address page, page selector, or equivalent address-space page identifier.
 
-###### 3.1.4.5 `description`: String
+####### 3.2.1.4.5 `description`: String
 Concise source-supported description of this physical address, such as byte role or address role.
 
-##### 3.1.5 `register_description`: String
+###### 3.2.1.5 `register_description`: String
 Concise factual description of the logical register purpose or function.
 
-##### 3.1.6 `width_bits`: Integer or null
+###### 3.2.1.6 `width_bits`: Integer or null
 Total logical register width in bits.
 
-##### 3.1.7 `type_write_read`: String
+###### 3.2.1.7 `type_write_read`: String
 Register access type.
 * `R` for read only
 * `W` for write only
 * `RW` for read/write
 * empty string for not sure
 
-##### 3.1.8 `field_parts`: Array<FieldPart>
+###### 3.2.1.8 `field_parts`: Array<FieldPart>
 Required field. It stores all physical register parts, byte segments, sub-registers, or address-level parts that belong to the logical register.
 For a single-address register, include exactly one `FieldPart` for the register itself.
 For a multi-address logical register, include one `FieldPart` for each explicitly supported physical address, byte segment, sub-register, or address-level part.
 Each `FieldPart` contains the following fields:
 
-###### 3.1.8.1 `register_name`: String
+####### 3.2.1.8.1 `register_name`: String
 Name of the physical part, sub-register, byte field, or address-level segment.
 
-###### 3.1.8.2 `physical_address`: PhysicalAddress
+####### 3.2.1.8.2 `physical_address`: PhysicalAddress
 The physical address object corresponding to this part.
 
-###### 3.1.8.3 `description`: String
+####### 3.2.1.8.3 `description`: String
 Concise source-supported description of this part.
 
-###### 3.1.8.4 `width_bits`: Integer or null
+####### 3.2.1.8.4 `width_bits`: Integer or null
 Width of this part in bits.
 
-###### 3.1.8.5 `type_write_read`: String
+####### 3.2.1.8.5 `type_write_read`: String
 Register access type.
 
 * `R` for read only
@@ -118,39 +125,39 @@ Register access type.
 * `RW` for read/write
 * empty string for not sure
 
-###### 3.1.8.6 `bit_field`: Array<BitField>
+####### 3.2.1.8.6 `bit_field`: Array<BitField>
 Bit fields for this register part.
 Each `BitField` contains the following fields:
 
-####### 3.1.8.6.1 `name_or_parameter`: String
+######## 3.2.1.8.6.1 `name_or_parameter`: String
 Bit-field name, parameter name, bit label, or explicit reserved label.
 
-####### 3.1.8.6.2 `field_description`: String
+######## 3.2.1.8.6.2 `field_description`: String
 Concise source-supported description of the bit field.
 
-####### 3.1.8.6.3 `bit_start`: Integer or null
+######## 3.2.1.8.6.3 `bit_start`: Integer or null
 Lower bit index.
 
-####### 3.1.8.6.4 `bit_end`: Integer or null
+######## 3.2.1.8.6.4 `bit_end`: Integer or null
 Upper bit index.
 
-####### 3.1.8.6.5 `bit_width`: Integer or null
+######## 3.2.1.8.6.5 `bit_width`: Integer or null
 Width of this bit field.
 
-####### 3.1.8.6.6 `values`: Array<ValueDefinition>
+######## 3.2.1.8.6.6 `values`: Array<ValueDefinition>
 Explicit value definitions for this field.
 Each `ValueDefinition` contains the following fields:
 
-######## 3.1.8.6.6.1 `value`: String
+######### 3.2.1.8.6.6.1 `value`: String
 The literal encoded value.
 
-######## 3.1.8.6.6.2 `value_description`: String
+######### 3.2.1.8.6.6.2 `value_description`: String
 The explicit meaning of that value.
 
-####### 3.1.8.6.7 `is_reserved`: Boolean
+######## 3.2.1.8.6.7 `is_reserved`: Boolean
 `true` if the field is reserved. `false` if not.
 
-####### 3.1.8.6.8 `type_write_read`: String
+######## 3.2.1.8.6.8 `type_write_read`: String
 Bit-field access type.
 Allowed values:
 * `R` for read only
@@ -158,20 +165,20 @@ Allowed values:
 * `RW` for read/write
 * empty string for not sure
 
-##### 3.1.9 `category`: String
+###### 3.2.1.9 `category`: String
 Primary functional category of the register.
 
-##### 3.1.10 `source`: Array<SourcePage>
+###### 3.2.1.10 `source`: Array<SourcePage>
 Every provided page that directly supports this register entry.
 Each `SourcePage` contains the following field:
 
-###### 3.1.10.1 `page_index`: Integer
+####### 3.2.1.10.1 `page_index`: Integer
 The exact `pages.index` metadata value.
 
-##### 3.1.11 `default_value`: String
+###### 3.2.1.11 `default_value`: String
 Whole-register default, reset, initial, power-on, or POR value.
 
-##### 3.1.12 `default_value_description`: String
+###### 3.2.1.12 `default_value_description`: String
 
 Concise source-supported note, condition, qualifier, byte order, physical address order, or part order associated with the whole-register default value.
 
@@ -260,7 +267,7 @@ It must describe the target driver architecture and important implementation con
 For the default task, instruct the coder to generate an Arduino Wire.h-based C++ driver library with:
 
 * one `.ino` Arduino entrance sketch that defines the entry functions `setup()` and `loop()`;
-* one public header file;
+* one public header file.;
 * one implementation file;
 * the `.ino`, `.h`, and `.cpp` files must share the same base name and differ only by file extension;
 * no unnecessary extra files;
@@ -503,6 +510,7 @@ void loop() {
 ### 2. Header-file planning
 
 1. The header file should define the public driver interface, including user-facing APIs, register-related definitions, configuration types, and driver data structures when needed.
+2. The Header file must provide user-facing documentation comments for every public API declaration. Each comment must briefly describe the function purpose, input parameters, return value, and important usage constraints or datasheet-dependent assumptions. Keep comments concise, technical, and useful for Arduino users. Do not add verbose implementation details in the header.
 2. Do not place full implementation logic in the header unless it is necessary for small inline helpers.
 3. Do not expose low-level internals as public API unless they are useful for debugging or advanced usage.
 4. The header plan must remain consistent with the planned `.cpp` implementation.

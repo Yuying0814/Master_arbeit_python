@@ -132,126 +132,146 @@ Return type of the function.
 ######### 1.2.2.6.3.5.2 `description`: String
 Meaning of the return value.
 
-### 2. `register_map`: RegisterMapOutput
+### 2. `register_maps`: Array<InputRegisterMap>
+An array of structured register maps extracted from multiple PDFs associated with the same device.
+Each InputRegisterMap contains the following fields:
+
+#### 2.1 `pdf_sha256`: String
+The SHA-256 hash of the source PDF file, used to uniquely identify the document and detect content changes.
+
+#### 2.2 `register_map`: RegisterMapOutput
 The extracted structured register map.
 The top-level JSON key inside this object is usually `registers`.
 
-#### 2.1 `registers`: Array<RegisterMapItem>
+##### 2.2.1 `registers`: Array<Register>
 The final array of extracted logical register objects.
-Each `RegisterMapItem` represents exactly one logical register and contains the following fields:
+Each `Register` represents exactly one logical register and contains the following fields:
 
-##### 2.1.1 `index`: Integer
-Sequential register index.
+###### 2.2.1.1 `index`: Integer
+Sequential positive integer starting from 1.
 
-##### 2.1.2 `name`: String
+###### 2.2.1.2 `name`: String
 The register name.
 
-##### 2.1.3 `is_multi_address`: Boolean
+###### 2.2.1.3 `is_multi_address`: Boolean
 Whether the logical register occupies more than one physical address.
+* `true` if there is more than one physical address object.
+* `false` if there are zero or one physical address object.
 
-##### 2.1.4 `physical_address`: Array<RegisterAddress>
+###### 2.2.1.4 `physical_address`: Array<PhysicalAddress>
 Physical addresses occupied by this logical register.
-Each `RegisterAddress` contains the following fields:
+Each `PhysicalAddress` contains the following fields:
 
-###### 2.1.4.1 `hex`: String
-Hexadecimal address string.
+####### 2.2.1.4.1 `hex`: String
+Uppercase hexadecimal address with `0x` prefix.
 
-###### 2.1.4.2 `decimal`: String
-Decimal address string.
+####### 2.2.1.4.2 `decimal`: String
+Decimal integer string without prefix.
 
-###### 2.1.4.3 `bank`: String
-Register bank information.
+####### 2.2.1.4.3 `bank`: String
+Register bank information only when explicitly stated or explicitly provided by input `registers`.
 
-###### 2.1.4.4 `page`: String
-Register page, memory page, address page, or equivalent address-space page identifier.
+####### 2.2.1.4.4 `page`: String
+Device register page, memory page, address page, page selector, or equivalent address-space page identifier.
 
-###### 2.1.4.5 `description`: String
-Description of this physical address.
+####### 2.2.1.4.5 `description`: String
+Concise source-supported description of this physical address, such as byte role or address role.
 
-##### 2.1.5 `register_description`: String
-Description of the logical register purpose or function.
+###### 2.2.1.5 `register_description`: String
+Concise factual description of the logical register purpose or function.
 
-##### 2.1.6 `width_bits`: Integer or null
+###### 2.2.1.6 `width_bits`: Integer or null
 Total logical register width in bits.
 
-##### 2.1.7 `type_write_read`: String
+###### 2.2.1.7 `type_write_read`: String
 Register access type.
-Common values include:
-* `R`
-* `W`
-* `RW`
-* empty string when unknown
+* `R` for read only
+* `W` for write only
+* `RW` for read/write
+* empty string for not sure
 
-##### 2.1.8 `field_parts`: Array<RegisterFieldPart>
-Physical register parts, byte segments, sub-registers, or address-level parts that belong to the logical register.
-Each `RegisterFieldPart` contains the following fields:
+###### 2.2.1.8 `field_parts`: Array<FieldPart>
+Required field. It stores all physical register parts, byte segments, sub-registers, or address-level parts that belong to the logical register.
+For a single-address register, include exactly one `FieldPart` for the register itself.
+For a multi-address logical register, include one `FieldPart` for each explicitly supported physical address, byte segment, sub-register, or address-level part.
+Each `FieldPart` contains the following fields:
 
-###### 2.1.8.1 `register_name`: String
+####### 2.2.1.8.1 `register_name`: String
 Name of the physical part, sub-register, byte field, or address-level segment.
 
-###### 2.1.8.2 `physical_address`: RegisterAddress
+####### 2.2.1.8.2 `physical_address`: PhysicalAddress
 The physical address object corresponding to this part.
-Each `RegisterAddress` follows the same structure described in section 2.1.4.
 
-###### 2.1.8.3 `description`: String
-Description of this register part.
+####### 2.2.1.8.3 `description`: String
+Concise source-supported description of this part.
 
-###### 2.1.8.4 `width_bits`: Integer or null
+####### 2.2.1.8.4 `width_bits`: Integer or null
 Width of this part in bits.
 
-###### 2.1.8.5 `type_write_read`: String
+####### 2.2.1.8.5 `type_write_read`: String
 Register access type.
 
-###### 2.1.8.6 `bit_field`: Array<RegisterBitField>
+* `R` for read only
+* `W` for write only
+* `RW` for read/write
+* empty string for not sure
+
+####### 2.2.1.8.6 `bit_field`: Array<BitField>
 Bit fields for this register part.
-Each `RegisterBitField` contains the following fields:
+Each `BitField` contains the following fields:
 
-####### 2.1.8.6.1 `name_or_parameter`: String
-Bit-field name, parameter name, bit label, or reserved label.
+######## 2.2.1.8.6.1 `name_or_parameter`: String
+Bit-field name, parameter name, bit label, or explicit reserved label.
 
-####### 2.1.8.6.2 `field_description`: String
-Description of the bit field.
+######## 2.2.1.8.6.2 `field_description`: String
+Concise source-supported description of the bit field.
 
-####### 2.1.8.6.3 `bit_start`: Integer or null
+######## 2.2.1.8.6.3 `bit_start`: Integer or null
 Lower bit index.
 
-####### 2.1.8.6.4 `bit_end`: Integer or null
+######## 2.2.1.8.6.4 `bit_end`: Integer or null
 Upper bit index.
 
-####### 2.1.8.6.5 `bit_width`: Integer or null
+######## 2.2.1.8.6.5 `bit_width`: Integer or null
 Width of this bit field.
 
-####### 2.1.8.6.6 `values`: Array<RegisterFieldValue>
-Explicit value definitions for this bit field.
-Each `RegisterFieldValue` contains the following fields:
+######## 2.2.1.8.6.6 `values`: Array<ValueDefinition>
+Explicit value definitions for this field.
+Each `ValueDefinition` contains the following fields:
 
-######## 2.1.8.6.6.1 `value`: String
+######### 2.2.1.8.6.6.1 `value`: String
 The literal encoded value.
 
-######## 2.1.8.6.6.2 `value_description`: String
-The meaning of that value.
+######### 2.2.1.8.6.6.2 `value_description`: String
+The explicit meaning of that value.
 
-####### 2.1.8.6.7 `is_reserved`: Boolean
-Whether the field is reserved.
+######## 2.2.1.8.6.7 `is_reserved`: Boolean
+`true` if the field is reserved. `false` if not.
 
-####### 2.1.8.6.8 `type_write_read`: String
+######## 2.2.1.8.6.8 `type_write_read`: String
 Bit-field access type.
+Allowed values:
+* `R` for read only
+* `W` for write only
+* `RW` for read/write
+* empty string for not sure
 
-##### 2.1.9 `category`: String
+###### 2.2.1.9 `category`: String
 Primary functional category of the register.
 
-##### 2.1.10 `source`: Array<RegisterSource>
-Source page indexes supporting this register entry.
-Each `RegisterSource` contains the following field:
+###### 2.2.1.10 `source`: Array<SourcePage>
+Every provided page that directly supports this register entry.
+Each `SourcePage` contains the following field:
 
-###### 2.1.10.1 `page_index`: Integer
-The exact page index metadata value.
+####### 2.2.1.10.1 `page_index`: Integer
+The exact `pages.index` metadata value.
 
-##### 2.1.11 `default_value`: String
+###### 2.2.1.11 `default_value`: String
 Whole-register default, reset, initial, power-on, or POR value.
 
-##### 2.1.12 `default_value_description`: String
-Description or qualifier associated with the whole-register default value.
+###### 2.2.1.12 `default_value_description`: String
+
+Concise source-supported note, condition, qualifier, byte order, physical address order, or part order associated with the whole-register default value.
 
 ### 3. `retrieval_results`: Array<RetrievalResult>
 Retrieved datasheet context required for realizing the programming plan.
@@ -267,36 +287,43 @@ Search keywords used for retrieving relevant source pages.
 ##### 3.1.2 `topic_description`: String
 Description of what information was requested and why it is needed.
 
-#### 3.2 `pages`: Array<Page>
-Retrieved page objects.
-Use these pages as source evidence when implementing logic that is not fully specified by `register_map`.
-Each `Page` may contain the following fields:
+#### 3.2 `documents`: Array<document>
+Retrieved document objects.
+Use these document as source evidence when implementing logic that is not fully specified by `register_map`.
+Each `document` may contain the following fields:
 
-##### 3.2.1 `index`: Integer
+##### 3.2.1 `pdf_sha256`: String
+The SHA-256 hash of the source PDF file, used to uniquely identify the document and detect content changes.
+
+##### 3.2.2 `pages`: Array<page>
+Retrieved pages from the source PDF.
+Each `page` contains page-level content and metadata used as supporting evidence.
+
+###### 3.2.2.1 `index`: Integer
 The page index metadata of the page.
 
-##### 3.2.2 `markdown`: String
+###### 3.2.2.2 `markdown`: String
 The extracted markdown content of the page.
 When `markdown` contains a table reference such as `[tbl-9.html](tbl-9.html)`, interpret the corresponding table content at that exact position in the markdown.
 
-##### 3.2.3 `images`: Array<Object>
+###### 3.2.2.3 `images`: Array<Object>
 Image information extracted from the page, if available.
 
-##### 3.2.4 `tables`: Array<Table>
+###### 3.2.2.4 `tables`: Array<Table>
 Extracted tables for the page.
 Each `Table` may contain the following fields:
 
-###### 3.2.4.1 `id`: String
+####### 3.2.2.4.1 `id`: String
 The table id.
 If a table reference such as `[tbl-9.html](tbl-9.html)` appears in `markdown`, it means the content at that position is the table whose `id` matches `tbl-9.html`.
 
-###### 3.2.4.2 `content`: String
+####### 3.2.2.4.2 `content`: String
 The extracted table content.
 
-###### 3.2.4.3 `format`: String
+####### 3.2.2.4.3 `format`: String
 The table format.
 
-###### 3.2.4.4 `word_confidence_scores`: Array or Object
+####### 3.2.2.4.4 `word_confidence_scores`: Array or Object
 OCR confidence information.
 This field is not relevant for implementation and should normally be ignored.
 
@@ -413,7 +440,7 @@ Use an empty array if no candidate files should be deleted.
 
 1. Use only the provided input JSON object.
 2. Follow `programming_plan` as the primary implementation plan.
-3. Implement only the files, sections, functions, and features specified by `programming_plan`, except for lightweight internal helper functions allowed by Additional Contraints rule 1.
+2. Implement only the files, sections, functions, and features specified by `programming_plan`, except for lightweight internal helper functions allowed by Additional Contraints rule 1.
 4. When writing code, organize the content by planned file sections. Each section must start with a code comment whose comment text follows the exact form `section_name: ...`, where the section name matches the corresponding `FileSection.name` from `programming_plan`.
 5. Do not add unplanned public APIs, unplanned source files and unplanned output candidate files.
 6. Use `register_map` and `retrieval_results` as source evidence.
@@ -471,7 +498,8 @@ Initialization
 * Wire.begin()
   description: begin() initializes the Wire library and joins the I2C bus as a controller or a peripheral. This function should normally be called only once.
   syntax: Wire.begin(), Wire.begin(address)
-  parameters: address (optional): the 7-bit peripheral address. If not specified, the device joins the bus as a controller.
+  parameters:
+    address (optional): the 7-bit peripheral address. If not specified, the device joins the bus as a controller.
   returns: nothing
 
 * Wire.end()
@@ -483,7 +511,8 @@ Initialization
 * Wire.setClock()
   description: setClock() modifies the clock frequency for I2C communication. I2C peripheral devices have no minimum working clock frequency, however 100 kHz is usually the baseline.
   syntax: Wire.setClock(clockFrequency)
-  parameters: clockFrequency(uint32_t): the desired I2C communication clock in Hertz. parameters: clockFrequency(uint32_t): the desired I2C communication clock in Hertz. Common portable values are 100000 for standard mode and 400000 for fast mode. Some processors may also support 10000, 1000000, or 3400000. The generated driver should not assume that these extended modes are supported on all boards.
+  parameters:
+    clockFrequency(uint32_t): the desired I2C communication clock in Hertz. Common portable values are 100000 for standard mode and 400000 for fast mode. Some processors may also support 10000, 1000000, or 3400000. The generated driver should not assume that these extended modes are supported on all boards.
   returns: nothing
 
 Controller transmitter
@@ -491,30 +520,33 @@ Controller transmitter
 * Wire.beginTransmission()
   description: beginTransmission() begins a transmission to the I2C peripheral device with the given address. Bytes can then be queued with Wire.write() and transmitted by calling Wire.endTransmission().
   syntax: Wire.beginTransmission(address)
-  parameters: address: the 7-bit address of the peripheral device to transmit to.
+  parameters:
+    address: the 7-bit address of the peripheral device to transmit to.
   returns: nothing
 
 * Wire.write()
   description: write() writes data from a peripheral device in response to a request from a controller, or queues bytes for transmission from a controller to a peripheral between Wire.beginTransmission() and Wire.endTransmission().
   syntax: Wire.write(value), Wire.write(string), Wire.write(data, length)
   parameters:
-  value: a value to send as a single byte. Allowed data types: byte
-  string: a string to send as a series of bytes. Allowed data types: char*
-  data: an array of data to send as bytes. Allowed data types: byte[]
-  length: the number of bytes to transmit. Allowed data types: size_t
+    value: a value to send as a single byte. Allowed data types: byte
+    string: a string to send as a series of bytes. Allowed data types: char*
+    data: an array of data to send as bytes. Allowed data types: byte[]
+    length: the number of bytes to transmit. Allowed data types: size_t
   returns: the number of bytes written. Reading this return value is optional(Data type: size_t).
 
 * Wire.endTransmission()
   description: endTransmission() ends a transmission to a peripheral device that was started by Wire.beginTransmission() and transmits the bytes queued by Wire.write(). The optional stop parameter specifies whether to release the I2C bus after transmission. If true (default), a stop message is sent, releasing the bus. If false, a restart message is sent instead, keeping the connection active.
   syntax: Wire.endTransmission(), Wire.endTransmission(stop)
-  parameters: stop (optional): true sends a stop message and releases the bus after transmission, false sends a restart message, keeping the connection active. Default is true. Allowed data types: bool.
-  returns: A byte value indicating the status of the transmission:
-  0: success.
-  1: data too long to fit in transmit buffer.
-  2: received NACK on transmit of address.
-  3: received NACK on transmit of data.
-  4: other error.
-  5: timeout.
+  parameters:
+    stop (optional): true sends a stop message and releases the bus after transmission, false sends a restart message, keeping the connection active. Default is true. Allowed data types: bool.
+  returns:
+    A byte value indicating the status of the transmission:
+      0: success.
+      1: data too long to fit in transmit buffer.
+      2: received NACK on transmit of address.
+      3: received NACK on transmit of data.
+      4: other error.
+      5: timeout.
 
 Controller receiver
 
@@ -522,9 +554,9 @@ Controller receiver
   description: requestFrom() is used by the controller device to request bytes from a peripheral device. The bytes may then be retrieved with the available() and read() functions. The optional stop parameter specifies whether to release the I2C bus after the request. If true (default), a stop message is sent, releasing the bus. If false, a restart message is sent instead, keeping the connection active. This prevents another controller device from requesting between messages, allowing one controller to send multiple requests while maintaining control of the bus.
   syntax: Wire.requestFrom(address, quantity), Wire.requestFrom(address, quantity, stop)
   parameters:
-  address: the 7-bit address of the peripheral device to request bytes from.
-  quantity: the number of bytes to request.
-  stop (optional): true sends a stop message and releases the bus after the request. false sends a restart message, keeping the connection active. Default is true. Allowed data types: bool.
+    address: the 7-bit address of the peripheral device to request bytes from.
+    quantity: the number of bytes to request.
+    stop (optional): true sends a stop message and releases the bus after the request. false sends a restart message, keeping the connection active. Default is true. Allowed data types: bool.
   returns: The number of bytes returned from the peripheral device. Data type: byte.
 
 * Wire.available()
@@ -544,13 +576,15 @@ Peripheral Callback
 * Wire.onReceive()
   description: onReceive() registers a function to be called when a peripheral device receives a transmission from a controller device.
   syntax: Wire.onReceive(handler)
-  parameters: handler: the function to be called when the peripheral device receives data. The handler should take one int parameter, which is the number of bytes received, and return nothing.
+  parameters:
+    handler: the function to be called when the peripheral device receives data. The handler should take one int parameter, which is the number of bytes received, and return nothing.
   returns: nothing
 
 * Wire.onRequest()
   description: onRequest() registers a function to be called when a controller device requests data from a peripheral device.
   syntax: Wire.onRequest(handler)
-  parameters: handler: the function to be called. The handler should take no parameters and return nothing.
+  parameters:
+    handler: the function to be called. The handler should take no parameters and return nothing.
   returns: nothing
 
 Timeout configuration
@@ -560,8 +594,8 @@ Timeout-related functions are platform-dependent. Portable code can check the WI
   description: setWireTimeout() sets the timeout for Wire transmissions in controller mode. When called without parameters, a default timeout is configured that should be sufficient to prevent lockups in a typical single-controller configuration.
   syntax: Wire.setWireTimeout(timeout, reset_on_timeout), Wire.setWireTimeout()
   parameters:
-  timeout: timeout in microseconds. If set to 0, timeout checking is disabled. Allowed data types: uint32_t.
-  reset_on_timeout: if true, the Wire hardware is automatically reset on timeout when supported by the platform. Allowed data types: bool.
+    timeout: timeout in microseconds. If set to 0, timeout checking is disabled. Allowed data types: uint32_t.
+    reset_on_timeout: if true, the Wire hardware is automatically reset on timeout when supported by the platform. Allowed data types: bool.
   returns: nothing
 
 * Wire.clearWireTimeoutFlag()
@@ -575,3 +609,66 @@ Timeout-related functions are platform-dependent. Portable code can check the WI
   syntax: Wire.getWireTimeoutFlag()
   parameters: none
   returns: bool: the current value of the timeout flag.
+
+
+## SPI.h
+
+Configuration
+
+* SPISettings()
+  description: `SPISettings` is used to configure the SPI port for a specific SPI device. It combines three parameters (clock speed, bit order, and data mode) into a single object that is passed to `SPI.beginTransaction()`. `SPISettings` can be used directly inside `SPI.beginTransaction()` when all settings are constants, which results in smaller and faster code. When any setting is a variable (especially the clock speed), creating a named `SPISettings` object may be more efficient.
+  syntax: SPISettings(speedMaximum, dataOrder, dataMode), SPISettings mySetting(speedMaximum, dataOrder, dataMode)
+  parameters:
+    speedMaximum: the maximum clock speed in Hz. For example, use 20000000 for a peripheral rated up to 20 MHz.
+    dataOrder: the bit order for data transfer. Allowed values: MSBFIRST, LSBFIRST.
+    dataMode: the SPI data mode. Allowed values: SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3.
+  returns: nothing
+
+* SPI.begin()
+  description: `begin()` initializes the SPI bus, configuring the SCK, MOSI, and SS pins as outputs (with SCK and MOSI set low, and SS set high), and MISO as input. After calling this function, the device operates as a controller on the SPI bus.
+  syntax: SPI.begin()
+  parameters: none
+  returns: nothing
+
+* SPI.end()
+  description: `end()` disables the SPI bus, freeing the hardware resources. The pin modes (SCK, MOSI, MISO, SS) remain unchanged. This function can be used when SPI communication is no longer needed and the SPI hardware can be released.
+  syntax: SPI.end()
+  parameters: none
+  returns: nothing
+
+Transaction Control
+
+* SPI.beginTransaction()
+  description: `beginTransaction()` configures the SPI bus with the specified settings and takes exclusive control of the bus. This function should be called before communicating with a specific SPI peripheral to ensure proper configuration and prevent conflicts with other SPI devices or interrupts. Note that SPI.begin() must be called before using this function.
+  syntax: SPI.beginTransaction(mySettings)
+  parameters:
+    mySettings: the SPI settings to apply (clock speed, bit order, and data mode). See SPISettings for more information.
+  returns: nothing
+
+* SPI.endTransaction()
+  description: `endTransaction()` releases exclusive control of the SPI bus, allowing other libraries or interrupts to use it. This function should be called after communication with an SPI peripheral is complete, typically after setting the chip select (SS) pin HIGH.
+  syntax: SPI.endTransaction()
+  parameters: none
+  returns: none
+
+* SPI.usingInterrupt()
+  description: `usingInterrupt()` registers an interrupt with the SPI library to prevent conflicts when performing SPI transactions within an interrupt service routine (ISR). When an interrupt is registered using this function, SPI.beginTransaction() will automatically disable the specified interrupt before starting the transaction, and SPI.endTransaction() will re-enable it. This prevents data corruption that could occur if an interrupt tries to use the SPI bus while a transaction is in progress.
+  syntax: SPI.usingInterrupt(interruptNumber)
+  parameters:
+    interruptNumber: the interrupt number to register. This can be the value returned by digitalPinToInterrupt() or a named interrupt constant. Allowed data types: int.
+  returns: nothing
+
+Data transfer
+
+* SPI.transfer()
+  description: transfer() performs a simultaneous send and receive operation over the SPI bus. This is because SPI is a full-duplex protocol: while data is being sent, data is also being received. For single-byte transfers, the received byte is returned. For two-byte transfers using transfer16(), the received two bytes are returned. For buffer transfers, the received data replaces the original content of the buffer (in-place transfer).
+  syntax: receivedVal = SPI.transfer(val), receivedVal16 = SPI.transfer16(val16), SPI.transfer(buffer, size)
+  parameters:
+    val: the byte to send over the bus. Allowed data types: byte.
+    val16: the two-byte value to send over the bus. Allowed data types: uint16_t.
+    buffer: the array of data to be transferred. Allowed data types: array of byte.
+    size: the number of bytes in the buffer to transfer. Allowed data types: size_t.
+  returns:
+    For SPI.transfer(val): the received byte. Data type: byte.
+    For SPI.transfer16(val16): the received two-byte value. Data type: uint16_t.
+    For SPI.transfer(buffer, size): nothing is returned; the received data is stored in buffer.
