@@ -21,7 +21,7 @@ class PlannerInput(StructuredOutputModel):
         description="enable test coder",
     )
     user_request:str = Field(
-        default="Generate an Arduino Wire.h-based C++ driver library with one .ino entrance file, one .h file and one .cpp file.",
+        default="",
         description="user request for coding",
     )
     register_maps:list[InputRegisterMap] = Field(

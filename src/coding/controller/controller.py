@@ -40,7 +40,7 @@ class Controller:
         self.config = config
         self.not_accepted_files = []
         self.attempted_log = False
-        self.code_path = Path()
+        self.code_dir = Path()
 
         self.driver_name = driver_name
         self.documents = [DocumentRecord.model_validate(document) for document in documents]
@@ -68,7 +68,7 @@ class Controller:
         )
 
     async def run(self, version_major:int, user_request: str = None,):
-        self.code_path = self.config.project_path.code_dir/self.driver_name/str(version_major)
+        self.code_dir = self.config.project_path.code_dir / self.driver_name / str(version_major)
         verifier_feedback = None
         run_status = "failed"
         attempt = 0
@@ -136,10 +136,10 @@ class Controller:
                 print(
                     f" -> start writing accepted files\n"
                     f"writing accepted {len(self.accepted_files)} files to:\n"
-                    f"{self.code_path}\n"
+                    f"{self.code_dir}\n"
                 )
 
-                FileWriter.write_to_files(self.accepted_files, self.code_path)
+                FileWriter.write_to_files(self.accepted_files, self.code_dir)
                 run_status = "passed"
 
             print(
@@ -220,10 +220,7 @@ class Controller:
 
     def _build_planner_input(self,user_request:str|None,verifier_feedback:VerifierOutput|None) -> PlannerInput:
         if user_request is None:
-            user_request = (
-                "Generate an Arduino Wire.h-based sensor driver library. "
-                "Create the required .h and .cpp driver files and an .ino sketch file for compilation verification."
-            )
+            user_request = ""
 
         return PlannerInput(
             driver_name=self.driver_name,
@@ -268,7 +265,7 @@ class Controller:
         self.candidate_files = list(candidate_files_by_id.values())
 
     def clear_dir(self):
-        path = Path(self.code_path)
+        path = Path(self.code_dir)
         path.mkdir(parents=True, exist_ok=True)
 
         for item in path.iterdir():
