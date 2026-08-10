@@ -1043,6 +1043,9 @@ class DataManager:
             ),
         ).fetchone()
 
+        if row is None:
+            raise LookupError(f"PDF not found: version_pk={version_pk}")
+
         return row["pdf_name"]
 
     def get_major_version_register_maps(self, device_name: str, version_major: int) -> list[RegisterMapRecord]:

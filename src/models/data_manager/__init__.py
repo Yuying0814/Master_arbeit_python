@@ -1,6 +1,7 @@
 from src.models.data_manager.data_manager import (
     DocumentRecord,
     LatestVersion,
+    MajorPdfInfo,
     MajorTaskModelInfo,
     MajorVersionDeletionRecord,
     MajorVersionNumber,
@@ -20,6 +21,7 @@ from src.models.data_manager.data_manager import (
 __all__ = [
     "DocumentRecord",
     "LatestVersion",
+    "MajorPdfInfo",
     "MajorTaskModelInfo",
     "MajorVersionDeletionRecord",
     "MajorVersionNumber",

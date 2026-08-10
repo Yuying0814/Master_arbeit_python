@@ -231,7 +231,7 @@ class ChatTools:
             with DataManager(self.database_path) as manager:
                 feedback = manager.save_preprocessing_result(
                     device_name=device_name,
-                    pdf_name=session["pdf_path"].stem(),
+                    pdf_name=session["pdf_path"].stem,
                     input_pdf_sha256=pdf_sha256,
                     pages=preprocessing_result.pages,
                     register_map=preprocessing_result.register_map,
@@ -430,7 +430,7 @@ class ChatTools:
         with DataManager(self.database_path) as manager:
             return _parse_model(manager.get_latest_version(device_name))
 
-    def get_major_version_pdfs(self, device_name: str, version_major:int,) -> list[str]:
+    def get_major_version_pdfs(self, device_name: str, version_major:int,) -> dict[str, Any]:
         """Return all the procecced pdf_names for a major preprocessing-version of a device.
 
         Args:
