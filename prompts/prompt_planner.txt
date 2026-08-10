@@ -500,6 +500,7 @@ void loop() {
 ```
 
 For an SPI driver, a minimal entrance sketch may follow:
+```cpp
 #include <SPI.h>
 #include "<driver_name>.h"
 
@@ -512,6 +513,7 @@ void setup() {
 
 void loop() {
 }
+```
 
 ### 2. Header-file planning
 1. The driver must not initialize the global Wire or SPI bus. The driver should only perform device-specific communication transactions and initialization.
