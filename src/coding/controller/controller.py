@@ -217,6 +217,7 @@ class Controller:
             enable_test_coder=self.config.enable_test_coder,
             cli_path=self.config.project_path.cli_path,
             fqbn=self._build_fqbn(),
+            board_options=self.config.board_config.options,
             api_key_semantic=self.config.get_apikey(task_configs.verification_semantic.model.provider),
             api_key_test_coder=self.config.get_apikey(task_configs.verification_test_coder.model.provider),
             semantic_tools=None,
@@ -395,16 +396,19 @@ class Controller:
 
     def _build_fqbn(self) -> str:
 
-        core = self.config.architecture.strip()
-        board = self.config.board.strip()
+        package = self.config.board_config.package.strip()
+        architecture = self.config.board_config.architecture.strip()
+        board = self.config.board_config.board.strip()
+        if not package:
+            raise ValueError("Arduino package must not be empty.")
 
-        if not core:
+        if not architecture:
             raise ValueError("Arduino core must not be empty.")
 
         if not board:
             raise ValueError("Arduino board must not be empty.")
 
-        return f"arduino:{core}:{board}"
+        return f"{package}:{architecture}:{board}"
 
     def _check_valid_fqbn(self) -> None:
 

@@ -24,19 +24,21 @@ class Verifier:
         print(f"verifier created")
 
     @classmethod
-    def load_from_task_config(cls,
-                              driver_name:str,
-                              semantic_config:TaskConfig,
-                              execution_config:TaskConfig,
-                              *,
-                              enable_test_coder:bool,
-                              cli_path: Path,
-                              fqbn: str,
-                              api_key_semantic:str = None,
-                              api_key_test_coder:str = None,
-                              semantic_tools :list[Callable | BaseTool | dict]=None,
-                              execution_tools :list[Callable | BaseTool | dict]=None,
-                              ) -> "Verifier":
+    def load_from_task_config(
+            cls,
+            driver_name:str,
+            semantic_config:TaskConfig,
+            execution_config:TaskConfig,
+            *,
+            enable_test_coder:bool,
+            cli_path: Path,
+            fqbn: str,
+            board_options:dict[str,str],
+            api_key_semantic:str = None,
+            api_key_test_coder:str = None,
+            semantic_tools :list[Callable | BaseTool | dict]=None,
+            execution_tools :list[Callable | BaseTool | dict]=None,
+    ) -> "Verifier":
 
         semantic_verifier= LLMAgent.load_from_task_config(
             task_config=semantic_config,
@@ -54,7 +56,7 @@ class Verifier:
             enable_test_coder=enable_test_coder,
             cli_path=cli_path,
             fqbn=fqbn,
-
+            board_options = board_options,
         )
         return cls(
             semantic_verifier=semantic_verifier,

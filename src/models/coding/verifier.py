@@ -99,7 +99,8 @@ class SemanticVerifierOutput(StructuredOutputModel):
 
     feedback: str = Field(
         default= "",
-        description="Actionable feedback for the next planning attempt. None if verification passed.",
+        description="Actionable feedback when verification fails, or a non-blocking note "
+                    "when a conflicting user request is overridden by source-supported device facts.",
     )
 
 class RejectionReason(StructuredOutputModel):

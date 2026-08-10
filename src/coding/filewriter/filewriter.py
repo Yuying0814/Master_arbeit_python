@@ -28,7 +28,7 @@ class FileWriter:
         print(f"Successfully wrote to {filepath}")
 
     @staticmethod
-    def write_to_files(code_files:list[CodeFile],output_dir:Path | str) -> None:
+    def write_to_files(code_files:list[CodeFile],output_dir:Path | str) -> Path:
         output_dir = Path(output_dir)
 
         ino_file = next(
@@ -56,6 +56,8 @@ class FileWriter:
             print(
                 f"==================\n"
             )
+
+        return project_dir
 
     @staticmethod
     def write_log(self):

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 from pathlib import Path
 
 from src.config import BaseConfig,BaseProjectPath
@@ -9,6 +9,12 @@ from src.models.coding.planner import PlannerOutput
 from src.models.coding.verifier import SemanticVerifierOutput, TestCode
 from src.models.task_config import TaskConfig,ModelConfig,CodingTaskConfigs
 
+@dataclass
+class ArduinoBoardConfig:
+    package: str
+    architecture: str
+    board: str
+    options: dict[str, str] = field(default_factory=dict)
 
 def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
     retrieval = TaskConfig(
@@ -98,30 +104,30 @@ class CodingConfig(BaseConfig):
     project_path: CodingProjectPath
     task_configs: CodingTaskConfigs
     enable_test_coder: bool
-    architecture:str
-    board:str
+    board_config:ArduinoBoardConfig
 
     def __init__(
             self,
             project_path:CodingProjectPath,
             task_configs:CodingTaskConfigs,
             enable_test_coder:bool,
-            package:str,
-            architecture:str,
-            board:str
+            board_config:ArduinoBoardConfig,
     ) -> None:
         super().__init__(project_path)
         self.task_configs = task_configs
         self.enable_test_coder = enable_test_coder
-        self.package = package
-        self.architecture = architecture
-        self.board = board
+        self.board_config = board_config
 
     @classmethod
-    def load_config(cls,code_dir:str|Path, cli_path:str|Path, env:str|Path="",*,
-                    enable_test_coder:bool=False,
-                    architecture:str,
-                    board:str) -> CodingConfig:
+    def load_config(
+            cls,code_dir:str|Path, cli_path:str|Path, env:str|Path="",*,
+            enable_test_coder:bool=False,
+            package:str,
+            architecture:str,
+            board:str,
+            board_options:dict[str,str],
+    ) -> CodingConfig:
+
         code_dir = Path(code_dir)
         code_dir.mkdir(parents=True, exist_ok=True)
 
@@ -157,8 +163,12 @@ class CodingConfig(BaseConfig):
             project_path = project_path,
             task_configs = _build_task_config(project_path.prompt_path),
             enable_test_coder = enable_test_coder,
-            core=core,
-            board=board,
+            board_config=ArduinoBoardConfig(
+                package=package,
+                architecture=architecture,
+                board=board,
+                options=board_options,
+            ),
         )
 
 

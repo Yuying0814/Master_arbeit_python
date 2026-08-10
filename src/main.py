@@ -32,7 +32,20 @@ PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/temp"
+
+# ============================================================
+# Arduino-cli configuration
+# ============================================================
 CLI_PATH = PROJECT_ROOT/"arduino"/"bin"/"arduino-cli.exe"
+PACKAGE = "rp2040"
+ARCHITECTURE = "rp2040"
+BOARD = "generic"
+BOARD_OPTIONS = {
+    "flash": "4194304_0",
+    "boot2": "boot2_w25q128jvxq_4_padded_checksum",
+    "usbstack":"picosdk",
+}
+ENABLE_TEST_CODER = False
 
 # ============================================================
 # Model configuration
@@ -210,6 +223,11 @@ def main():
         code_dir=CODE_DIR,
         cli_path=CLI_PATH,
         env=ENV_FILE,
+        package=PACKAGE,
+        architecture=ARCHITECTURE,
+        board=BOARD,
+        enable_test_coder=ENABLE_TEST_CODER,
+        board_options=BOARD_OPTIONS,
     )
     chat_config = ChatConfig.load_config(
         env=ENV_FILE,
@@ -257,7 +275,7 @@ def main():
                     version_major=result.version_major,
                     documents=data.documents,
                     register_maps=data.register_maps,
-                    user_request=USER_REQUEST if USER_REQUEST else None,
+                    user_request=USER_REQUEST,
                 )
             )
 
@@ -307,7 +325,7 @@ def main():
                         version_major=data.version_major,
                         documents=data.documents,
                         register_maps=data.register_maps,
-                        user_request=USER_REQUEST if USER_REQUEST else None,
+                        user_request=USER_REQUEST,
                     )
                 )
 

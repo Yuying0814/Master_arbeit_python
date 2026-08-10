@@ -29,13 +29,21 @@ class ExecutionVerifier:
     total_tokens: dict[str,Any]
     log:ExecutionVerifierLog
 
-    def __init__(self,driver_name:str,test_coder_config:dict[str,Any],enable_test_coder:bool,cli_path:Path,fqbn:str):
+    def __init__(
+            self,
+            driver_name:str,
+            test_coder_config:dict[str,Any],
+            enable_test_coder:bool,
+            cli_path:Path,fqbn:str,
+            board_options:dict[str,str],
+    ):
         self.driver_name = driver_name
         self.test_coder_config = test_coder_config
         self.test_dir = ""
         self.enable_test_coder = enable_test_coder
         self.cli_path = cli_path
         self.fqbn = fqbn
+        self.board_options = board_options
         self.total_tokens = {}
         self.log = ExecutionVerifierLog(
             enable_test_coder=self.enable_test_coder,
@@ -57,6 +65,7 @@ class ExecutionVerifier:
             enable_test_coder:bool,
             cli_path: Path,
             fqbn: str,
+            board_options:dict[str,str],
     ) -> "ExecutionVerifier":
 
         test_coder_config = {
@@ -70,7 +79,8 @@ class ExecutionVerifier:
             test_coder_config = test_coder_config,
             enable_test_coder = enable_test_coder,
             cli_path = cli_path,
-            fqbn = fqbn
+            fqbn = fqbn,
+            board_options=board_options,
         )
 
     def run(self,execution_verifier_input:ExecutionVerifierInput) -> ExecutionVerifierOutput:

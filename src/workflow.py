@@ -90,7 +90,7 @@ async def run_coding_controller(
         version_major:int,
         documents:list[DocumentRecord],
         register_maps:list[RegisterMapRecord],
-        user_request:str | None = None,
+        user_request:str = "",
 ) -> bool:
     controller = Controller.load_controller(
         driver_name=driver_name,
