@@ -91,7 +91,7 @@ async def run_coding_controller(
         documents:list[DocumentRecord],
         register_maps:list[RegisterMapRecord],
         user_request:str = "",
-) -> bool:
+) -> tuple[bool, str]:
     controller = Controller.load_controller(
         driver_name=driver_name,
         config=config,

@@ -270,8 +270,7 @@ class ChatTools:
             version_major: Major preprocessed version to code.
             user_request: Optional driver requirements; uses the controller default when omitted.
         """
-        if user_request is None:
-            user_request = ""
+        user_request = user_request.strip() if user_request else ""
 
         try:
             device_name = device_name.strip()
@@ -352,7 +351,8 @@ class ChatTools:
             completed,code_path = asyncio.run(
                 controller.run(
                     version_major=version_major,
-                    user_request=_optional_text(user_request)),
+                    user_request=user_request
+                ),
             )
 
             if not completed:
