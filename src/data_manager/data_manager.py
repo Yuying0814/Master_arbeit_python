@@ -9,10 +9,9 @@ from collections.abc import Iterator
 from typing import Any
 from uuid import uuid4
 
-from models.data_manager.data_manager import MajorPdfInfo
 from src.models.data_manager.data_manager import (
     VersionInfo, MajorVersionNumber, MajorTaskModelInfo, TaskModelInfo,
-    VersionResult, MajorVersionResult, DocumentRecord, RegisterMapRecord,
+    MajorPdfInfo,VersionResult, MajorVersionResult, DocumentRecord, RegisterMapRecord,
     SnapshotRecord, PreprocessingTokenConsumptionRecord, OperationFeedback, LatestVersion,
     MajorVersionDeletionRecord, RenumberedMajorVersion,
     PreprocessorSnapshot, TaskModelsByName,
@@ -927,6 +926,12 @@ class DataManager:
                 version_major,
             ),
         ).fetchall()
+
+        if not rows:
+            raise LookupError(
+                f"Major version not found: "
+                f"{device_name} v{version_major}"
+            )
 
         return MajorPdfInfo(
             device_name=device_name,

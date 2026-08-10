@@ -41,6 +41,7 @@ async def run_preprocessor(
 
         feedback = manager.save_preprocessing_result(
             device_name=device_name,
+            pdf_name = pdf_path.stem(),
             input_pdf_sha256=_calculate_sha256(pdf_path),
             pages=preprocessing_result.pages,
             register_map=preprocessing_result.register_map,

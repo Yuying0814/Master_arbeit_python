@@ -231,6 +231,7 @@ class ChatTools:
             with DataManager(self.database_path) as manager:
                 feedback = manager.save_preprocessing_result(
                     device_name=device_name,
+                    pdf_name=session["pdf_path"].stem(),
                     input_pdf_sha256=pdf_sha256,
                     pages=preprocessing_result.pages,
                     register_map=preprocessing_result.register_map,
