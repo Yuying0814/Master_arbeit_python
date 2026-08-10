@@ -159,7 +159,7 @@ Whole-register default, reset, initial, power-on, or POR value.
 
 Concise source-supported note, condition, qualifier, byte order, physical address order, or part order associated with the whole-register default value.
 
-### 3. `retrieval_result`: Array<RetrievalResult>
+### 3. `retrieval_results`: Array<RetrievalResult>
 Retrieved datasheet context required for realizing the programming plan.
 Each `RetrievalResult` contains the following fields:
 
