@@ -103,10 +103,10 @@ class LLMAgent:
 
         response = self.agent.invoke(
             _build_messages(user_input),
-            config=self._build_invoke_config(),
+            config=self._build_invoke_config(usage_callback),
         )
 
-        self._update_total_tokens()
+        self._update_total_tokens(usage_callback)
 
         return self._parse_response(response)
 
@@ -121,10 +121,10 @@ class LLMAgent:
 
         response = retry_agent.invoke(
             _build_messages(user_input),
-            config=self._build_invoke_config(),
+            config=self._build_invoke_config(usage_callback),
         )
 
-        self._update_total_tokens()
+        self._update_total_tokens(usage_callback)
 
         return self._parse_response(response)
 
