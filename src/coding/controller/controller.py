@@ -67,7 +67,7 @@ class Controller:
             register_maps=register_maps
         )
 
-    async def run(self, version_major:int, user_request: str = None,):
+    async def run(self, version_major:int, user_request: str = "",):
         self.code_dir = self.config.project_path.code_dir / self.driver_name / str(version_major)
         verifier_feedback = None
         run_status = "failed"
@@ -114,12 +114,22 @@ class Controller:
                     retrieval_results = retrieval_response.results
 
                 with self.event_recorder.step("coder", "create_code_file", attempt=attempt):
-                    coder_input = self._build_coder_input(programming_plan, retrieval_results)
+                    coder_input = self._build_coder_input(
+                        programming_plan=programming_plan,
+                        retrieval_results=retrieval_results
+                    )
+
                     coder_output = self.coder.create_code_file(coder_input)
 
                 self._update_candidate_files(coder_output)
                 with self.event_recorder.step("verifier", "run", attempt=attempt):
-                    verifier_input = self._build_verifier_input(verification_plan, retrieval_results)
+                    verifier_input = self._build_verifier_input(
+                        user_request=user_request,
+                        programming_plan=programming_plan,
+                        verification_plan=verification_plan,
+                        retrieval_results=retrieval_results
+                    )
+
                     verifier_output = self.verifier.run(verifier_input)
 
                 if verifier_output.passed:
@@ -218,9 +228,7 @@ class Controller:
             output_dir=self.config.project_path.root_path / "data" / self.driver_name,
         )
 
-    def _build_planner_input(self,user_request:str|None,verifier_feedback:VerifierOutput|None) -> PlannerInput:
-        if user_request is None:
-            user_request = ""
+    def _build_planner_input(self,user_request:str,verifier_feedback:VerifierOutput|None) -> PlannerInput:
 
         return PlannerInput(
             driver_name=self.driver_name,
@@ -241,8 +249,17 @@ class Controller:
             accepted_files=self.accepted_files,
         )
 
-    def _build_verifier_input(self,verification_plan:VerificationPlan,retrieval_results:list[RetrievalResult]) -> VerifierInput:
+    def _build_verifier_input(
+            self,
+            user_request:str,
+            programming_plan:ProgrammingPlan,
+            verification_plan:VerificationPlan,
+            retrieval_results:list[RetrievalResult]
+    ) -> VerifierInput:
+
         return VerifierInput(
+            user_request=user_request,
+            programming_plan=programming_plan,
             verification_plan=verification_plan,
             register_maps=self._get_normalized_register_maps_input(),
             retrieval_results=retrieval_results,
@@ -378,7 +395,7 @@ class Controller:
 
     def _build_fqbn(self) -> str:
 
-        core = self.config.core.strip()
+        core = self.config.architecture.strip()
         board = self.config.board.strip()
 
         if not core:

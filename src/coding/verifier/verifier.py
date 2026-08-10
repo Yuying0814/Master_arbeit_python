@@ -124,8 +124,10 @@ class Verifier:
         )
 
 # Helper
-def _build_semantic_input(verifier_input:VerifierInput):
+def _build_semantic_input(verifier_input: VerifierInput) -> str:
     return SemanticVerifierInput(
+        user_request=verifier_input.user_request,
+        programming_plan=verifier_input.programming_plan,
         verification_plan=verifier_input.verification_plan.semantic_plan,
         register_maps=verifier_input.register_maps,
         retrieval_results=verifier_input.retrieval_results,

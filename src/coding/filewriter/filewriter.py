@@ -30,14 +30,22 @@ class FileWriter:
     @staticmethod
     def write_to_files(code_files:list[CodeFile],output_dir:Path | str) -> None:
         output_dir = Path(output_dir)
-        project_dir = Path()
 
-        for code_file in code_files:
-            if code_file.file_type.strip() == ".ino":
-                project_dir = output_dir/code_file.name
-                break
+        ino_file = next(
+            (
+                code_file
+                for code_file in code_files
+                if code_file.file_type.strip() == ".ino"
+            ),
+            None,
+        )
 
-            raise ValueError("Code files must contain at least one .ino file")
+        if ino_file is None:
+            raise ValueError(
+                "Code files must contain at least one .ino file"
+            )
+
+        project_dir = output_dir / ino_file.name
 
         for index,code_file in enumerate(code_files):
             print(

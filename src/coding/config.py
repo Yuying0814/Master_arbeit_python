@@ -98,21 +98,30 @@ class CodingConfig(BaseConfig):
     project_path: CodingProjectPath
     task_configs: CodingTaskConfigs
     enable_test_coder: bool
-    core:str
+    architecture:str
     board:str
 
-    def __init__(self,project_path:CodingProjectPath,task_configs:CodingTaskConfigs,enable_test_coder:bool,core:str,board:str) -> None:
+    def __init__(
+            self,
+            project_path:CodingProjectPath,
+            task_configs:CodingTaskConfigs,
+            enable_test_coder:bool,
+            package:str,
+            architecture:str,
+            board:str
+    ) -> None:
         super().__init__(project_path)
         self.task_configs = task_configs
         self.enable_test_coder = enable_test_coder
-        self.core = core
+        self.package = package
+        self.architecture = architecture
         self.board = board
 
     @classmethod
     def load_config(cls,code_dir:str|Path, cli_path:str|Path, env:str|Path="",*,
                     enable_test_coder:bool=False,
-                    core:str = "avr",
-                    board:str = "uno") -> CodingConfig:
+                    architecture:str,
+                    board:str) -> CodingConfig:
         code_dir = Path(code_dir)
         code_dir.mkdir(parents=True, exist_ok=True)
 
