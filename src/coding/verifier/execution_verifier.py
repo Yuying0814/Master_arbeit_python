@@ -91,10 +91,13 @@ class ExecutionVerifier:
             self.test_dir = Path(temp_root) / self.driver_name
 
             files = execution_verifier_input.candidate_files
-            FileWriter.write_to_files(
+
+            project_dir = FileWriter.write_to_files(
                 code_files=files,
-                output_dir=self.test_dir)
-            compiler_message = self._compiler_run()
+                output_dir=self.test_dir
+            )
+
+            compiler_message = self._compiler_run(project_dir)
 
             if not compiler_message.passed:
                 test_result = ExecutionVerifierOutput(
@@ -166,11 +169,11 @@ class ExecutionVerifier:
 
             files = test_code.files
 
-            FileWriter.write_to_files(
+            project_dir = FileWriter.write_to_files(
                 code_files=files,
                 output_dir=self.test_dir)
 
-            compiler_msg = self._compiler_run()
+            compiler_msg = self._compiler_run(project_dir)
 
             test_coder_output = TestCoderOutput(
                 passed = compiler_msg.passed,
@@ -246,17 +249,22 @@ class ExecutionVerifier:
         }
 
 
-    def _compiler_run(self) -> CompilerMsg:
+    def _compiler_run(self,project_dir:Path) -> CompilerMsg:
         try:
-            compile_result = _run_command(
-                [
-                    str(self.cli_path),
-                    "compile",
-                    "--fqbn",
-                    self.fqbn,
-                    str(self.test_dir),
-                ],
-            )
+            command = [
+                str(self.cli_path),
+                "compile",
+                "--fqbn",
+                self.fqbn,
+            ]
+
+            if self.board_options:
+                command.extend([
+                    "--board-options",
+                    self._build_board_options(),
+                ])
+
+            command.append(str(project_dir))
         except subprocess.TimeoutExpired as exc:
             return CompilerMsg(
                 passed=False,
@@ -305,6 +313,12 @@ class ExecutionVerifier:
             execution_output=ExecutionVerifierOutput(),
             test_coder_logs=[],
             token_consumption={},
+        )
+
+    def _build_board_options(self) -> str:
+        return ",".join(
+            f"{key}={value}"
+            for key, value in self.board_options.items()
         )
 
 #Helper
