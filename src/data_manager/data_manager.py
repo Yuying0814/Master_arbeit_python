@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from typing import Any
 from uuid import uuid4
 
+from models.data_manager.data_manager import MajorPdfInfo
 from src.models.data_manager.data_manager import (
     VersionInfo, MajorVersionNumber, MajorTaskModelInfo, TaskModelInfo,
     VersionResult, MajorVersionResult, DocumentRecord, RegisterMapRecord,
@@ -54,6 +55,18 @@ CREATE TABLE IF NOT EXISTS devices (
         CHECK (length(trim(device_name)) > 0 AND device_name = trim(device_name))
 );
 
+CREATE TABLE IF NOT EXISTS documents (
+    document_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    input_pdf_sha256 TEXT NOT NULL UNIQUE CHECK (
+        length(input_pdf_sha256) = 64
+        AND input_pdf_sha256 NOT GLOB '*[^0-9a-f]*'
+    ),
+    pdf_name TEXT NOT NULL CHECK (
+        length(trim(pdf_name)) > 0
+        AND pdf_name = trim(pdf_name)
+    )
+);
+
 CREATE TABLE IF NOT EXISTS preprocessing_versions (
     version_pk INTEGER PRIMARY KEY AUTOINCREMENT,
     device_name TEXT NOT NULL,
@@ -82,6 +95,12 @@ CREATE TABLE IF NOT EXISTS preprocessing_versions (
 
     FOREIGN KEY (device_name) REFERENCES devices (device_name)
         ON UPDATE CASCADE ON DELETE CASCADE,
+    
+    FOREIGN KEY (input_pdf_sha256)
+        REFERENCES documents (input_pdf_sha256)
+        ON UPDATE RESTRICT
+        ON DELETE RESTRICT,
+    
     UNIQUE (device_name, version_major, version_minor),
     UNIQUE (device_name, version_major, input_pdf_sha256)
 );
@@ -94,13 +113,17 @@ CREATE TABLE IF NOT EXISTS task_models (
     FOREIGN KEY (version_pk) REFERENCES preprocessing_versions (version_pk)
         ON UPDATE CASCADE ON DELETE CASCADE
 );
-
-
 """
 
 EXPECTED_COLUMNS = {
     "devices": (
         "device_name",
+        "input_pdf_sha256",
+        "pdf_name",
+    ),
+
+    "documents":(
+        "document_id",
     ),
 
     "preprocessing_versions": (
@@ -116,7 +139,7 @@ EXPECTED_COLUMNS = {
         "register_map_modified_at",
         "snapshot_json",
         "snapshot_created_at",
-        "token_consumption"
+        "token_consumption",
     ),
 
     "task_models": (
@@ -554,19 +577,169 @@ BEGIN
         strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     );
 END;
+
+CREATE TRIGGER IF NOT EXISTS audit_insert_documents
+AFTER INSERT ON documents
+FOR EACH ROW
+BEGIN
+    INSERT INTO change_records (
+        operation_id,
+        operation_name,
+        action,
+        table_name,
+        record_key_json,
+        column_names,
+        json_path,
+        old_value_json,
+        new_value_json,
+        changed_at
+    )
+    VALUES (
+        current_operation_id(),
+        current_operation_name(),
+        'INSERT',
+        'documents',
+        json_object(
+            'document_id', NEW.document_id,
+            'input_pdf_sha256', NEW.input_pdf_sha256
+        ),
+        NULL,
+        NULL,
+        NULL,
+        json_object(
+            'document_id', NEW.document_id,
+            'input_pdf_sha256', NEW.input_pdf_sha256,
+            'pdf_name', NEW.pdf_name
+        ),
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    );
+END;
+
+
+CREATE TRIGGER IF NOT EXISTS validate_update_documents
+BEFORE UPDATE ON documents
+FOR EACH ROW
+BEGIN
+    SELECT CASE
+        WHEN OLD.document_id IS NOT NEW.document_id
+            OR OLD.input_pdf_sha256 IS NOT NEW.input_pdf_sha256
+        THEN RAISE(
+            ABORT,
+            'document_id and input_pdf_sha256 cannot be updated'
+        )
+    END;
+END;
+
+
+CREATE TRIGGER IF NOT EXISTS audit_update_documents
+AFTER UPDATE ON documents
+FOR EACH ROW
+WHEN OLD.pdf_name IS NOT NEW.pdf_name
+BEGIN
+    INSERT INTO change_records (
+        operation_id,
+        operation_name,
+        action,
+        table_name,
+        record_key_json,
+        column_names,
+        json_path,
+        old_value_json,
+        new_value_json,
+        changed_at
+    )
+    VALUES (
+        current_operation_id(),
+        current_operation_name(),
+        'UPDATE',
+        'documents',
+        json_object(
+            'document_id', NEW.document_id,
+            'input_pdf_sha256', NEW.input_pdf_sha256
+        ),
+        json_array('pdf_name'),
+        NULL,
+        json_object(
+            'pdf_name', OLD.pdf_name
+        ),
+        json_object(
+            'pdf_name', NEW.pdf_name
+        ),
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    );
+END;
+
+
+CREATE TRIGGER IF NOT EXISTS audit_delete_documents
+AFTER DELETE ON documents
+FOR EACH ROW
+BEGIN
+    INSERT INTO change_records (
+        operation_id,
+        operation_name,
+        action,
+        table_name,
+        record_key_json,
+        column_names,
+        json_path,
+        old_value_json,
+        new_value_json,
+        changed_at
+    )
+    VALUES (
+        current_operation_id(),
+        current_operation_name(),
+        'DELETE',
+        'documents',
+        json_object(
+            'document_id', OLD.document_id,
+            'input_pdf_sha256', OLD.input_pdf_sha256
+        ),
+        NULL,
+        NULL,
+        json_object(
+            'document_id', OLD.document_id,
+            'input_pdf_sha256', OLD.input_pdf_sha256,
+            'pdf_name', OLD.pdf_name
+        ),
+        NULL,
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS cleanup_orphan_documents
+AFTER DELETE ON preprocessing_versions
+FOR EACH ROW
+BEGIN
+    DELETE FROM documents
+    WHERE input_pdf_sha256 = OLD.input_pdf_sha256
+      AND NOT EXISTS (
+          SELECT 1
+          FROM preprocessing_versions
+          WHERE input_pdf_sha256 = OLD.input_pdf_sha256
+      );
+END;
 """
 
 EXPECTED_TRIGGERS = (
     "audit_insert_devices",
     "audit_update_devices",
     "audit_delete_devices",
+
     "audit_insert_preprocessing_versions",
     "validate_update_preprocessing_versions",
     "audit_update_preprocessing_versions",
     "audit_delete_preprocessing_versions",
+
     "audit_insert_task_models",
     "audit_update_task_models",
     "audit_delete_task_models",
+
+    "audit_insert_documents",
+    "audit_update_documents",
+    "audit_delete_documents",
+    "validate_update_documents",
+    "cleanup_orphan_documents",
 )
 
 
@@ -652,18 +825,24 @@ class DataManager:
         rows = self.connection.execute(
             """
             SELECT
-                device_name,
-                version_pk,
-                version_major,
-                version_minor,
-                input_pdf_sha256,
-                pages_json_created_at,
-                register_map_created_at,
-                register_map_modified_at,
-                snapshot_created_at
+                preprocessing_versions.device_name,
+                preprocessing_versions.version_pk,
+                preprocessing_versions.version_major,
+                preprocessing_versions.version_minor,
+                preprocessing_versions.input_pdf_sha256,
+                documents.pdf_name,
+                preprocessing_versions.pages_json_created_at,
+                preprocessing_versions.register_map_created_at,
+                preprocessing_versions.register_map_modified_at,
+                preprocessing_versions.snapshot_created_at
             FROM preprocessing_versions
-            WHERE device_name = ?
-            ORDER BY version_major, version_minor
+            JOIN documents
+                ON documents.input_pdf_sha256 =
+                   preprocessing_versions.input_pdf_sha256
+            WHERE preprocessing_versions.device_name = ?
+            ORDER BY
+                preprocessing_versions.version_major,
+                preprocessing_versions.version_minor
             """,
             (device_name,),
         ).fetchall()
@@ -671,7 +850,7 @@ class DataManager:
 
     def list_all_major_version_task_models(self,device_name: str,) -> list[MajorTaskModelInfo]:
         with self._read_transaction():
-            major_version_numbers = self.list_all_major_version_number(device_name)
+            major_version_numbers = self.list_all_major_version_numbers(device_name)
 
             return [
                 self.get_major_version_task_models(
@@ -681,7 +860,7 @@ class DataManager:
                 for major_version in major_version_numbers.major_versions
             ]
 
-    def list_all_major_version_number(self,device_name:str) -> MajorVersionNumber:
+    def list_all_major_version_numbers(self,device_name:str) -> MajorVersionNumber:
         versions = self.list_all_versions(device_name)
 
         major_versions = {
@@ -693,6 +872,19 @@ class DataManager:
             device_name=device_name,
             major_versions=tuple(sorted(major_versions)),
         )
+
+    def list_all_major_version_pdfs(self,device_name:str) -> list[MajorPdfInfo]:
+        with self._read_transaction():
+            major_version_numbers = self.list_all_major_version_numbers(device_name)
+
+            return [
+                self.get_major_version_pdfs(
+                    device_name=device_name,
+                    version_major = major_version,
+                )
+                for major_version in major_version_numbers.major_versions
+            ]
+
 
 # Get-tools
     def get_latest_version(self, device_name: str) -> LatestVersion:
@@ -716,6 +908,31 @@ class DataManager:
             version_major=row["version_major"],
             version_minor=row["version_minor"],
         )
+
+    def get_major_version_pdfs(self, device_name:str, version_major:int,) -> MajorPdfInfo:
+        rows = self.connection.execute(
+            """
+            SELECT documents.pdf_name
+            FROM preprocessing_versions
+            JOIN documents
+                ON documents.input_pdf_sha256 =
+                   preprocessing_versions.input_pdf_sha256
+            WHERE preprocessing_versions.device_name = ?
+              AND preprocessing_versions.version_major = ?
+            ORDER BY preprocessing_versions.version_minor
+            """,
+            (
+                device_name,
+                version_major,
+            ),
+        ).fetchall()
+
+        return MajorPdfInfo(
+            device_name=device_name,
+            version_major=version_major,
+            pdfs = [row["pdf_name"]for row in rows]
+        )
+
 
     def get_major_version_result(self, device_name: str, version_major: int) -> MajorVersionResult:
         with self._read_transaction():
@@ -802,10 +1019,30 @@ class DataManager:
             token_consumption=json.loads(row["token_consumption"]),
         )
 
+    def get_version_pdf(self, device_name:str, version_pk:int):
+        row = self.connection.execute(
+            """
+            SELECT documents.pdf_name
+            FROM preprocessing_versions
+            JOIN documents
+                ON documents.input_pdf_sha256 =
+                   preprocessing_versions.input_pdf_sha256
+            WHERE preprocessing_versions.device_name = ?
+              AND preprocessing_versions.version_pk = ?
+            LIMIT 1
+            """,
+            (
+                device_name,
+                version_pk,
+            ),
+        ).fetchone()
+
+        return row["pdf_name"]
+
     def get_major_version_register_maps(self, device_name: str, version_major: int) -> list[RegisterMapRecord]:
         rows = self.connection.execute(
             """
-            SELECT version_pk, register_map_json, input_pdf_sha256,version_minor
+            SELECT version_pk, register_map_json, input_pdf_sha256, version_minor
             FROM preprocessing_versions
             WHERE device_name = ?
                 AND version_major = ?
@@ -993,18 +1230,22 @@ class DataManager:
     def get_version_info(self,version_pk:int)->VersionInfo:
         row = self.connection.execute(
             """
-            SELECT 
-                device_name,
-                version_pk,
-                version_major,
-                version_minor,
-                input_pdf_sha256,
-                pages_json_created_at,
-                register_map_created_at,
-                register_map_modified_at,
-                snapshot_created_at
+            SELECT
+                preprocessing_versions.device_name,
+                preprocessing_versions.version_pk,
+                preprocessing_versions.version_major,
+                preprocessing_versions.version_minor,
+                preprocessing_versions.input_pdf_sha256,
+                documents.pdf_name,
+                preprocessing_versions.pages_json_created_at,
+                preprocessing_versions.register_map_created_at,
+                preprocessing_versions.register_map_modified_at,
+                preprocessing_versions.snapshot_created_at
             FROM preprocessing_versions
-            WHERE version_pk = ?
+            JOIN documents
+                ON documents.input_pdf_sha256 =
+                   preprocessing_versions.input_pdf_sha256
+            WHERE preprocessing_versions.version_pk = ?
             """,
             (version_pk,),
         ).fetchone()
@@ -1013,27 +1254,6 @@ class DataManager:
             raise LookupError(f"VersionInfo not found: \n version_pk {version_pk}")
 
         return VersionInfo.model_validate(dict(row))
-
-    def get_versions_by_pdf(self, device_name: str, pdf_sha256: str) -> list[VersionInfo]:
-        rows = self.connection.execute(
-            """
-            SELECT
-                device_name,
-                version_pk,
-                version_major,
-                version_minor,
-                input_pdf_sha256,
-                pages_json_created_at,
-                register_map_created_at,
-                register_map_modified_at,
-                snapshot_created_at
-            FROM preprocessing_versions
-            WHERE device_name = ? AND input_pdf_sha256 = ?
-            ORDER BY version_major, version_minor
-            """,
-            (device_name, pdf_sha256),
-        ).fetchall()
-        return [VersionInfo.model_validate(dict(row)) for row in rows]
 
     def _device_exists(self, device_name: str) -> bool:
         row = self.connection.execute(
@@ -1047,6 +1267,7 @@ class DataManager:
             self,
             *,
             device_name: str,
+            pdf_name:str,
             input_pdf_sha256: str,
             pages: list[dict[str,Any]],
             register_map: RegisterMapOutput,
@@ -1057,6 +1278,7 @@ class DataManager:
             token_consumption: PreprocessingTokenConsumption,
             task_models: TaskModelsByName | dict[str, str],
     ) -> OperationFeedback:
+
         device_name = device_name.strip()
 
         register_map = RegisterMapOutput.model_validate(register_map)
@@ -1102,6 +1324,7 @@ class DataManager:
             )
 
         with self._write_operation("save_preprocessing_result") as operation_id:
+            # devices
             self.connection.execute(
                 "INSERT OR IGNORE INTO devices (device_name) VALUES (?)",
                 (device_name,),
@@ -1111,6 +1334,25 @@ class DataManager:
                 device_name,
                 input_pdf_sha256,
                 task_model_set,
+            )
+
+            # documents
+            self.connection.execute(
+                """
+                INSERT INTO documents (
+                    input_pdf_sha256,
+                    pdf_name
+                )
+                VALUES (?, ?)
+                
+                ON CONFLICT(input_pdf_sha256) DO UPDATE
+                SET pdf_name = excluded.pdf_name
+                WHERE documents.pdf_name IS NOT excluded.pdf_name
+                """,
+                (
+                    input_pdf_sha256,
+                    pdf_name,
+                ),
             )
 
             cursor = self.connection.execute(

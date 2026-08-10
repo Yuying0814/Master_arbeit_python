@@ -59,7 +59,7 @@ class ChatTools:
         try:
             path = _validate_pdf_path(pdf_path)
             expected_device_name = _optional_text(expected_device_name)
-            device_names = self.list_devices()
+            device_names = self.list_all_devices()
 
             api_key = (
                 self.chat_config.get_apikey("mistral")
@@ -172,7 +172,7 @@ class ChatTools:
             pdf_sha256 = _calculate_sha256(session["pdf_path"])
 
             existing_devices = {
-                name.casefold():name for name in self.list_devices()
+                name.casefold():name for name in self.list_all_devices()
             }
 
             existing_device_name = existing_devices.get(device_name.casefold())
@@ -275,13 +275,13 @@ class ChatTools:
                 raise ValueError("Device name must not be empty.")
 
             existing_devices = {
-                name.casefold():name for name in self.list_devices()
+                name.casefold():name for name in self.list_all_devices()
             }
             device_name = existing_devices.get(device_name.casefold())
             if device_name is None:
                 raise LookupError("Device not found.")
 
-            versions = self.list_versions(device_name)
+            versions = self.list_all_versions(device_name)
 
             available_major_versions = sorted({
                 version["version_major"] for version in versions
@@ -372,12 +372,12 @@ class ChatTools:
                 "error":str(error),
             }
 
-    def list_devices(self) -> list[str]:
+    def list_all_devices(self) -> list[str]:
         """Return all stored device names; no parameters are required."""
         with DataManager(self.database_path) as manager:
             return manager.list_all_devices()
 
-    def list_versions(self, device_name: str) -> list[dict[str, Any]]:
+    def list_all_versions(self, device_name: str) -> list[dict[str, Any]]:
         """Return all preprocessing-versions for a device.
 
         Args:
@@ -387,17 +387,7 @@ class ChatTools:
             versions = manager.list_all_versions(device_name)
             return[_parse_model(version) for version in versions]
 
-    def list_task_models(self,device_name: str,) -> list[dict[str, Any]]:
-        """Return recorded task models for every preprocessing-version of a device.
-
-        Args:
-            device_name: Required existing device name.
-        """
-        with DataManager(self.database_path) as manager:
-            devices = manager.list_all_major_version_task_models(device_name)
-            return [_parse_model(device) for device in devices]
-
-    def list_major_versions(self, device_name: str) -> dict[str, Any]:
+    def list_all_major_version_numbers(self, device_name: str) -> dict[str, Any]:
         """Return all major preprocessing-version numbers for a device.
 
         Args:
@@ -405,8 +395,30 @@ class ChatTools:
         """
         with DataManager(self.database_path) as manager:
             return _parse_model(
-                manager.list_all_major_version_number(device_name)
+                manager.list_all_major_version_numbers(device_name)
             )
+
+    def list_all_major_versions_info(self, device_name: str) -> dict[str, Any]:
+        """Return task_models and processed pdf_names for a major preprocessing-version of a device.
+
+        Args:
+            device_name: Required existing device name.
+        """
+        with DataManager(self.database_path) as manager:
+            all_major_task_models_info = manager.list_all_major_version_task_models(device_name)
+            all_major_pdfs = manager.list_all_major_version_pdfs(device_name)
+
+            return {
+                "device_name":device_name,
+                "version_infos":[
+                    {
+                        "version_major": major_pdfs.version_major,
+                        "task_models": _parse_model(major_task_models_info.task_models),
+                        "pdfs": major_pdfs.pdfs,
+                    } for major_task_models_info,major_pdfs in zip(all_major_task_models_info,all_major_pdfs)
+                ]
+            }
+
 
     def get_latest_version(self, device_name: str) -> dict[str, Any]:
         """Return the latest preprocessing version for a device.
@@ -416,6 +428,21 @@ class ChatTools:
         """
         with DataManager(self.database_path) as manager:
             return _parse_model(manager.get_latest_version(device_name))
+
+    def get_major_version_pdfs(self, device_name: str, version_major:int,) -> list[str]:
+        """Return all the procecced pdf_names for a major preprocessing-version of a device.
+
+        Args:
+            device_name: Required existing device name.
+            version_major: Required major version number.
+        """
+        with DataManager(self.database_path) as manager:
+            return _parse_model(
+                manager.get_major_version_pdfs(
+                    device_name,
+                    version_major
+                )
+            )
 
     def get_major_version_result(self,device_name: str,version_major: int,) -> dict[str, Any]:
         """Return all pages of processed PDF and all register maps for a major preprocessing-version.
@@ -431,6 +458,16 @@ class ChatTools:
                     version_major,
                 )
             )
+
+    def get_version_pdf(self,device_name: str,version_pk: int,) -> str:
+        """Return the pdf_name for one preprocessing version.
+
+        Args:
+            device_name: Required existing device name.
+            version_pk: Required database identifier of the version.
+        """
+        with DataManager(self.database_path) as manager:
+            return manager.get_version_pdf(device_name, version_pk)
 
     def get_version_result(self,device_name: str,version_pk: int,) -> dict[str, Any]:
         """Return the complete stored result for one preprocessing version.
@@ -510,12 +547,7 @@ class ChatTools:
                 manager.get_version_token_consumption(version_pk)
             )
 
-    def get_version_pk(
-            self,
-            device_name: str,
-            version_major: int,
-            version_minor: int,
-    ) -> int:
+    def get_version_pk(self,device_name: str,version_major: int,version_minor: int,) -> int:
         """Return the database identifier of an exact preprocessing version.
 
         Args:
@@ -538,18 +570,6 @@ class ChatTools:
         """
         with DataManager(self.database_path) as manager:
             return _parse_model(manager.get_version_info(version_pk))
-
-    def get_versions_by_pdf(self,device_name: str,pdf_sha256: str,) -> list[dict[str, Any]]:
-        """Find device versions created from a PDF SHA-256 value.
-
-        Args:
-            device_name: Required existing device name.
-            pdf_sha256: Required 64-character SHA-256 value.
-        """
-        with DataManager(self.database_path) as manager:
-            return _parse_model(
-                manager.get_versions_by_pdf(device_name, pdf_sha256)
-            )
 
     def update_register_map_field(self,version_pk: int,json_path: str,new_value: Any,) -> dict[str, Any]:
         """Update one register-map field after code-level user approval.
@@ -673,7 +693,7 @@ class ChatTools:
         }
 
     def _check_pdf_used(self,device_name: str,pdf_sha256: str,) -> bool:
-        existing_versions = self.list_versions(device_name)
+        existing_versions = self.list_all_versions(device_name)
         latest_major_version = max(
             version["version_major"] for version in existing_versions
         ) if existing_versions else None
@@ -704,21 +724,26 @@ class ChatTools:
             self.inspect_preprocessing_pdf,
             self.run_preprocessor,
             self.run_coding_controller,
-            self.list_devices,
-            self.list_versions,
-            self.list_task_models,
-            self.list_major_versions,
-            self.get_latest_version,
+
+            self.list_all_devices,
+            self.list_all_versions,
+            self.list_all_major_version_numbers,
+            self.list_all_major_versions_info,
+
             self.get_major_version_result,
-            self.get_version_result,
             self.get_major_version_register_maps,
-            self.get_version_snapshot,
             self.get_major_version_task_models,
+            self.get_major_version_pdfs,
+
+            self.get_latest_version,
+            self.get_version_result,
+            self.get_version_pdf,
+            self.get_version_snapshot,
             self.get_version_task_models,
             self.get_version_token_consumption,
             self.get_version_pk,
             self.get_version_info,
-            self.get_versions_by_pdf,
+
             self.update_register_map_field,
             self.reassign_version_identity,
             self.delete_version,

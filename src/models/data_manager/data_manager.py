@@ -47,6 +47,7 @@ class VersionInfo(StructuredOutputModel):
     version_pk:int
     version_major:int
     version_minor:int
+    pdf_name: str
     input_pdf_sha256:str
     pages_json_created_at:str
     register_map_created_at:str
@@ -61,6 +62,11 @@ class MajorTaskModelInfo(StructuredOutputModel):
     device_name:str
     version_major:int
     task_models:TaskModelsByName
+
+class MajorPdfInfo(StructuredOutputModel):
+    device_name: str
+    version_major: int
+    pdfs:list[str]
 
 class TaskModelInfo(StructuredOutputModel):
     device_name: str
