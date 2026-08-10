@@ -118,12 +118,13 @@ CREATE TABLE IF NOT EXISTS task_models (
 EXPECTED_COLUMNS = {
     "devices": (
         "device_name",
-        "input_pdf_sha256",
-        "pdf_name",
+
     ),
 
     "documents":(
         "document_id",
+        "input_pdf_sha256",
+        "pdf_name",
     ),
 
     "preprocessing_versions": (
