@@ -2,6 +2,7 @@ from typing import Any
 
 from src.models.llm.batch import UserRequest, RequestReference
 from src.models.structuredOutputModel import StructuredOutputModel
+from src.models.coding.coding_common import InputDocument
 
 # retriever input
 class RetrievalTopic(StructuredOutputModel):
@@ -23,7 +24,7 @@ class BinaryClassifierOutput(StructuredOutputModel):
 # retriever output
 class RetrievalResult(StructuredOutputModel):
     topic: RetrievalTopic
-    documents:list[dict[str,Any]]
+    documents:list[InputDocument]
 
 class RetrievalResponse(StructuredOutputModel):
     request_id: int

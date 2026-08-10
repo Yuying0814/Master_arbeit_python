@@ -5,9 +5,8 @@ from typing import Any
 from pydantic import Field
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.coding.coding_common import CodeFile, VerificationPlan, FilePlan
+from src.models.coding.coding_common import CodeFile, VerificationPlan, FilePlan,InputRegisterMap
 from src.models.coding.retriever import RetrievalResult
-from src.models.data_manager import RegisterMapRecord
 
 # Verifier input
 class VerifierInput(StructuredOutputModel):
@@ -15,7 +14,7 @@ class VerifierInput(StructuredOutputModel):
         description="verification plan for the candidate files",
     )
 
-    register_maps:list[RegisterMapRecord] = Field(
+    register_maps:list[InputRegisterMap] = Field(
         description= "extracted register maps",
     )
 
@@ -52,7 +51,7 @@ class SemanticVerifierInput(StructuredOutputModel):
     verification_plan:str = Field(
         description="verification plan for the candidate files",
     )
-    register_maps: list[RegisterMapRecord] = Field(
+    register_maps: list[InputRegisterMap] = Field(
         description="extracted register maps",
     )
 

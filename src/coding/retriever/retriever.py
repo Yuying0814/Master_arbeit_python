@@ -9,6 +9,7 @@ from src.models.task_config import TaskConfig
 from src.models.coding.retriever import RetrievalTopic, RetrievalResponse, RetrievalResult, RetrieverLog, RetrieverUserInput
 from src.models.llm.batch import UserRequest
 from src.models.data_manager import DocumentRecord
+from src.models.coding.coding_common import InputDocument
 from src.coding.retriever.build_batch_request import build_user_requests
 from src.coding.retriever.parse_binary_classifier_output import parse_binary_classifier_output
 
@@ -119,10 +120,10 @@ class PageRetriever:
             documents = []
             for pdf_sha256, page_indices_by_topics in page_indices_by_pdfs.items():
                 documents.append(
-                    {
-                        "pdf_sha256": pdf_sha256 ,
-                        "pages": self._get_page_by_index(pdf_sha256, page_indices_by_topics[topic_index]),
-                    }
+                    InputDocument(
+                        pdf_sha256 = pdf_sha256,
+                        pages = self._get_page_by_index(pdf_sha256, page_indices_by_topics[topic_index]),
+                    )
                 )
             results.append(
                 RetrievalResult(

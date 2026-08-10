@@ -4,9 +4,8 @@ from typing import Any
 
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.coding.coding_common import CodeFile, ProgrammingPlan
+from src.models.coding.coding_common import CodeFile, ProgrammingPlan,InputRegisterMap
 from src.models.coding.retriever import RetrievalResult
-from src.models.data_manager import RegisterMapRecord
 
 # Coder states:
 # programming plan: ProgrammingPlan
@@ -22,7 +21,7 @@ class CoderInput(StructuredOutputModel):
         description="programming plan for generating code",
     )
 
-    register_maps:list[RegisterMapRecord] = Field(
+    register_maps:list[InputRegisterMap] = Field(
         description="extracted register maps",
     )
 

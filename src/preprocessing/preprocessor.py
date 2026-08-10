@@ -329,6 +329,7 @@ class Preprocessor:
     async def extract_reg_index(self) -> RegisterIndexOutput:
         if not self.reg_sum_page_idx:
             print("No register summary page for index information extraction\n")
+            self.reg_summary = RegisterIndexOutput(registers=[])
             return RegisterIndexOutput(registers=[])
 
         task_config = self.config.task_configs.extract_reg_index
@@ -364,6 +365,7 @@ class Preprocessor:
     async def extract_reg_map(self) -> RegisterMapOutput:
         if not self.reg_page_idx:
             print("No register page for register map extraction\n")
+            self.reg_map= RegisterMapOutput(registers=[])
             return RegisterMapOutput(registers=[])
 
         task_config = self.config.task_configs  .extract_reg_map

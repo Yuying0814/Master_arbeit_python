@@ -5,10 +5,9 @@ from pydantic import Field
 
 
 from src.models.structuredOutputModel import StructuredOutputModel
-from src.models.coding.coding_common import CodeFile, VerificationPlan, ProgrammingPlan
+from src.models.coding.coding_common import CodeFile, VerificationPlan, ProgrammingPlan, InputRegisterMap
 from src.models.coding.verifier import VerifierOutput
 from src.models.coding.retriever import RetrievalTopic
-from src.models.data_manager import RegisterMapRecord
 
 # Planner:
 ## input
@@ -25,7 +24,7 @@ class PlannerInput(StructuredOutputModel):
         default="Generate an Arduino Wire.h-based C++ driver library with one .ino entrance file, one .h file and one .cpp file.",
         description="user request for coding",
     )
-    register_maps:list[RegisterMapRecord] = Field(
+    register_maps:list[InputRegisterMap] = Field(
         description="extracted register map",
     )
 

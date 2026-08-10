@@ -360,7 +360,7 @@ class ChatTools:
                 "status":"completed",
                 "device_name":device_name,
                 "version_major":version_major,
-                "output_path":self.coding_config.project_path.code_dir / device_name,
+                "output_path":self.coding_config.project_path.code_dir / device_name/ str(version_major),
             }
         except Exception as error:
             return {

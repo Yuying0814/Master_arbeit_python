@@ -1,8 +1,18 @@
 from __future__ import annotations
 from pydantic import Field
-from typing import Literal
+from typing import Literal, Any
 
 from src.models.structuredOutputModel import StructuredOutputModel
+from src.models.preprocessing.register_output import RegisterMapOutput
+
+class InputRegisterMap(StructuredOutputModel):
+    pdf_sha256:str
+    register_map:RegisterMapOutput
+
+class InputDocument(StructuredOutputModel):
+    pdf_sha256:str
+    pages:list[dict[str,Any]]
+
 class IncompleteImplementation(StructuredOutputModel):
 
     target_section: str = Field(

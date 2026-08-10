@@ -13,7 +13,7 @@ from src.coding.coder.coder import Coder
 from src.coding.filewriter.filewriter import FileWriter
 from src.coding.verifier.verifier import Verifier
 
-from src.models.coding.coding_common import ProgrammingPlan, VerificationPlan, CodeFile
+from src.models.coding.coding_common import ProgrammingPlan, VerificationPlan, CodeFile,InputRegisterMap
 from src.models.data_manager import RegisterMapRecord,DocumentRecord
 from src.models.coding.planner import PlannerInput
 from src.models.coding.retriever import RetrievalResult
@@ -229,7 +229,7 @@ class Controller:
             driver_name=self.driver_name,
             enable_test_coder=self.config.enable_test_coder,
             user_request=user_request,
-            register_maps=self.register_maps,
+            register_maps=self._get_normalized_register_maps_input(),
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,
             verifier_feedback=verifier_feedback,
@@ -238,7 +238,7 @@ class Controller:
     def _build_coder_input(self,programming_plan:ProgrammingPlan,retrieval_results:list[RetrievalResult]) -> CoderInput:
         return CoderInput(
             programming_plan=programming_plan,
-            register_maps=self.register_maps,
+            register_maps=self._get_normalized_register_maps_input(),
             retrieval_results=retrieval_results,
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,
@@ -247,7 +247,7 @@ class Controller:
     def _build_verifier_input(self,verification_plan:VerificationPlan,retrieval_results:list[RetrievalResult]) -> VerifierInput:
         return VerifierInput(
             verification_plan=verification_plan,
-            register_maps=self.register_maps,
+            register_maps=self._get_normalized_register_maps_input(),
             retrieval_results=retrieval_results,
             candidate_files=self.candidate_files,
             accepted_files=self.accepted_files,
@@ -276,6 +276,15 @@ class Controller:
                 item.unlink()
             elif item.is_dir():
                 shutil.rmtree(item)
+
+
+    def _get_normalized_register_maps_input(self) -> list[InputRegisterMap]:
+        return [
+            InputRegisterMap(
+                pdf_sha256=register_map.pdf_sha256,
+                register_map=register_map.register_map
+           ) for register_map in self.register_maps
+        ]
 
     def _update_logs(self, attempt: int) -> None:
         if attempt <= 0:
