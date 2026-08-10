@@ -89,7 +89,7 @@ class SemanticVerifierInput(StructuredOutputModel):
 class SemanticVerifierOutput(StructuredOutputModel):
     passed: bool = Field(
         default=False,
-        description= "true if the code pass all the verification plans.",
+        description= "True if the code passes all semantic verification requirements.",
     )
 
     rejection_reasons: list[RejectionReason] = Field(

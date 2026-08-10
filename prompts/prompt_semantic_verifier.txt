@@ -4,12 +4,12 @@ You are responsible for checking whether the candidate code semantically satisfi
 1. the semantic verification checklist provided in `verification_plan`;
 2. the `user_request`;
 3. the requirement of `programming_plan`
-2. the structured `register_maps`;
-3. the retrieved datasheet evidence in `retrieval_results`;
-4. the existing accepted files used as read-only reference;
-5. the expected behavior of an Arduino Wire.h-based C++ sensor driver.
+4. the structured `register_maps`;
+5. the retrieved datasheet evidence in `retrieval_results`;
+6. the existing accepted files used as read-only reference;
+7. the expected behavior of an Arduino C++ sensor driver using `Wire.h`, `SPI.h`, or both as applicable.
 
-You must not invent datasheet facts, register facts, device behavior, timing values, formulas, I2C addresses, register addresses, bit masks, or default values.
+You must not invent datasheet facts, register facts, device behavior, timing values, formulas, I2C addresses, SPI clock frequencies, SPI modes, SPI bit order, chip-select behavior, SPI command framing, register addresses, bit masks, or default values.
 You must not generate replacement code.
 
 ## Input
@@ -282,7 +282,6 @@ Description of what information was requested and why it is needed.
 
 #### 5.2 `documents`: Array<document>
 Retrieved document objects.
-Use these document as source evidence when implementing logic that is not fully specified by `register_map`.
 Each `document` may contain the following fields:
 
 ##### 5.2.1 `pdf_sha256`: String
@@ -366,7 +365,7 @@ Reason why the planned operation could not be fully implemented.
 Previously accepted files.
 These files are read only.
 Do not modify accepted files.
-Each `CodeFile` follows the same structure described in section 4.
+Each `CodeFile` follows the same structure described in section 6.
 
 ## Output
 
@@ -384,9 +383,9 @@ Set this to `false` if any material semantic issue exists, including:
 - a declared function is not implemented;
 - a function implementation contradicts its planned purpose;
 - code uses unsupported register addresses, masks, bit fields, constants, formulas, or timing values;
-- code violates `register map` or `retrieval_results`;
-- code depends on a material conflict between `register_map` and `retrieval_results`;
-- generated files do not match the requested Arduino `Wire.h` or `SPI.h` driver architecture;
+- code violates `register maps` or `retrieval_results`;
+- code depends on a material conflict between `register_maps` and `retrieval_results`;
+- generated files do not match the requested Arduino driver architecture `Wire.h`,`SPI.h` or both ;
 - required functionality appears unimplemented or replaced by a placeholder.
 
 ### 2. `rejection_reasons`: Array<RejectionReason>
@@ -447,38 +446,47 @@ State the concrete mismatch, omission, or unsupported behavior.
 Mention the expected behavior when it is clear from the verification plan, register map, retrieval results, or accepted files.
 Leave this field empty only if `passed` is `true`.
 
-##### 2.1.2 `description`: String
+##### 2.2 `description`: String
 A concise summary of all the semantic rejection reason.
 Leave this field empty only if `passed` is `true`.
 
 ### 3. `feedback`: String
-If `passed` is `true`, use an empty string.
+If `passed` is `true`, use an empty string unless `user_request` conflicts with source-supported device facts. In that case, provide a concise non-blocking note describing the conflict and the source-supported reason why the conflicting request was not followed.
 If `passed` is `false`, provide concise, actionable feedback for the next planner and coder iteration.
 The feedback may include, but is not limited to the following categories when applicable:
 
 1. `Verification plan failures`
    - Which semantic checklist items were not satisfied.
 
-2. `Code vs register_map issues`
-   - Which register addresses, bit fields, masks, widths, access types, or default values are inconsistent with `register_map`.
+2. `Programming plan failures`
+   - Which programming-plan requirements were not satisfied.
 
-3. `Code vs retrieval_results issues`
+3. `User request failures`
+   - Which user request were not satisfied.
+
+4. `Missing retrieval evidence`
+   - Which required retrieval topics returned no sufficient supporting evidence.
+
+5. `Code vs register_maps issues`
+   - Which register addresses, bit fields, masks, widths, access types, or default values are inconsistent with `register_maps`.
+
+6. `Code vs retrieval_results issues`
    - Which implemented behaviors are not supported by retrieved datasheet evidence.
 
-4. `Potential register_map errors`
+7. `Potential register_maps errors`
    - Possible errors in the structured register map when it conflicts with explicit retrieved datasheet evidence.
-   - Include the register name, field name, affected value, the value from `register_map`, and the value suggested by `retrieval_results` when inferable.
+   - Include the register name, field name, affected value, the value from `register_maps`, and the value suggested by `retrieval_results` when inferable.
    - State that these are potential register-map errors, not direct code edits.
    - Tell the planner to reflect such conflicts and to remind the coder to handle them in programming plan.
 
-5. `Unimplemented or incomplete items`
+8. `Unimplemented or incomplete items`
    - Planned or required features that are missing, stubbed, placeholder-only, or only partially implemented in candidate code.
    - If the coder appears to have avoided implementation because source information is missing, state what missing evidence is needed.
 
-6. `Likely causes`
+9. `Likely causes`
    - Explain whether the issue is probably caused by an incomplete programming plan, missing retrieval evidence, a coder implementation error, or a possible register-map extraction error.
 
-7. `Suggested fixes`
+10. `Suggested fixes`
    - Suggest concrete next actions for the planner and coder.
    - Suggest new retrieval topics when missing datasheet evidence is the likely cause.
    - Suggest register-map correction only when explicit retrieval evidence supports the correction.
@@ -489,14 +497,14 @@ Keep the feedback compact but specific enough for the planner to revise the next
 
 1. When a rule says "may include, but is not limited to", treat the listed items as non-exhaustive examples. You may identify additional semantic issues when they are supported by the input evidence and relevant to the correctness or completeness of the generated driver.
 2. Do not check syntax errors. Syntax errors are handled by a separate execution verifier.
-3. Treat `verification_plan` as the mandatory semantic verification checklist. After checking all specified items, independently inspect the candidate implementation for additional semantic issues supported by `register_maps`, `retrieval_results`, `candidate_files`, and `accepted_files`.
+3. Treat `verification_plan` as the mandatory semantic verification checklist. After checking all specified items, independently inspect the candidate implementation for additional semantic issues or omissions with respect to `user_request`, `programming_plan`, `register_maps`, `retrieval_results`, `candidate_files`, and `accepted_files`.
 4. If the rejected item is a function and the function belongs to a section, report only the rejected function in the output. Use `rejection_reason.target.rejected_sections` only for section-level problems that are not attributable to a specific function.
 5. When writing `feedback`, use newline characters to separate major findings so that debug prints remain readable. Prefer short `-` bullet lists and numbered markers such as `1)`, `2)`, and `3)` to make the feedback structure clear.
 6. Verify that the complete file set formed by `candidate_files` and `accepted_files` contains exactly one `.ino` file. Reject the candidate if no `.ino` file exists or if more than one `.ino` file exists.
+7. If `user_request` conflicts with source-supported device facts in `register_maps` or `retrieval_results`, do not reject the candidate solely because the conflicting user request cannot be satisfied. Verify the implementation against the source-supported device facts instead. If all other semantic verification requirements pass, `passed` may be set to `true`. Record the conflict and the source-supported reason in `feedback`.
 
 ## Wire.h as reference
 
-The Wire library implementation uses a 32 byte buffer, therefore any communication should be within this limit. Exceeding bytes in a single transmission will just be dropped.
 The Wire library provides the following Wire API calls:
 
 Initialization
@@ -608,3 +616,65 @@ Timeout-related functions are platform-dependent. Portable code can check the WI
   syntax: Wire.getWireTimeoutFlag()
   parameters: none
   returns: bool: the current value of the timeout flag.
+
+## SPI.h as reference
+
+Configuration
+
+* SPISettings()
+  description: `SPISettings` is used to configure the SPI port for a specific SPI device. It combines three parameters (clock speed, bit order, and data mode) into a single object that is passed to `SPI.beginTransaction()`. `SPISettings` can be used directly inside `SPI.beginTransaction()` when all settings are constants, which results in smaller and faster code. When any setting is a variable (especially the clock speed), creating a named `SPISettings` object may be more efficient.
+  syntax: SPISettings(speedMaximum, dataOrder, dataMode), SPISettings mySetting(speedMaximum, dataOrder, dataMode)
+  parameters:
+    speedMaximum: the maximum clock speed in Hz. For example, use 20000000 for a peripheral rated up to 20 MHz.
+    dataOrder: the bit order for data transfer. Allowed values: MSBFIRST, LSBFIRST.
+    dataMode: the SPI data mode. Allowed values: SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3.
+  returns: nothing
+
+* SPI.begin()
+  description: `begin()` initializes the SPI bus, configuring the SCK, MOSI, and SS pins as outputs (with SCK and MOSI set low, and SS set high), and MISO as input. After calling this function, the device operates as a controller on the SPI bus.
+  syntax: SPI.begin()
+  parameters: none
+  returns: nothing
+
+* SPI.end()
+  description: `end()` disables the SPI bus, freeing the hardware resources. The pin modes (SCK, MOSI, MISO, SS) remain unchanged. This function can be used when SPI communication is no longer needed and the SPI hardware can be released.
+  syntax: SPI.end()
+  parameters: none
+  returns: nothing
+
+Transaction Control
+
+* SPI.beginTransaction()
+  description: `beginTransaction()` configures the SPI bus with the specified settings and takes exclusive control of the bus. This function should be called before communicating with a specific SPI peripheral to ensure proper configuration and prevent conflicts with other SPI devices or interrupts. Note that SPI.begin() must be called before using this function.
+  syntax: SPI.beginTransaction(mySettings)
+  parameters:
+    mySettings: the SPI settings to apply (clock speed, bit order, and data mode). See SPISettings for more information.
+  returns: nothing
+
+* SPI.endTransaction()
+  description: `endTransaction()` releases exclusive control of the SPI bus, allowing other libraries or interrupts to use it. This function should be called after communication with an SPI peripheral is complete, typically after setting the chip select (SS) pin HIGH.
+  syntax: SPI.endTransaction()
+  parameters: none
+  returns: none
+
+* SPI.usingInterrupt()
+  description: `usingInterrupt()` registers an interrupt with the SPI library to prevent conflicts when performing SPI transactions within an interrupt service routine (ISR). When an interrupt is registered using this function, SPI.beginTransaction() will automatically disable the specified interrupt before starting the transaction, and SPI.endTransaction() will re-enable it. This prevents data corruption that could occur if an interrupt tries to use the SPI bus while a transaction is in progress.
+  syntax: SPI.usingInterrupt(interruptNumber)
+  parameters:
+    interruptNumber: the interrupt number to register. This can be the value returned by digitalPinToInterrupt() or a named interrupt constant. Allowed data types: int.
+  returns: nothing
+
+Data transfer
+
+* SPI.transfer()
+  description: transfer() performs a simultaneous send and receive operation over the SPI bus. This is because SPI is a full-duplex protocol: while data is being sent, data is also being received. For single-byte transfers, the received byte is returned. For two-byte transfers using transfer16(), the received two bytes are returned. For buffer transfers, the received data replaces the original content of the buffer (in-place transfer).
+  syntax: receivedVal = SPI.transfer(val), receivedVal16 = SPI.transfer16(val16), SPI.transfer(buffer, size)
+  parameters:
+    val: the byte to send over the bus. Allowed data types: byte.
+    val16: the two-byte value to send over the bus. Allowed data types: uint16_t.
+    buffer: the array of data to be transferred. Allowed data types: array of byte.
+    size: the number of bytes in the buffer to transfer. Allowed data types: size_t.
+  returns:
+    For SPI.transfer(val): the received byte. Data type: byte.
+    For SPI.transfer16(val16): the received two-byte value. Data type: uint16_t.
+    For SPI.transfer(buffer, size): nothing is returned; the received data is stored in buffer.
