@@ -168,7 +168,6 @@ class ReturnType(StructuredOutputModel):
 
 class VerificationPlan(StructuredOutputModel):
     semantic_plan: str = Field(
-        default=None,
         description="semantic verification plan",
     )
 

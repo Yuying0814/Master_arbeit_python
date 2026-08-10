@@ -181,6 +181,9 @@ class PageRetriever:
                 token_consumption={
                     "total_usage": copy.deepcopy(self.binary_classifier.total_usage),
                     "final_usage": copy.deepcopy(self.binary_classifier.final_usage),
+                } if topics else{
+                    "total_usage": 0,
+                    "final_usage": 0,
                 },
             )
         )
