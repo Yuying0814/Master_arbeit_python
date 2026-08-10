@@ -24,7 +24,7 @@ def build_page_requests(
 
     for index,page in enumerate(new_candidate_pages):
         if page["index"] == 0:
-            previous_content = _get_page_tail(page)
+            previous_content = ""
         else:
             previous_content = _get_page_tail(index_page_map[page["index"]-1])
 
