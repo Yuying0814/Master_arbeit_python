@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS task_models (
     FOREIGN KEY (version_pk) REFERENCES preprocessing_versions (version_pk)
         ON UPDATE CASCADE ON DELETE CASCADE
 );
+
+
 """
 
 EXPECTED_COLUMNS = {

@@ -72,7 +72,10 @@ class ChatTools:
                 raise ValueError("OCR returned no pages.")
 
             task = LLMSingleTask.load_from_task_config(
-                self.chat_config.task_configs.identify_name
+                self.chat_config.task_configs.identify_name,
+                api_key=self.chat_config.get_apikey(
+                    self.chat_config.task_configs.identify_name.model.provider
+                )
             )
 
             task.add_user_inputs(
