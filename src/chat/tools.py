@@ -17,10 +17,9 @@ from src.data_manager.data_manager import DataManager
 from src.llm.ocr_task import OcrTask
 from src.llm.llm_single_task import LLMSingleTask
 
-if TYPE_CHECKING:
-    from src.coding.config import CodingConfig
-    from src.coding.controller.controller import Controller
-    from src.preprocessing.config import PreprocessingConfig
+from src.coding.config import CodingConfig
+from src.coding.controller.controller import Controller
+from src.preprocessing.config import PreprocessingConfig
 
 
 class QuitChatRequested(BaseException):
@@ -271,6 +270,8 @@ class ChatTools:
             version_major: Major preprocessed version to code.
             user_request: Optional driver requirements; uses the controller default when omitted.
         """
+        if user_request is None:
+            user_request = ""
 
         try:
             device_name = device_name.strip()
