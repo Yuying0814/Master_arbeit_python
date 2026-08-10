@@ -21,7 +21,6 @@ class LLMAgent:
     check_pointer: Any
     has_structured_output: bool
     total_tokens: dict[str, Any]
-    usage_callback: Any
     memory_enabled: bool
     thread_id: str | None
 
@@ -48,7 +47,6 @@ class LLMAgent:
         self.memory_enabled = memory_enabled
         self.thread_id = thread_id if memory_enabled else None
 
-        self.usage_callback = UsageMetadataCallbackHandler()
         self.total_tokens = {}
 
         if memory_enabled:
@@ -100,6 +98,9 @@ class LLMAgent:
         )
 
     def run(self, user_input: str) -> Any:
+
+        usage_callback = UsageMetadataCallbackHandler()
+
         response = self.agent.invoke(
             _build_messages(user_input),
             config=self._build_invoke_config(),
@@ -110,6 +111,9 @@ class LLMAgent:
         return self._parse_response(response)
 
     def run_with_retry(self, user_input: str) -> Any:
+
+        usage_callback = UsageMetadataCallbackHandler()
+
         retry_agent = self.agent.with_retry(
             stop_after_attempt=3,
             wait_exponential_jitter=True,
@@ -124,9 +128,10 @@ class LLMAgent:
 
         return self._parse_response(response)
 
-    def _build_invoke_config(self) -> dict[str, Any]:
+    def _build_invoke_config(self,usage_callback: UsageMetadataCallbackHandler) -> dict[str, Any]:
+
         config: dict[str, Any] = {
-            "callbacks": [self.usage_callback],
+            "callbacks": [usage_callback],
         }
 
         if self.memory_enabled:
@@ -149,8 +154,8 @@ class LLMAgent:
         except Exception as e:
             raise RuntimeError("Failed to parse response") from e
 
-    def _update_total_tokens(self) -> None:
-        self.total_tokens = self.usage_callback.usage_metadata
+    def _update_total_tokens(self,usage_callback:UsageMetadataCallbackHandler) -> None:
+        self.total_tokens = dict(usage_callback.usage_metadata)
 
 # Helper
 def _build_response_format(output_format: ValidOutputFormat) -> Any | None:
