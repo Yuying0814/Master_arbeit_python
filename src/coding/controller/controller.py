@@ -67,7 +67,7 @@ class Controller:
             register_maps=register_maps
         )
 
-    async def run(self, version_major:int, user_request: str = "",):
+    async def run(self, version_major:int, user_request: str = "",) -> tuple[bool,str]:
         self.code_dir = self.config.project_path.code_dir / self.driver_name / str(version_major)
         verifier_feedback = None
         run_status = "failed"
@@ -156,7 +156,7 @@ class Controller:
                 f"=============== coding ended after {attempt} attempt{"s" if attempt != 1 else ""} ==============="
             )
 
-            return len(self.accepted_files) > 0
+            return len(self.accepted_files) > 0, str(self.code_dir)
         except Exception as exc:
             self._update_logs(attempt)
             run_status = "error"
@@ -178,6 +178,7 @@ class Controller:
             raise
 
         finally:
+
             self.event_recorder.emit(
                 agent="controller",
                 action="run",

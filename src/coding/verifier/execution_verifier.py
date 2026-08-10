@@ -265,6 +265,7 @@ class ExecutionVerifier:
                 ])
 
             command.append(str(project_dir))
+            compile_result = _run_command(command)
         except subprocess.TimeoutExpired as exc:
             return CompilerMsg(
                 passed=False,

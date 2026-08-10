@@ -31,7 +31,7 @@ PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "ITG-3050-Register-M
 PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
-CODE_DIR: Path | str = "D:/python/master_arbeit/temp"
+CODE_DIR: Path | str = "D:/python/master_arbeit/code"
 
 # ============================================================
 # Arduino-cli configuration
