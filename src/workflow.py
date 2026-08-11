@@ -55,6 +55,17 @@ async def run_preprocessor(
 
         version_info = feedback.details
 
+        message = {
+            "success": True,
+            "status": "completed",
+            "operation_feedback": feedback.model_dump_json(indent=2),
+        }
+
+        print(
+            f"\n PDF successfully processed\n"
+            f"{json.dumps(message, indent=4)}"
+        )
+
         save_preprocessing_outputs(
             device_name=device_name,
             version=f"v{version_info.version_major}_{version_info.version_minor}",

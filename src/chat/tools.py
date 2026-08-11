@@ -248,18 +248,30 @@ class ChatTools:
                     token_consumption=preprocessing_result.token_consumption,
                 )
 
-            self.preprocessing_sessions.pop(preprocessing_session_id, None)
-            return {
+            message = {
                 "success":True,
                 "status":"completed",
                 "operation_feedback":_parse_model(feedback),
             }
+
+            print(
+                f"\n PDF successfully processed\n"
+                f"{json.dumps(message, indent=4)}"
+            )
+
+            self.preprocessing_sessions.pop(preprocessing_session_id, None)
+            return message
         except Exception as error:
-            return {
+            message = {
                 "success":False,
                 "status":"failed",
                 "error":str(error),
             }
+
+            print(f"\n PDF successfully processed\n"
+                  f"{json.dumps(message, indent=4)}"
+                  )
+            return message
 
     def run_coding_controller(
             self,
