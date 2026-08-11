@@ -276,7 +276,7 @@ class ChatTools:
                 "error":str(error),
             }
 
-            print(f"\n PDF successfully processed\n"
+            print(f"\n PDF processing failed\n"
                   f"{json.dumps(message, indent=4)}"
                   )
             return message

@@ -59,7 +59,7 @@ async def run_preprocessor(
             message = {
                 "success": True,
                 "status": "completed",
-                "operation_feedback": feedback.model_dump_json(indent=2),
+                "operation_feedback": feedback.model_dump(mode="json"),
             }
 
             print(
@@ -141,7 +141,7 @@ async def run_coding_controller(
             "error": str(err),
         }
         print(message)
-        raise RuntimeError("Preprocessing failed") from err
+        raise RuntimeError("Coding failed") from err
 
 
 async def run_preprocessing_and_coding(
