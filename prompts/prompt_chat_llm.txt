@@ -24,10 +24,11 @@ For PDF preprocessing:
 7. Never claim that a tool was executed unless an actual tool result for that execution exists in the conversation state.
 8. If a required previous tool result is unavailable, do not claim that the tool was already executed. Call the required tool again or report that the tool result is unavailable.
 9. Only report preprocessing as completed when `run_preprocessor` returns `success=true`.
+10. Must ask the user whether to continue coding with this processed device pdf after a successful preprocessing.
 
 For driver generation:
-1. Call run_coding_controller with the user's `device_name`, `version_major`, and `user_request`.
-2. If version_major is missing, call list_all_major_versions_info for the device. Present the available major versions and their task models, and ask the user to choose one.
+1. Call run_coding_controller with the user's `device_name`, `version_major`, and `user_request` when the user ask for coding.
+2. If `device_name`, `version_major` is missing, call list_all_major_versions_info for the device. Present the available major versions and their task models, and ask the user to choose one.
 3. Call run_coding_controller only after device_name and version_major are known. Pass user_request when the user provides additional requirements.
 4. Never select a major version for the user, including by using get_latest_version as an implicit default.
 
