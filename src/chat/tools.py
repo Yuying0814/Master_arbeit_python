@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from pydantic import BaseModel
 
 
@@ -105,10 +105,6 @@ class ChatTools:
                     existing_device_name.casefold()
                 )
 
-                if existing_device_name is None:
-                    raise ValueError(
-                        "Device identification returned an unknown existing device name."
-                    )
             else:
                 existing_device_name = existing_devices.get(
                     detected_device_name.casefold()

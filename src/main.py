@@ -27,7 +27,7 @@ USER_REQUEST = ""
 # ============================================================
 # Path configuration
 # ============================================================
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "ITG-3050-Register-Map.pdf"
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "bst-bme280-ds002.pdf"
 PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
