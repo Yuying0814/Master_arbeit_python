@@ -179,8 +179,9 @@ class PageRetriever:
                     result.model_copy(deep=True) for result in retrieval_results
                 ],
                 token_consumption={
-                    "total_usage": copy.deepcopy(self.binary_classifier.total_usage),
-                    "final_usage": copy.deepcopy(self.binary_classifier.final_usage),
+                    self.binary_classifier.token_consumption.model_dump(
+                        mode="json"
+                    ),
                 } if topics else{
                     "total_usage": {},
                     "final_usage": {},
