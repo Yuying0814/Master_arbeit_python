@@ -94,7 +94,7 @@ class ChatTools:
             identification:DeviceIdentificationResult = asyncio.run(task.run())
 
             print(
-                  f"\n Identified device Name: {identification.model_dump_json(indent=2)}"
+                  f"\n Identified device Name: {identification.model_dump_json(indent=4)}"
             )
 
             detected_device_name = identification.detected_device_name.strip()
@@ -165,7 +165,6 @@ class ChatTools:
             preprocessing_session_id: Required session ID returned by PDF inspection.
             device_name: Required detected or confirmed existing device name.
         """
-
         try:
             session = self.preprocessing_sessions.get(preprocessing_session_id)
             if session is None:
