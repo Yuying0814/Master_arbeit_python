@@ -165,13 +165,13 @@ class AsyncOpenAIBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
     async def wait_batch(self) -> None:
         if not self.batch_job:
-            raise ValueError
+            raise ValueError("No batch Job")
         self.batch_job = await self.batch_client.wait_for_completion(batch_job=self.batch_job)
         self.update_status()
 
     async def collect_batch_output(self) -> None:
         if not self.batch_job:
-            raise ValueError
+            raise ValueError("No batch Job")
         self.update_status()
         self.contents,self.outputs,self.records = await self.batch_client.collect_batch_output(self.batch_job)
         self._parse_contents(self.contents)

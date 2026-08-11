@@ -57,6 +57,10 @@ class ChatTools:
             expected_device_name: Optional user-provided name for consistency checking.
         """
 
+        print(f"\n Inspecting"
+              f"\n PDF: {pdf_path}"
+              f"\n Device Name: {expected_device_name}"
+              )
         try:
             path = _validate_pdf_path(pdf_path)
             expected_device_name = _optional_text(expected_device_name)
@@ -88,6 +92,11 @@ class ChatTools:
             )
 
             identification:DeviceIdentificationResult = asyncio.run(task.run())
+
+            print(
+                  f"\n Identified device Name: {identification.model_dump_json(indent=2)}"
+            )
+
             detected_device_name = identification.detected_device_name.strip()
 
             if not detected_device_name:

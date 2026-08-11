@@ -31,7 +31,7 @@ def build_chat_model(
             return ChatOpenAI(
                 model=model_name,
                 api_key=api_key,
-                temperature=temperature,
+                temperature=temperature if temperature is not None else None,
                 max_tokens= max_output_tokens,
                 reasoning_effort=thinking_effort,
             )
@@ -90,7 +90,7 @@ def build_chat_model(
                 model=model_name,
                 api_key=api_key,
                 base_url="https://api.z.ai/api/paas/v4/",
-                temperature=temperature,
+                temperature=temperature if temperature is not None else None,
                 max_tokens=max_output_tokens,
                 extra_body=extra_body or None,
             )
@@ -98,7 +98,7 @@ def build_chat_model(
         case "ollama":
             return ChatOllama(
                 model=model_name,
-                temperature=temperature,
+                temperature=temperature if temperature is not None else None,
                 num_predict=max_output_tokens,
             )
         case _:

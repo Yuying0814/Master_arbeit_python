@@ -262,7 +262,12 @@ class AsyncOpenAIBatchClient:
             raise RuntimeError(f"Batch job is not completed, ended with status: {batch_job.status}")
 
         if not batch_job.has_output():
-            raise RuntimeError("Batch job has no output file id")
+            raise RuntimeError(
+                "Batch job has no output file id. "
+                f"error_file_id={batch_job.error_file_id}, "
+                f"request_counts={batch_job.batch_info.get('request_counts')}, "
+                f"errors={batch_job.batch_info.get('errors')}"
+            )
 
         raw_output = await self.get_batch_output(batch_job.output_file_id)
         contents, outputs, records = self.parse_batch_output(raw_output)
