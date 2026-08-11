@@ -94,8 +94,12 @@ class HasRunWithRetry:
 
                 delay = base_delay * 2 ** (attempt - 1)
 
-                warnings.warn(f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}",
-                              RuntimeWarning, stacklevel=2)
+                warnings.warn(
+                    f"Stage {function.__name__} failed at attempt {attempt}/{max_retries + 1}"
+                    f"{type(error).__name__}: {error}",
+                    RuntimeWarning, stacklevel=2
+                )
+
                 await asyncio.sleep(delay)
 
         raise RuntimeError(f"{function.__name__} failed")
