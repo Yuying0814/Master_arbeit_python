@@ -110,6 +110,7 @@ class OpenaiBatchInputFile:
             )
 
     def write_to_file(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("w",encoding="utf-8") as file:
             for item in self.JSONLs:
                 text = json.dumps(item,ensure_ascii=False)+"\n"
