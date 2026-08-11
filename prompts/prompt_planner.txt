@@ -311,6 +311,11 @@ Name of the target file.
 For .cpp and .h driver files, use a sensor-specific or generic driver name when the device name is inferable from Input.driver_name.
 For other files, use a compact name which can precisely the function of this file.
 Base file name only, must without the file extension.
+Path-safety rules for this field:
+1. `name` must be a non-empty plain file basename, not a path.
+2. Do not include `/`, `\`, `..`, drive-letter prefixes such as `C:`, or the Windows-reserved characters `<`, `>`, `:`, `"`, `|`, `?`, and `*`.
+3. Do not use `.` or `..` as the complete name.
+4. Do not end `name` with a dot or space.
 If the device name is not inferable, use:
 * `SensorDriver`
 

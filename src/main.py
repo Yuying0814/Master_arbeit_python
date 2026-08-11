@@ -204,7 +204,7 @@ def main():
     )
 
     device_name = DEVICE_NAME.strip()
-    version_major = int(MAJOR_VERSION.strip())
+    version_major = MAJOR_VERSION
 
     match MODE.casefold():
         case "chat":
