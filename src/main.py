@@ -8,20 +8,20 @@ from src.chat.config import ChatConfig
 from src.chat.main import start_chat
 from src.preprocessing.config import PreprocessingConfig
 from src.coding.config import CodingConfig
-from src.workflow import run_preprocessor,run_coding_controller,get_latest_major_result
+from src.workflow import run_preprocessor,run_coding_controller,get_major_version_result,run_preprocessing_and_coding
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # ============================================================
 # MODE
 # ============================================================
-MODE = "chat" # chat/ single_file / multiple_files
+MODE = "chat" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
-# General configuration for single_file/multiple_files
+# General configuration for coding
 # ============================================================
 DEVICE_NAME = ""
-DEVICE_NAMES = [""]
+MAJOR_VERSION = 1
 USER_REQUEST = ""
 
 # ============================================================
@@ -177,6 +177,86 @@ CHAT_TASK_SETTINGS: dict[str, dict[str, Any]] = {
 # END OF CONFIGURATION
 # ============================================================
 
+def main():
+    preprocessing_config = PreprocessingConfig.load_config(
+        pdf=PDF_FILE,
+        env=ENV_FILE,
+    )
+    coding_config = CodingConfig.load_config(
+        code_dir=CODE_DIR,
+        cli_path=CLI_PATH,
+        env=ENV_FILE,
+        package=PACKAGE,
+        architecture=ARCHITECTURE,
+        board=BOARD,
+        enable_test_coder=ENABLE_TEST_CODER,
+        board_options=BOARD_OPTIONS,
+    )
+    chat_config = ChatConfig.load_config(
+        env=ENV_FILE,
+        database=DATABASE_PATH,
+    )
+
+    configure_models(
+        preprocessing_config=preprocessing_config,
+        coding_config=coding_config,
+        chat_config=chat_config,
+    )
+
+    device_name = DEVICE_NAME.strip()
+    version_major = int(MAJOR_VERSION.strip())
+
+    match MODE.casefold():
+        case "chat":
+            start_chat(
+                chat_config=chat_config,
+                preprocessing_config=preprocessing_config,
+                coding_config=coding_config,
+            )
+
+        case "preprocessing":
+            asyncio.run(
+                run_preprocessor(
+                    config=preprocessing_config,
+                    pdf_path=Path(PDF_FILE),
+                    database_path=DATABASE_PATH,
+                    device_name=device_name,
+                )
+            )
+
+        case "coding":
+            result = get_major_version_result(
+                database_path=DATABASE_PATH,
+                device_name=device_name,
+                version_major=version_major,
+            )
+
+            asyncio.run(
+                run_coding_controller(
+                    config=coding_config,
+                    driver_name=device_name,
+                    version_major=version_major,
+                    documents=result.documents,
+                    register_maps=result.register_maps,
+                    user_request=USER_REQUEST,
+                )
+            )
+
+        case "preprocessing and coding":
+            asyncio.run(
+                run_preprocessing_and_coding(
+                    preprocessing_config=preprocessing_config,
+                    coding_config=coding_config,
+                    device_name=device_name,
+                    pdf_path=Path(PDF_FILE),
+                    database_path=DATABASE_PATH,
+                    user_request=USER_REQUEST,
+                )
+            )
+
+        case _:
+            raise ValueError(f"Unsupported MODE: {MODE}")
+
 
 def configure_models(
         preprocessing_config: PreprocessingConfig,
@@ -213,125 +293,6 @@ def configure_models(
 
         for field_name, value in settings.items():
             setattr(task_config.model, field_name, value)
-
-def main():
-    preprocessing_config = PreprocessingConfig.load_config(
-        pdf=PDF_FILE,
-        env=ENV_FILE,
-    )
-    coding_config = CodingConfig.load_config(
-        code_dir=CODE_DIR,
-        cli_path=CLI_PATH,
-        env=ENV_FILE,
-        package=PACKAGE,
-        architecture=ARCHITECTURE,
-        board=BOARD,
-        enable_test_coder=ENABLE_TEST_CODER,
-        board_options=BOARD_OPTIONS,
-    )
-    chat_config = ChatConfig.load_config(
-        env=ENV_FILE,
-        database=DATABASE_PATH,
-    )
-
-    configure_models(
-        preprocessing_config=preprocessing_config,
-        coding_config=coding_config,
-        chat_config=chat_config,
-    )
-
-    device_name = DEVICE_NAME.strip()
-    match MODE.casefold():
-        case "chat":
-            start_chat(
-                chat_config=chat_config,
-                preprocessing_config=preprocessing_config,
-                coding_config=coding_config,
-            )
-
-        case "single_file":
-
-            if not device_name:
-                raise ValueError("DEVICE_NAME must not be empty.")
-
-            result = asyncio.run(
-                    run_preprocessor(
-                        config=preprocessing_config,
-                        pdf_path=Path(PDF_FILE),
-                        database_path=DATABASE_PATH,
-                        device_name=device_name,
-                    )
-            )
-
-            data = get_latest_major_result(
-                database_path=Path(DATABASE_PATH),
-                device_name=result.device_name,
-            )
-
-            asyncio.run(
-                run_coding_controller(
-                    config=coding_config,
-                    driver_name=result.device_name,
-                    version_major=result.version_major,
-                    documents=data.documents,
-                    register_maps=data.register_maps,
-                    user_request=USER_REQUEST,
-                )
-            )
-
-        case "multiple_files":
-            folder = Path(PDF_DIR)
-            if not folder.is_dir():
-                raise NotADirectoryError(f"Folder does not exist:{folder}")
-
-            pdf_files = sorted(folder.glob("*.pdf"))
-            device_names = [name.strip() for name in DEVICE_NAMES]
-
-            if not pdf_files:
-                raise FileNotFoundError(f"No PDF files found in:{folder}")
-            if len(pdf_files) != len(device_names):
-                raise ValueError(
-                    "PDF file count must match DEVICE_NAMES count."
-                )
-
-            if any(not name for name in device_names):
-                raise ValueError("DEVICE_NAMES must not contain empty names.")
-
-            for pdf_path, current_device_name in zip(
-                    pdf_files,
-                    device_names,
-                    strict=True,
-            ):
-                asyncio.run(
-                    run_preprocessor(
-                        config=preprocessing_config,
-                        pdf_path=pdf_path,
-                        database_path=DATABASE_PATH,
-                        device_name=current_device_name,
-                    )
-                )
-
-            unique_device_names = list(dict.fromkeys(device_names))
-            for name in unique_device_names:
-                data = get_latest_major_result(
-                    database_path=Path(DATABASE_PATH),
-                    device_name=name
-                )
-
-                asyncio.run(
-                    run_coding_controller(
-                        config=coding_config,
-                        driver_name=name,
-                        version_major=data.version_major,
-                        documents=data.documents,
-                        register_maps=data.register_maps,
-                        user_request=USER_REQUEST,
-                    )
-                )
-
-        case _:
-            raise ValueError(f"Unsupported MODE: {MODE}")
-
 
 if __name__ == "__main__":
     main()

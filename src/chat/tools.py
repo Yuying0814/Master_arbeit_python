@@ -19,8 +19,10 @@ from src.llm.llm_single_task import LLMSingleTask
 
 from src.coding.config import CodingConfig
 from src.coding.controller.controller import Controller
+from src.preprocessing.preprocessor import Preprocessor
 from src.preprocessing.config import PreprocessingConfig
 
+from src.workflow import save_preprocessing_outputs
 
 class QuitChatRequested(BaseException):
     pass
@@ -221,8 +223,6 @@ class ChatTools:
 
             config = self.preprocessing_config
 
-            from src.preprocessing.preprocessor import Preprocessor
-
             preprocessor = Preprocessor(
                 config,
                 session["ocr_result"],
@@ -247,6 +247,14 @@ class ChatTools:
                     task_models=preprocessing_result.task_models,
                     token_consumption=preprocessing_result.token_consumption,
                 )
+            version_info = feedback.details
+
+            save_preprocessing_outputs(
+                device_name=device_name,
+                version=f"v{version_info.version_major}_{version_info.version_minor}",
+                output_dir=config.project_path.output_path,
+                result=preprocessing_result
+            )
 
             message = {
                 "success":True,
