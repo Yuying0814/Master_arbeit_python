@@ -14,7 +14,9 @@ class ArduinoBoardConfig:
     package: str
     architecture: str
     board: str
+    port:str = ""
     options: dict[str, str] = field(default_factory=dict)
+
 
 def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
     retrieval = TaskConfig(
@@ -126,6 +128,7 @@ class CodingConfig(BaseConfig):
             architecture:str,
             board:str,
             board_options:dict[str,str],
+            port:str,
     ) -> CodingConfig:
 
         code_dir = Path(code_dir)
@@ -168,6 +171,7 @@ class CodingConfig(BaseConfig):
                 architecture=architecture,
                 board=board,
                 options=board_options,
+                port=port,
             ),
         )
 

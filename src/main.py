@@ -15,20 +15,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # ============================================================
 # MODE
 # ============================================================
-MODE = "chat" # chat/ preprocessing /coding/ preprocessing and coding
+MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
-# General configuration for coding
+# General configuration
 # ============================================================
-DEVICE_NAME = ""
-MAJOR_VERSION = 1
-USER_REQUEST = ""
+DEVICE_NAME = "ICM20948" # For preprocessing and coding
+MAJOR_VERSION = 1 # For coding
+USER_REQUEST = "" # For coding
 
 # ============================================================
 # Path configuration
 # ============================================================
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "bst-bme280-ds002.pdf"
-PDF_DIR: Path | str = PROJECT_ROOT / "data"/ "input_pdf"
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "ds-000189-icm-20948-v1.5.pdf"
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
@@ -36,6 +35,8 @@ CODE_DIR: Path | str = "D:/python/master_arbeit/code"
 # ============================================================
 # Arduino-cli configuration
 # ============================================================
+ENABLE_TEST_CODER = False
+PORT = "COM6"
 CLI_PATH = PROJECT_ROOT/"arduino"/"bin"/"arduino-cli.exe"
 PACKAGE = "rp2040"
 ARCHITECTURE = "rp2040"
@@ -45,7 +46,7 @@ BOARD_OPTIONS = {
     "boot2": "boot2_w25q128jvxq_4_padded_checksum",
     "usbstack":"picosdk",
 }
-ENABLE_TEST_CODER = False
+
 
 # ============================================================
 # Model configuration
@@ -191,6 +192,7 @@ def main():
         board=BOARD,
         enable_test_coder=ENABLE_TEST_CODER,
         board_options=BOARD_OPTIONS,
+        port=PORT,
     )
     chat_config = ChatConfig.load_config(
         env=ENV_FILE,
