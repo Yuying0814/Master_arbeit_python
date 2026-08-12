@@ -330,7 +330,8 @@ class AsyncGeminiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
             try:
                 response = types.GenerateContentResponse.model_validate(
-                    response_data
+                    response_data,
+                    extra="ignore",
                 )
             except ValidationError as error:
                 contents.append(

@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import json
 from typing import Any
-from warnings import warn
 
 from google import genai
+from google.genai.errors import APIError
 from google.genai.types import BatchJob,UploadFileConfig
 
 from src.llm.google.batch.input_file import GeminiBatchInputFile
@@ -16,11 +16,6 @@ TERMINAL_STATES = {
     "JOB_STATE_FAILED",
     "JOB_STATE_CANCELLED",
     "JOB_STATE_EXPIRED",
-}
-
-ACTIVE_STATES = {
-    "JOB_STATE_PENDING",
-    "JOB_STATE_RUNNING",
 }
 
 
@@ -52,15 +47,30 @@ class AsyncGeminiBatchClient:
             batch_job = await self.async_client.batches.create(
                 model=model,
                 src=uploaded_file.name,
-                config={"display_name": f"{batch_input_file.path.stem}_create"},
+                config={
+                    "display_name": f"{batch_input_file.path.stem}_create",
+                },
             )
-        except Exception:
-            await self.delete(uploaded_file.name)
+        except Exception as error:
+            try:
+                await self._delete_input_file(uploaded_file.name)
+            except Exception as cleanup_error:
+                error.add_note(
+                    f"Failed to delete Gemini batch input file: {cleanup_error}"
+                )
             raise
 
         if not batch_job.name:
-            await self.delete(uploaded_file.name)
-            raise RuntimeError("Gemini did not return a batch job name.")
+            error = RuntimeError("Gemini did not return a batch job name.")
+
+            try:
+                await self._delete_input_file(uploaded_file.name)
+            except Exception as cleanup_error:
+                error.add_note(
+                    f"Failed to delete Gemini batch input file: {cleanup_error}"
+                )
+
+            raise error
 
         return batch_job
 
@@ -146,35 +156,51 @@ class AsyncGeminiBatchClient:
         return records
 
     async def clean_up_batch_job(
-        self,
-        batch_job: BatchJob,
-        batch_input_file: GeminiBatchInputFile,
+            self,
+            batch_job: BatchJob,
+            batch_input_file: GeminiBatchInputFile,
     ) -> None:
+        failures: list[str] = []
 
-
-        if self.get_state_name(batch_job) in ACTIVE_STATES:
+        batch_name = batch_job.name
+        if not batch_name:
+            failures.append("Gemini batch job has no name.")
+        else:
             try:
-                await self.async_client.batches.cancel(name=batch_job.name)
-
+                await self._delete_batch_job(batch_name)
             except Exception as error:
-                warn(f"Failed to clean up Gemini batch {batch_job.name}: {error}")
+                failures.append(
+                    f"Failed to delete Gemini batch job {batch_name}: {error}"
+                )
 
-        current_job = await self.wait_for_completion(batch_job.name)
+        input_file_name = batch_input_file.remote_file_name
+        if input_file_name:
+            try:
+                await self._delete_input_file(input_file_name)
+            except Exception as error:
+                failures.append(
+                    f"Failed to delete Gemini batch input file "
+                    f"{input_file_name}: {error}"
+                )
 
-        output_file_name = getattr(current_job.dest, "file_name", None)
-        file_names = [
-            output_file_name,
-            batch_input_file.remote_file_name,
-        ]
+        if failures:
+            raise RuntimeError(
+                "Gemini batch cleanup failed:\n" + "\n".join(failures)
+            )
 
-        for file_name in dict.fromkeys(name for name in file_names if name):
-            await self.delete(file_name)
+    async def _delete_batch_job(self, batch_name: str) -> None:
+        try:
+            await self.async_client.batches.delete(name=batch_name)
+        except APIError as error:
+            if error.code != 404:
+                raise
 
-    async def delete(self, file_name: str) -> None:
+    async def _delete_input_file(self, file_name: str) -> None:
         try:
             await self.async_client.files.delete(name=file_name)
-        except Exception as error:
-            warn(f"Failed to delete file {file_name}:\n{error}")
+        except APIError as error:
+            if error.code != 404:
+                raise
 
     @staticmethod
     def get_state_name(batch_job: BatchJob) -> str:
