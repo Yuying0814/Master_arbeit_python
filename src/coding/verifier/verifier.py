@@ -4,12 +4,13 @@ from typing import Any
 from collections.abc import Callable
 from langchain.tools import BaseTool
 
+
 from src.models.task_config import TaskConfig
 from src.models.coding.verifier import VerifierInput, VerifierOutput, SemanticVerifierInput, ExecutionVerifierInput, \
     VerifierLog
-
 from src.llm.llm_agent import LLMAgent
 
+from src.coding.config import ArduinoBoardConfig
 from src.coding.verifier.execution_verifier import ExecutionVerifier
 
 class Verifier:
@@ -32,8 +33,7 @@ class Verifier:
             *,
             enable_test_coder:bool,
             cli_path: Path,
-            fqbn: str,
-            board_options:dict[str,str],
+            board_config: ArduinoBoardConfig,
             api_key_semantic:str = None,
             api_key_test_coder:str = None,
             semantic_tools :list[Callable | BaseTool | dict]=None,
@@ -55,8 +55,7 @@ class Verifier:
             thread_id = "execution_verifier",
             enable_test_coder=enable_test_coder,
             cli_path=cli_path,
-            fqbn=fqbn,
-            board_options = board_options,
+            board_config=board_config,
         )
         return cls(
             semantic_verifier=semantic_verifier,

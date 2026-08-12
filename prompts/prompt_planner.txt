@@ -447,7 +447,7 @@ It must instruct the verifier to check the code generated later by the coder in 
 * whether unsupported behavior is not invented.
 
 #### 4.2 `execution_plan`: Array<FilePlan>
-
+Each `FilePlan` item has the same structure as 3.2
 Executable verification plan.
 If `enable_test_coder` is `false`, this field must be an empty array.
 If `enable_test_coder` is `true`, describe test files or sketches that should be generated.

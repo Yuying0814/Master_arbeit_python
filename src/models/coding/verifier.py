@@ -144,22 +144,43 @@ class ExecutionVerifierInput(StructuredOutputModel):
 class ExecutionVerifierOutput(StructuredOutputModel):
     candidate_code_passed: bool = Field(
         default=False,
-        description= "true if the candidate code has no syntax error",
+        description= "true if the candidate code compiles successfully",
     )
 
     test_code_passed: bool|None = Field(
         default=None,
-        description= "true if the code and test code has no syntax errors",
+        description= "true if the code and test code compiles successfully",
+    )
+
+    test_code_uploaded:bool|None = Field(
+        default=None,
+        description= "true if the compiled test firmware was successfully uploaded to the target device.",
+    )
+
+    device_reconnected: bool|None = Field(
+        default=None,
+        description= "true if the target device reconnects after firmware upload.",
+    )
+
+    run_time_test_passed:bool|None = Field(
+        default=None,
+        description= "true if the runtime test on the target device passes."
     )
 
     test_coder_history:list[TestCoderLog] = Field(
         default_factory=list,
-        description = "Detailed logs recorded by the test coder when the generated test code does not pass."
+        description = "detailed logs recorded by the test coder when the generated test code does not pass."
     )
 
     test_passed: bool|None = Field(
         default=None,
-        description= "true if the candidate codes passes the test with test codes",
+        description= "true if all the items are true:"
+                     "candidate_code_passed, test_code_passed, test_code_uploaded, device reconnected, run_time_test_passed",
+    )
+
+    execution_message: str = Field(
+        default="",
+        description="Diagnostic message for upload, reconnection, or runtime test failures.",
     )
 
     compiler_message: CompilerMsg = Field(
@@ -219,6 +240,7 @@ class TestCoderConfig(StructuredOutputModel):
     accepted_files: list[CodeFile] = Field(
         default_factory=list,
     )
+
 class TestCoderInput(StructuredOutputModel):
     compiler_message: CompilerMsg = Field(
         default_factory=CompilerMsg,
