@@ -67,7 +67,7 @@ class LLMTaskRunner:
             input_path = Path(input_path) if input_path else None,
         )
 
-        timeout = _get_timemout(task_config.model.timeout)
+        timeout = _get_timeout(task_config.model.timeout)
         return cls(task,timeout=timeout)
 
     @staticmethod
