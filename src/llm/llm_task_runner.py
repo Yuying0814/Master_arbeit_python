@@ -2,6 +2,7 @@ from typing import Protocol, Any
 from pathlib import Path
 
 import asyncio
+import time
 
 from src.models.llm.batch import UserRequest
 from src.models.llm.common import NormalizedUsage,NormalizedTokenConsumption
@@ -39,16 +40,23 @@ class LLMTaskRunner:
         self.has_valid_output = False
         self.token_consumption = NormalizedTokenConsumption()
         self.timeout = timeout
+        self.elapsed_time = 0.0
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
 
         self.task.add_user_inputs(user_input)
+        start_time = time.perf_counter()
 
-        if self.timeout is None:
-            results = await self.task.run()
-        else:
-            async with asyncio.timeout(timeout=self.timeout):
+        try:
+            if self.timeout is None:
                 results = await self.task.run()
+            else:
+                async with asyncio.timeout(timeout=self.timeout):
+                    results = await self.task.run()
+        finally:
+            elapsed_time = time.perf_counter() - start_time
+            self.elapsed_time = elapsed_time
+            print(f"Task completed in {elapsed_time:.2f} seconds")
 
         self.results = results
         self.has_valid_output = self.task.has_valid_output
