@@ -63,8 +63,8 @@ class RegisterMapItem(StructuredOutputModel):
     field_parts: list[RegisterFieldPart]
     category: str
     source: list[RegisterSource]
-    default_value: str
-    default_value_description: str
+    default_value: str = ""
+    default_value_description: str = ""
 
 
 class RegisterMapOutput(StructuredOutputModel):
