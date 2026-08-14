@@ -20,14 +20,14 @@ MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # General configuration
 # ============================================================
-DEVICE_NAME = "FXOS8700CQ" # For preprocessing and coding
+DEVICE_NAME = "ITG3050" # For preprocessing and coding
 MAJOR_VERSION = 1 # For coding
 USER_REQUEST = "" # For coding
 
 # ============================================================
 # Path configuration
 # ============================================================
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "FXOS8700CQ.pdf"
+PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "ITG-3050-Register-Map.pdf"
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
@@ -66,42 +66,47 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
 
     "classify_pages": {
-        "provider": "openai",
+        "provider": "google",
         "is_batch": True,
-        "model_name": "gpt-5-mini",
+        "model_name": "gemini-3.6-flash",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
+        "timeout": 1800
     },
     "verify_reg_sum_pages": {
-        "provider": "openai",
+        "provider": "google",
         "is_batch": True,
-        "model_name": "gpt-5-mini",
+        "model_name": "gemini-3.6-flash",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
+        "timeout": 1800
     },
     "verify_reg_pages": {
-        "provider": "openai",
+        "provider": "google",
         "is_batch": True,
-        "model_name": "gpt-5-mini",
+        "model_name": "gemini-3.6-flash",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
+        "timeout": 1800
     },
     "extract_reg_index": {
-        "provider": "openai",
-        "model_name": "gpt-5.6-terra",
+        "provider": "google",
+        "model_name": "gemini-3.6-flash",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 20000,
+        "timeout": 1800
     },
     "extract_reg_map": {
-        "provider": "openai",
-        "model_name": "gpt-5.6-sol",
+        "provider": "google",
+        "model_name": "gemini-3.6-flash",
         "thinking_effort": "high",
         "temperature": None,
         "max_tokens": 50000,
+        "timeout": 1800
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
@@ -110,7 +115,8 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "model_name": "gpt-5-mini",
         "thinking_effort": "high",
         "temperature": None,
-        "max_tokens": 100000,
+        "max_tokens": 60000,
+        "timeout": 1800
     },
     "retrieval": {
         "provider": "openai",
@@ -118,6 +124,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "high",
         "temperature": None,
         "max_tokens": 5000,
+        "timeout": 1800
     },
     "coding": {
         "provider": "openai",
@@ -125,6 +132,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "high",
         "temperature": None,
         "max_tokens": 20000,
+        "timeout": 1800
     },
     "verification_semantic": {
         "provider": "openai",
@@ -132,6 +140,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "high",
         "temperature": None,
         "max_tokens": 10000,
+        "timeout": 1800
     },
     "verification_test_coder": {
         "provider": "openai",
@@ -139,6 +148,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "high",
         "temperature": None,
         "max_tokens": 10000,
+        "timeout": 1800
     },
 }
 # ============================================================

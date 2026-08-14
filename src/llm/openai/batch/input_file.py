@@ -1,12 +1,14 @@
 from __future__ import annotations
 import json
 import math
+
 from dataclasses import dataclass,field
 from pathlib import Path
 from typing import Any
 
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.llm.common.types import ValidOutputFormat,ThinkingEffort
+from src.llm.common.batch_utils import to_strict_json_schema
 
 @dataclass
 class OpenaiBatchInputFile:
@@ -127,7 +129,7 @@ def _build_format_value(output_format: ValidOutputFormat) -> dict[str, Any]:
             "type": "json_schema",
             "name": output_format.__name__,
             "strict": True,
-            "schema": output_format.model_json_schema(),
+            "schema": to_strict_json_schema(output_format),
         }
     else:
         return {

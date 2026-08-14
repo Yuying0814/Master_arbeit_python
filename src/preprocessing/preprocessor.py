@@ -121,6 +121,7 @@ class Preprocessor:
 
             self.refine_classification()
             await self.extract_reg_map()
+            return
 
         except Exception:
             for task in (reg_sum_verify_task, reg_page_verify_task):
@@ -375,13 +376,22 @@ class Preprocessor:
             page_index=self.reg_page_idx,
         )
 
-        user_input = json.dumps(
-            {
+        raw_input = {
                 "pages": selected_pages,
                 "registers": self.reg_summary.model_dump()["registers"],
-            },
+            }
+
+        user_input = json.dumps(
+            raw_input,
             ensure_ascii=False,
         )
+
+        path = "D:/python/master_arbeit/data/output/input_data/input.json"
+        with open(path,"w",encoding="utf-8") as f:
+            json.dump(raw_input,f)
+
+        return
+
 
         self.reg_map_extractor = LLMTaskRunner.load_from_task_config(
             task_config=task_config,

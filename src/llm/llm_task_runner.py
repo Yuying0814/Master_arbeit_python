@@ -1,7 +1,7 @@
 from typing import Protocol, Any
 from pathlib import Path
 
-
+import asyncio
 
 from src.models.llm.batch import UserRequest
 from src.models.llm.common import NormalizedUsage,NormalizedTokenConsumption
@@ -33,16 +33,23 @@ class LLMTaskRunner:
     has_valid_output: bool
     token_consumption: NormalizedTokenConsumption
 
-    def __init__(self, task: LLMTask) -> None:
+    def __init__(self, task: LLMTask,timeout:float|None) -> None:
         self.task = task
         self.results = None
         self.has_valid_output = False
         self.token_consumption = NormalizedTokenConsumption()
+        self.timeout = timeout
 
     async def run(self,user_input: str | list[UserRequest]) -> Any:
 
         self.task.add_user_inputs(user_input)
-        results = await self.task.run()
+
+        if self.timeout is None:
+            results = await self.task.run()
+        else:
+            async with asyncio.timeout(timeout=self.timeout):
+                results = await self.task.run()
+
         self.results = results
         self.has_valid_output = self.task.has_valid_output
         self.get_token_usage()
@@ -59,7 +66,9 @@ class LLMTaskRunner:
             api_key = api_key,
             input_path = Path(input_path) if input_path else None,
         )
-        return cls(task)
+
+        timeout = _get_timemout(task_config.model.timeout)
+        return cls(task,timeout=timeout)
 
     @staticmethod
     def build_task(task_config:TaskConfig, api_key:str|None ,input_path:Path|None) -> LLMTask:
@@ -116,3 +125,8 @@ class LLMTaskRunner:
             final_usage=self.task.final_usage,
             total_usage=self.task.total_usage,
         )
+
+def _get_timeout(timeout:int|None) -> float|None:
+    if timeout is None:
+        return timeout
+    return float(timeout)

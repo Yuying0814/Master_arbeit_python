@@ -13,6 +13,7 @@ class ModelConfig(BaseModel):
     thinking_effort: ThinkingEffort = None
     temperature:float|None = None
     max_tokens:int = 4000
+    timeout: int | None = 1800
 
 class TaskConfig(BaseModel):
     model: ModelConfig = Field(default_factory=ModelConfig)

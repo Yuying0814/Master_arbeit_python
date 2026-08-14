@@ -1,7 +1,7 @@
 from __future__ import annotations
-
-
 from typing import Any
+
+from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.llm.common import NormalizedUsage
 from src.llm.common.types import ValidOutputFormat
 
@@ -71,3 +71,36 @@ def sum_normalized_usage(usages: list[NormalizedUsage]) -> NormalizedUsage:
         input_token_details=input_token_details,
         output_token_details=output_token_details,
     )
+
+
+def to_strict_json_schema(
+        output_format:type[StructuredOutputModel],
+) -> dict[str,Any]:
+    schema = output_format.model_json_schema()
+    _make_schema_strict(schema)
+    return schema
+
+
+def _make_schema_strict(schema:dict[str,Any]) -> None:
+    schema.pop("default", None)
+
+    definitions = schema.get("$defs", {})
+    for definition in definitions.values():
+        _make_schema_strict(definition)
+
+    properties = schema.get("properties")
+    if isinstance(properties, dict):
+        schema["required"] = list(properties.keys())
+        schema["additionalProperties"] = False
+
+        for property_schema in properties.values():
+            _make_schema_strict(property_schema)
+
+    items = schema.get("items")
+    if isinstance(items, dict):
+        _make_schema_strict(items)
+
+    any_of = schema.get("anyOf")
+    if isinstance(any_of, list):
+        for option in any_of:
+            _make_schema_strict(option)
