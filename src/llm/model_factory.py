@@ -40,15 +40,17 @@ def build_chat_model(
             if not api_key:
                 raise ValueError("Anthropic API key is required for provider='anthropic'.")
 
-            return ChatAnthropic(
-                model_name=model_name,
-                api_key=api_key,
-                max_tokens_to_sample= max_output_tokens,
-                thinking = {
-                    "type":"adaptive"
-                },
-                effort=thinking_effort,
-            )
+            model_kwargs = {
+                "model_name": model_name,
+                "api_key": api_key,
+                "max_tokens_to_sample": max_output_tokens,
+            }
+
+            if thinking_effort is not None:
+                model_kwargs["thinking"] = {"type": "adaptive"}
+                model_kwargs["effort"] = thinking_effort
+
+            return ChatAnthropic(**model_kwargs)
 
         case "google":
             if not api_key:
