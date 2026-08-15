@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic.dataclasses import dataclass
-
 from src.config import BaseConfig, BaseProjectPath
 from src.models.preprocessing.page_output import PageClassification, PageDescription
 from src.models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
@@ -27,7 +25,6 @@ class PreprocessingConfig(BaseConfig):
     @classmethod
     def load_config(
         cls,
-        pdf: str | Path = "",
         env: str | Path = "",
     ) -> "PreprocessingConfig":
 
@@ -107,19 +104,6 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
         output_format="text",
     )
 
-    add_page_description = TaskConfig(
-        model=ModelConfig(
-            provider="openai",
-            model_name="gpt-5-mini",
-            is_batch=True,
-            thinking_effort="medium",
-            temperature=None,
-            max_tokens=2000,
-        ),
-        system=_read_instructions(prompt_path / "prompt_addPageDescription.txt"),
-        output_format=PageDescription,
-    )
-
     extract_reg_index = TaskConfig(
         model=ModelConfig(
             provider="openai",
@@ -150,7 +134,6 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
         classify_pages=classify_pages,
         verify_reg_sum_pages=verify_reg_sum_pages,
         verify_reg_pages=verify_reg_pages,
-        add_page_description=add_page_description,
         extract_reg_index=extract_reg_index,
         extract_reg_map=extract_reg_map,
     )

@@ -20,14 +20,14 @@ MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # General configuration
 # ============================================================
-DEVICE_NAME = "ITG3050" # For preprocessing and coding
+DEVICE_NAME = "BME280" # For preprocessing and coding
 MAJOR_VERSION = 1 # For coding
 USER_REQUEST = "" # For coding
 
 # ============================================================
 # Path configuration
 # ============================================================
-PDF_FILE: Path | str = PROJECT_ROOT / "data"/ "input_pdf" / "ITG-3050-Register-Map.pdf"
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\bst-bme280-ds002.pdf")
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
@@ -72,7 +72,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 3600
     },
     "verify_reg_sum_pages": {
         "provider": "google",
@@ -81,7 +81,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 3600
     },
     "verify_reg_pages": {
         "provider": "google",
@@ -90,11 +90,11 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 3600
     },
     "extract_reg_index": {
         "provider": "google",
-        "model_name": "gemini-3.5-flash-lite",
+        "model_name": "gemini-3.1-pro-preview",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 20000,
@@ -102,11 +102,11 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
     "extract_reg_map": {
         "provider": "google",
-        "model_name": "gemini-3.5-flash-lite",
+        "model_name": "gemini-3.1-pro-preview",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 50000,
-        "timeout": 1800
+        "timeout": 3600
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
@@ -190,7 +190,6 @@ CHAT_TASK_SETTINGS: dict[str, dict[str, Any]] = {
 
 def main():
     preprocessing_config = PreprocessingConfig.load_config(
-        pdf=PDF_FILE,
         env=ENV_FILE,
     )
     coding_config = CodingConfig.load_config(

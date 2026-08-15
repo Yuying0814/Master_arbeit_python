@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import inspect
 import asyncio
+import time
 
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from src.preprocessing.config import PreprocessingConfig
 class Preprocessor:
     pdf_path: Path
     ocr_result:dict[str,Any]
+    ocr_path: Path
     pages:list[dict[str,Any]]
 
     toc_page_idx: list[int]
@@ -57,13 +59,13 @@ class Preprocessor:
     def __init__(
             self,
             config: PreprocessingConfig,
-            ocr_result:dict[str,Any]|None = None,
     ) -> None:
 
         self.config = config
 
         self.pdf_path = Path()
-        self.ocr_result = ocr_result if ocr_result else {}
+        self.ocr_result = {}
+        self.ocr_path = Path()
         self.pages = []
 
         self.toc_page_idx = []
@@ -93,6 +95,11 @@ class Preprocessor:
 
     async def run(self,pdf_path:str|Path) -> PreprocessorOutput:
         self.pdf_path = _validate_pdf_path(pdf_path)
+        provider = self.config.ocr.provider
+        model = self.config.ocr.model_name
+
+        self.ocr_path = self.config.project_path.output_path/"ocr"/provider/model/f"{self.pdf_path.stem}.json"
+
         try:
             await self.pipeline()
             return self.build_outputs()
@@ -101,11 +108,13 @@ class Preprocessor:
             raise
 
     async def pipeline(self) -> None:
-        print("-----------------------------------------------------------------------\n")
+        print("=======================================================================\n")
         print("start running text preprocessor pipeline\n")
-        print("-----------------------------------------------------------------------\n")
-        self.run_ocr()
-        self.save_ocr_result()
+        print("=======================================================================\n")
+
+        self.ocr_result = self._load_ocr_if_exists() or self.run_ocr()
+        self.pages = self._get_pages()
+
         await self.classify_pages()
         self.update_page_candidates()
 
@@ -113,17 +122,15 @@ class Preprocessor:
         reg_page_verify_task = asyncio.create_task(self.verify_reg_pages())
 
         try:
-            print("Waiting for completion of verification task for register summary pages:\n")
             await reg_sum_verify_task
             await self.extract_reg_index()
 
-            print("Waiting for completion of verification task for register pages:\n")
             await reg_page_verify_task
 
             self.refine_classification()
             await self.extract_reg_map()
 
-        except Exception:
+        except Exception as error:
             for task in (reg_sum_verify_task, reg_page_verify_task):
                 if not task.done():
                     task.cancel()
@@ -134,52 +141,38 @@ class Preprocessor:
                 return_exceptions=True,
             )
 
-            raise
+            raise RuntimeError("Pipeline failed") from error
 
-    def run_ocr(self) -> list[dict[str,Any]]:
-        if not self.ocr_result:
-            api_key = (
-                self.config.get_apikey("mistral")
-                if self.config.ocr.provider == "mistral"
-                else None
-            )
+    def run_ocr(self) -> dict[str,Any]:
+        api_key = (
+            self.config.get_apikey("mistral")
+            if self.config.ocr.provider == "mistral"
+            else None
+        )
 
-            ocr_task = OcrTask(self.config.ocr, api_key)
+        ocr_task = OcrTask(self.config.ocr, api_key)
 
-            try:
-                self.ocr_result = ocr_task.run(self.pdf_path)
-            except (RuntimeError,ValueError,TypeError) as error:
-                raise RuntimeError(f"OCR failed\n") from error
+        try:
+            ocr_result = ocr_task.run(self.pdf_path)
 
-        raw_pages = self.ocr_result.get("pages")
-        if not isinstance(raw_pages,list) or not raw_pages:
-            raise ValueError("OCR returned no normalized pages.")
+        except (RuntimeError,ValueError,TypeError) as error:
+            raise RuntimeError(f"OCR failed\n") from error
 
-        pages = [
-            {
-                "index":page["index"],
-                "markdown":page["markdown"],
-                "tables":page["tables"],
-            } for page in raw_pages]
+        self.save_ocr_result(ocr_result)
+        return ocr_result
 
-        self.pages = remove_header_footer(pages)
-        print("Ocr completed\n")
+    def save_ocr_result(self,ocr_result:dict[str,Any]) -> Path:
 
-        return pages
+        output_path = self.ocr_path
 
-    def save_ocr_result(self,*,path:str|Path|None = None) -> bool:
-        if path is not None:
-            output_path = Path(path).resolve()
-        else:
-            output_path = self.config.project_path.output_path/"ocr"/f"{self.pdf_path.stem}.json"
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path,"w",encoding="utf-8") as file:
-                file.write(json.dumps(self.ocr_result))
+                file.write(json.dumps(ocr_result))
         except OSError as error:
             raise OSError(f"write ocr failed\n") from error
 
-        return True
+        return self.ocr_path
 
     def update_page_candidates(self) -> bool:
         pages = find_toc_pages(self.pages)
@@ -209,7 +202,7 @@ class Preprocessor:
 
         self.reg_page_candidate_idx= sorted(set(self.reg_page_idx_from_toc+self.reg_page_idx_from_retrieval+self.reg_page_idx_from_llm))
         self.reg_sum_candidate_idx = sorted(set(self.reg_sum_idx_from_toc+self.reg_sum_idx_from_retrieval+self.reg_sum_idx_from_llm))
-        print("Page candidates updated\n")
+        print("\nPage candidates updated")
 
         return True
 
@@ -232,8 +225,7 @@ class Preprocessor:
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=input_Path,
         )
-        print("Classification task created\n")
-        print("Waiting for completion of classification task for all pages:\n")
+        print("\nClassification task created")
 
         contents = await self.classifier.run(user_requests)
 
@@ -243,9 +235,10 @@ class Preprocessor:
         parse_classification_content(
             contents = contents,
             user_requests = user_requests,
-            pages = self.pages)
+            pages = self.pages
+        )
 
-        print("Classification completed\n")
+        print("Classification completed")
         return True
 
     async def verify_reg_sum_pages(self) -> list[int]:
@@ -272,7 +265,7 @@ class Preprocessor:
             input_path=input_path,
         )
 
-        print("Task for verification of register summary pages created\n")
+        print("\nTask for verification of register summary pages created\n")
 
         contents = await self.reg_sum_verifier.run(user_requests)
 
@@ -285,7 +278,7 @@ class Preprocessor:
             pages=candidate_pages,
         )
 
-        print("Verification of register summary pages completed\n")
+        print("Verification of register summary pages completed")
         return self.reg_sum_page_idx
 
     async def verify_reg_pages(self) -> list[int]:
@@ -312,7 +305,7 @@ class Preprocessor:
             input_path=inputPath,
         )
 
-        print("Task for verification of register pages created\n")
+        print("\nTask for verification of register pages created")
 
         contents = await self.reg_page_verifier.run(user_requests)
 
@@ -325,7 +318,7 @@ class Preprocessor:
             pages=page_candidates,
         )
 
-        print("Verification of register pages completed\n")
+        print("Verification of register pages completed")
         return self.reg_page_idx
 
     async def extract_reg_index(self) -> RegisterIndexOutput:
@@ -353,7 +346,7 @@ class Preprocessor:
             api_key=self.config.get_apikey(task_config.model.provider),
         )
 
-        print("Start register index information extraction\n")
+        print("\nStart register index information extraction")
 
         result = await self.reg_index_extractor.run(user_input)
 
@@ -361,7 +354,7 @@ class Preprocessor:
             raise RuntimeError("Invalid output from register index information extraction")
 
         self.reg_summary = result
-        print("Register index information extraction completed\n")
+        print("Register index information extraction completed")
         return result
 
     async def extract_reg_map(self) -> RegisterMapOutput:
@@ -391,13 +384,12 @@ class Preprocessor:
         # with open(path,"w",encoding="utf-8") as f:
         #     json.dump(raw_input,f)
 
-
         self.reg_map_extractor = LLMTaskRunner.load_from_task_config(
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
 
-        print("Start register map extraction\n")
+        print("\nStart register map extraction")
 
         result = await self.reg_map_extractor.run(user_input)
 
@@ -405,7 +397,7 @@ class Preprocessor:
             raise RuntimeError("Invalid output from register map extraction")
 
         self.reg_map = result
-        print("Register map extraction completed\n")
+        print("Register map extraction completed")
         return result
 
     def refine_classification(self) -> bool:
@@ -431,50 +423,10 @@ class Preprocessor:
             classification["is_register_map_relevant"] = (
                 not classification["is_register_map_relevant"]
             )
-        print("Refinement completed\n")
+        print("\nRefinement of page indices completed")
 
         return True
 
-    # def create_add_description_task(self):
-    #     if all_classification_false(self.pages):
-    #         for page in self.pages:
-    #             page["description"] = PageDescription.get_default_value()
-    #         print("All pages are not relevant to any topics\n")
-    #         self.task_add_description = None
-    #         return
-    #
-    #     config = self.config.openai.task["add_page_description"]
-    #     name = inspect.currentframe().f_code.co_name
-    #     input_path = self.config.project_path.input_path / f"{name}.jsonl"
-    #
-    #     page_candidates = [
-    #         page
-    #         for page in self.pages
-    #         if any(bool(value) for value in page.get("classification", {}).values())
-    #     ]
-    #
-    #     self.task_add_description = PageBatchTask(
-    #         pages=page_candidates,
-    #         batch_client=self.openai_batch_client,
-    #         input_path=input_path,
-    #         task_config=config,
-    #     )
-    #
-    #     PageBatchTask.run_with_retry(self.task_add_description.submit_batch)
-    #     print("Description task created\n")
-    #
-    # @staticmethod
-    # def wait_and_collect(task:PageBatchTask):
-    #     if not task:
-    #         return
-    #
-    #     PageBatchTask.run_with_retry(task.wait_batch)
-    #     PageBatchTask.run_with_retry(task.collect_batch_output)
-    #     task.retry_batch()
-    #
-    #     if not task.has_valid_output:
-    #         raise RuntimeError(f"Invalid output from {task.name}")
-    #
     async def cleanup(self) -> bool:
         cleanup_tasks = []
 
@@ -508,13 +460,55 @@ class Preprocessor:
             token_consumption=token_consumption,
         )
 
-# def _all_classification_false(pages: list[dict[str, Any]]) -> bool:
-#     for page in pages:
-#         classification = page.get("classification", {})
-#         if any(bool(value) for value in classification.values()):
-#             return False
-#
-#     return
+    def _get_pages(self) -> list[dict[str,Any]]:
+        raw_pages = self.ocr_result.get("pages")
+        if not isinstance(raw_pages,list) or not raw_pages:
+            raise ValueError("OCR returned no normalized pages.")
+
+        pages = [
+            {
+                "index":page["index"],
+                "markdown":page["markdown"],
+                "tables":page["tables"],
+            } for page in raw_pages]
+
+        return remove_header_footer(pages)
+
+    def _load_ocr_if_exists(self) -> dict[str,Any] | None:
+        if not self.ocr_path.is_file():
+            print(
+                f"\n OCR result for {self.pdf_path} does not exist\n"
+                f"Ready to run OCR"
+            )
+            return None
+
+        try:
+            with self.ocr_path.open("r", encoding="utf-8") as file:
+                ocr_result = json.load(file)
+        except json.JSONDecodeError:
+            print(
+                f"\nInvalid OCR cache of {self.pdf_path.stem}\nReady to run new ocr"
+            )
+            return None
+
+        if not isinstance(ocr_result, dict):
+            print(
+                "\nInvalid OCR cache\nReady to run new OCR."
+            )
+            return None
+
+        pages = ocr_result.get("pages")
+        if not isinstance(pages, list) or not pages:
+            print(
+                f"\nOCR result for {self.pdf_path.stem} contains no valid pages.\n"
+                "Ready to run new OCR."
+            )
+            return None
+        print(
+            f"\nOCR result of pdf {self.pdf_path.stem} exists\n"
+            f"Skipping OCR"
+        )
+        return ocr_result
 
 def _get_pages_by_ocr_index(pages:list[dict[str,Any]],page_indices) -> list[dict[str,Any]]:
     page_index_map = {page["index"]: page for page in pages}
