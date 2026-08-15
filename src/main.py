@@ -68,7 +68,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "classify_pages": {
         "provider": "google",
         "is_batch": True,
-        "model_name": "gemini-3.6-flash",
+        "model_name": "gemini-3.5-flash-lite",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
@@ -77,7 +77,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "verify_reg_sum_pages": {
         "provider": "google",
         "is_batch": True,
-        "model_name": "gemini-3.6-flash",
+        "model_name": "gemini-3.5-flash-lite",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
@@ -86,7 +86,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "verify_reg_pages": {
         "provider": "google",
         "is_batch": True,
-        "model_name": "gemini-3.6-flash",
+        "model_name": "gemini-3.5-flash-lite",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
@@ -94,7 +94,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
     "extract_reg_index": {
         "provider": "google",
-        "model_name": "gemini-3.6-flash",
+        "model_name": "gemini-3.5-flash-lite",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 20000,
@@ -102,8 +102,8 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
     "extract_reg_map": {
         "provider": "google",
-        "model_name": "gemini-3.6-flash",
-        "thinking_effort": "high",
+        "model_name": "gemini-3.5-flash-lite",
+        "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 50000,
         "timeout": 1800
