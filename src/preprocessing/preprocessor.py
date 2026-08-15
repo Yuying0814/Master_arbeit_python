@@ -105,6 +105,7 @@ class Preprocessor:
         print("start running text preprocessor pipeline\n")
         print("-----------------------------------------------------------------------\n")
         self.run_ocr()
+        self.save_ocr_result()
         await self.classify_pages()
         self.update_page_candidates()
 
@@ -121,7 +122,6 @@ class Preprocessor:
 
             self.refine_classification()
             await self.extract_reg_map()
-            return
 
         except Exception:
             for task in (reg_sum_verify_task, reg_page_verify_task):
@@ -167,11 +167,11 @@ class Preprocessor:
 
         return pages
 
-    def save_ocr_result(self,**opts) -> bool:
-        if "output_path" in opts and opts["output_path"]:
-            output_path = Path(opts["output_path"])
+    def save_ocr_result(self,*,path:str|Path|None = None) -> bool:
+        if path is not None:
+            output_path = Path(path).resolve()
         else:
-            output_path = self.config.project_path.output_path/"ocr.json"
+            output_path = self.config.project_path.output_path/"ocr"/f"{self.pdf_path.stem}.json"
         try:
             with open(output_path,"w",encoding="utf-8") as file:
                 file.write(json.dumps(self.ocr_result))
@@ -386,11 +386,9 @@ class Preprocessor:
             ensure_ascii=False,
         )
 
-        path = "D:/python/master_arbeit/data/output/input_data/input.json"
-        with open(path,"w",encoding="utf-8") as f:
-            json.dump(raw_input,f)
-
-        return
+        # path = "D:/python/master_arbeit/data/output/input_data/input.json"
+        # with open(path,"w",encoding="utf-8") as f:
+        #     json.dump(raw_input,f)
 
 
         self.reg_map_extractor = LLMTaskRunner.load_from_task_config(
