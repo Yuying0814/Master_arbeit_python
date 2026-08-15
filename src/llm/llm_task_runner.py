@@ -56,7 +56,7 @@ class LLMTaskRunner:
         finally:
             elapsed_time = time.perf_counter() - start_time
             self.elapsed_time = elapsed_time
-            print(f"Task completed in {elapsed_time:.2f} seconds")
+            print(f"Task ended in {elapsed_time:.2f} seconds")
 
         self.results = results
         self.has_valid_output = self.task.has_valid_output
