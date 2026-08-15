@@ -210,7 +210,7 @@ def save_preprocessing_outputs(
 
     _write_json(
         output_dir /device_name/version/"time_consumption.json",
-        json.dumps(result.time_consumption),
+        result.time_consumption.model_dump(),
     )
 
 
