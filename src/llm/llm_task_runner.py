@@ -51,7 +51,7 @@ class LLMTaskRunner:
             if self.timeout is None:
                 results = await self.task.run()
             else:
-                async with asyncio.timeout(timeout=self.timeout):
+                async with asyncio.timeout(self.timeout):
                     results = await self.task.run()
         finally:
             elapsed_time = time.perf_counter() - start_time
