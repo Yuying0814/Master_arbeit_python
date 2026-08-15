@@ -173,6 +173,7 @@ class Preprocessor:
         else:
             output_path = self.config.project_path.output_path/"ocr"/f"{self.pdf_path.stem}.json"
         try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path,"w",encoding="utf-8") as file:
                 file.write(json.dumps(self.ocr_result))
         except OSError as error:
