@@ -30,7 +30,6 @@ class TaskModelsByName(StructuredOutputModel):
     classify_pages: str
     verify_reg_sum_pages: str
     verify_reg_pages: str
-    add_page_description: str
     extract_reg_index: str
     extract_reg_map: str
 

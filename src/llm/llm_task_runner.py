@@ -34,8 +34,9 @@ class LLMTaskRunner:
     has_valid_output: bool
     token_consumption: NormalizedTokenConsumption
 
-    def __init__(self, task: LLMTask,timeout:float|None) -> None:
+    def __init__(self, task: LLMTask,timeout:float|None,task_name:str = "Task") -> None:
         self.task = task
+        self.task_name = task_name
         self.results = None
         self.has_valid_output = False
         self.token_consumption = NormalizedTokenConsumption()
@@ -56,7 +57,7 @@ class LLMTaskRunner:
         finally:
             elapsed_time = time.perf_counter() - start_time
             self.elapsed_time = elapsed_time
-            print(f"Task ended in {elapsed_time:.2f} seconds")
+            print(f"{self.task_name} ended in {elapsed_time:.2f} seconds")
 
         self.results = results
         self.has_valid_output = self.task.has_valid_output
@@ -68,7 +69,13 @@ class LLMTaskRunner:
             await self.task.cleanup()
 
     @classmethod
-    def load_from_task_config(cls, task_config: TaskConfig, api_key:str = None, input_path:str|Path = None) -> "LLMTaskRunner":
+    def load_from_task_config(
+            cls,
+            task_config: TaskConfig,
+            api_key:str = None,
+            input_path:str|Path = None,
+            task_name: str = "Task",
+    ) -> "LLMTaskRunner":
         task = cls.build_task(
             task_config = task_config,
             api_key = api_key,
@@ -76,7 +83,7 @@ class LLMTaskRunner:
         )
 
         timeout = _get_timeout(task_config.model.timeout)
-        return cls(task,timeout=timeout)
+        return cls(task,timeout=timeout,task_name=task_name)
 
     @staticmethod
     def build_task(task_config:TaskConfig, api_key:str|None ,input_path:Path|None) -> LLMTask:

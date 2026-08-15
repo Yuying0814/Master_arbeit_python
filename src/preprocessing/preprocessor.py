@@ -231,6 +231,7 @@ class Preprocessor:
             return True
 
         self.classifier = LLMTaskRunner.load_from_task_config(
+            task_name = "page_classification",
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=input_Path,
@@ -271,12 +272,13 @@ class Preprocessor:
         )
 
         self.reg_sum_verifier = LLMTaskRunner.load_from_task_config(
+            task_name="register_summary_page_verification",
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=input_path,
         )
 
-        print("\nTask for verification of register summary pages created\n")
+        print("\nTask for verification of register summary pages created")
 
         contents = await self.reg_sum_verifier.run(user_requests)
 
@@ -312,6 +314,7 @@ class Preprocessor:
         )
 
         self.reg_page_verifier = LLMTaskRunner.load_from_task_config(
+            task_name="register_page_verification",
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
             input_path=inputPath,
@@ -355,6 +358,7 @@ class Preprocessor:
         )
 
         self.reg_index_extractor = LLMTaskRunner.load_from_task_config(
+            task_name="register_index_extraction",
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
@@ -399,6 +403,7 @@ class Preprocessor:
         #     json.dump(raw_input,f)
 
         self.reg_map_extractor = LLMTaskRunner.load_from_task_config(
+            task_name="register_map_extraction",
             task_config=task_config,
             api_key=self.config.get_apikey(task_config.model.provider),
         )
