@@ -45,10 +45,10 @@ class TimeConsumption(StructuredOutputModel):
     total:float = 0.0
     ocr:float = 0.0
     page_classification:float = 0.0
-    register_summary_page_verification:float = 0.0,
-    register_page_verification:float = 0.0,
-    register_summary_extraction:float = 0.0,
-    register_map_extraction:float = 0.0,
+    register_summary_page_verification:float = 0.0
+    register_page_verification:float = 0.0
+    register_summary_extraction:float = 0.0
+    register_map_extraction:float = 0.0
 
 class PreprocessorOutput(StructuredOutputModel):
     pages: list[dict[str, Any]]
