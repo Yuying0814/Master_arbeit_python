@@ -40,16 +40,16 @@ Not relevant for this task.
 
 ### 2. `registers`: Array<PreliminaryRegister>
 
-Preliminary register-name and address information extracted by a previous model from register summary, register map, or memory map pages.
+Preliminary logical register-name and address information extracted by a previous model from register summary, register map, or memory map pages.
 Each `PreliminaryRegister` may contain the following fields:
 
 #### 2.1 `name`: String
 
-The preliminary register name.
+The preliminary logical register name.
 
 #### 2.2 `is_multi_address`: Boolean
 
-Whether the preliminary logical register occupies more than one physical address.
+Whether the preliminary logical register occupies more than one physical address(hex address/decimal address plus bank/page).
 
 #### 2.3 `physical_address`: Array<String>
 
@@ -66,13 +66,11 @@ Preliminary device register page information, such as register page, memory page
 This is not the PDF page number or document page index.
 
 #### 2.6 `source_index`: String
-
-Preliminary source page index or indexes.
-Multiple indexes may be comma-separated.
+Index of Register-summary pages, from which the preliminary register information was extracted.
 
 ## Output
 
-Return exactly one top-level JSON object with the following field:
+One top-level JSON object with the following field:
 
 ### 1. `registers`: Array<RegisterMapItem>
 
@@ -92,17 +90,15 @@ Do not invent unsupported names.
 
 #### 1.3 `is_multi_address`: Boolean
 
-Whether the logical register occupies more than one physical address.
+Whether the logical register occupies more than one `PhysicalAddress`.
 Set this field from the final number of `physical_address` objects:
-
-* `true` if there is more than one physical address object.
-* `false` if there are zero or one physical address object.
+* `true` if there is more than one `PhysicalAddress` object.
+* `false` if there are zero or one `PhysicalAddress` object.
 
 #### 1.4 `physical_address`: Array<PhysicalAddress>
 
-Physical addresses occupied by this logical register.
-Each `PhysicalAddress` represents exactly one physical register address.
-Do not store compact ranges, combined expressions, or address lists inside one object.
+This array is the complete collection of the `PhysicalAddress` objects of all `FieldPart` objects belonging to this logical register.
+Each `PhysicalAddress` is the address of exactly one physical register entry.
 Each `PhysicalAddress` contains the following fields:
 
 ##### 1.4.1 `hex`: String
@@ -128,7 +124,7 @@ Never store PDF page numbers, printed document page numbers, document labels, or
 
 ##### 1.4.5 `description`: String
 
-Concise source-supported description of this physical address, such as byte role or address role.
+Concise source-supported description of this `PhysicalAddress`, such as byte role or address role.
 Do not use it for the general logical register function.
 
 #### 1.5 `register_description`: String
@@ -159,56 +155,45 @@ Allowed values:
 #### 1.8 `field_parts`: Array<FieldPart>
 
 Required field.
-This field must always be present in every `Register` object.
-It stores all physical register parts, byte segments, sub-registers, or address-level parts that belong to the logical register.
-For a single-address register, include exactly one `FieldPart` for the register itself.
-For a multi-address logical register, include one `FieldPart` for each explicitly supported physical address, byte segment, sub-register, or address-level part.
+It stores all physical register entries that belong to the logical register.
+Each `FieldPart` represents exactly one physical register entry and contains exactly one `PhysicalAddress` for that entry.
+Each object in 1.4 `physical_address` must correspond one-to-one with exactly one object in `field_parts`.
+Therefore, a single-address logical register has exactly one `FieldPart`, while a multi-address logical register has one `FieldPart` for each physical register entry.
 All bit-field information must be stored inside `field_parts(i).bit_field`.
-Never place `bit_field` directly under a top-level register object.
 Each `FieldPart` contains the following fields:
 
 ##### 1.8.1 `register_name`: String
 
-Name of the physical part, sub-register, byte field, or address-level segment.
+Name of the physical register entry, such as a sub-register, byte segment, or address-level part.
 Use the explicit source name when available.
 For a single-address register without a separate part name, use the logical register name.
 If unavailable, use an empty string.
 
 ##### 1.8.2 `physical_address`: PhysicalAddress
 
-The physical address object corresponding to this part.
-It must contain the same fields as `PhysicalAddress`: `hex`, `decimal`, `bank`, `page`, and `description`.
-It must represent exactly one physical address and must not be an array.
+The single `PhysicalAddress` object representing this physical register entry's own address.
+Same structure as the item of 1.4
 
 ##### 1.8.3 `description`: String
 
-Concise source-supported description of this part, such as high byte, low byte, MSB, LSB, command byte, data byte, status byte, or named sub-register role.
+Concise source-supported description of this physical register entry, such as high byte, low byte, MSB, LSB, command byte, data byte, status byte, or named sub-register role.
 
 ##### 1.8.4 `width_bits`: Integer or null
 
-Width of this part in bits.
+Width of this physical register entry in bits.
 Use explicit width, or derive exactly from a complete bit table, bit diagram, or explicit byte mapping.
 Otherwise use `null`.
 
 ##### 1.8.5 `type_write_read`: String
-
-Part-level access type.
-Allowed values:
-
-* `R`
-* `W`
-* `RW`
-* empty string
-  Fill only when explicitly stated for this physical part or sub-register.
-  Do not infer from logical register access type unless the source explicitly applies it to the part.
+Same as 1.7
 
 ##### 1.8.6 `bit_field`: Array<BitField>
 
-Bit fields for this register part.
+Bit fields for this physical register entry.
 Create one `BitField` per explicit bit field, parameter, reserved field, named bit range, or explicit bit cell shown in the source.
 If no bit-field information is available, use an empty array.
 Unless the datasheet explicitly states otherwise, interpret bit tables as MSB on the left and bit 0 on the right.
-Bit positions are local to the physical register part, not global across the logical register.
+Bit positions are local to the physical register entry, not global across the logical register.
 Each `BitField` contains the following fields:
 
 ###### 1.8.6.1 `name_or_parameter`: String
@@ -258,32 +243,27 @@ Copy or faithfully compress the source meaning.
 
 ###### 1.8.6.7 `is_reserved`: Boolean
 
-Use `true` only if the field is explicitly labeled `Reserved`, `RFU`, `unused`, `unimplemented`, or equivalent, or if a shown bit field has no function and no later description explains it.
+Use `true` only if the field is explicitly labeled `Reserved`, `RFU`, `unused`, `unimplemented`, or equivalent, or if a shown bit field has no function and no description in the provided pages explains it.
 Use `false` otherwise.
 
 ###### 1.8.6.8 `type_write_read`: String
 
-Bit-field access type.
-Allowed values:
-
-* `R`
-* `W`
-* `RW`
-* empty string
-  Fill only when explicitly stated for the bit field.
-  Do not infer from register-level or part-level access unless the source explicitly applies it to the field.
+Same structure as 1.7
+Fill only when explicitly stated for the bit field.
+Do not infer from register-level or part-level access unless the source explicitly applies it to the field.
 
 #### 1.9 `category`: String
 
 Primary functional category of the register.
 Recommended concise categories include:
 `fifo`, `interrupt`, `initialization`, `power_management`, `configuration`, `status`, `data`, `control`, `mode_control`, `threshold`, `alert`, `calibration`, `identification`, `interface`.
+Other than the words above, you are allowed to summarize it in other words.
 Select the category only from source-supported register function.
 If unclear, use an empty string.
 
 #### 1.10 `source`: Array<SourcePage>
 
-Every provided page that directly supports this register entry.
+Every provided page that directly supports this logical register entry.
 Use an empty array only when no supporting page index is available.
 Each `SourcePage` contains the following field:
 
@@ -301,67 +281,48 @@ Do not infer whole-register defaults by combining bit-field defaults unless the 
 
 #### 1.12 `default_value_description`: String
 
-Concise source-supported note, condition, qualifier, byte order, physical address order, or part order associated with the whole-register default value.
+Concise source-supported note, condition, qualifier, byte order, `PhysicalAddress` order, or part order associated with the whole-register default value.
 Use an empty string if unavailable.
 
 ## General Rules
-
-1. Use only the provided `pages`, `tables.content`, and input `registers`.
+0. A logical register entry is one top-level `RegisterMapItem` and represents exactly one logical register. Each `FieldPart` represents exactly one physical register entry. Each physical register entry has exactly one `PhysicalAddress`.
+1. Use only the provided `pages`, `tables.content`,input `registers`.
 2. Do not use prior knowledge about the device, manufacturer, protocol, register conventions, or typical sensor behavior.
 3. Do not guess, invent, or infer unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device pages, widths, or categories.
 4. Treat input `registers` as a preliminary seed list, not as final authority.
-5. If `registers` is not empty:
-
+5. If input `registers` is not empty, apply the following rules:
    * Preserve the original order of real register candidates from `registers`.
    * Enrich, correct, and complete them using `pages.markdown` and matching `tables.content`.
    * Remove unreasonable duplicates or conflicting entries.
-   * Append additional real registers explicitly present in `pages` but missing from `registers`, in source order.
-6. If `registers` is empty, construct the final list only from `pages.markdown` and matching `tables.content`, preserving source order whenever possible.
+   * Must append additional real registers explicitly present in `pages` but missing from `registers` , in source order.
+6. If `registers` is empty, append new registers from `pages.markdown` and matching `tables.content`, preserving source order whenever possible.
 7. If input `registers` conflicts with explicit evidence in `pages`, use the page evidence.
-8. If an input register cannot be verified in `pages`, keep only its explicitly provided name and physical address information when it remains a plausible register-map entry. Leave unsupported detailed fields empty.
-9. Prefer register tables, bit tables, register maps, memory maps, and explicit legends over surrounding prose.
-10. Merge duplicate entries that refer to the same logical register. Do not merge different registers unless the source clearly shows they are the same.
-11. Do not split one logical register into multiple entries unless the source clearly defines separate registers or deterministic name-address expansion is possible.
-12. When a logical register spans multiple bytes, physical addresses, or tables, combine them only when the source explicitly indicates that they belong to the same logical register.
-13. Include every provided page that directly supports each register entry in `source`.
-14. Use `registers.source_index` only as a preliminary reference. Split comma-separated indexes and include only valid indexes corresponding to provided `pages.index` values.
-15. Keep all descriptions concise, factual, and source-grounded.
-16. Final output must contain only the structured JSON result. Do not output explanations, markdown, comments, or reasoning.
+8. Prefer register tables, bit tables, register maps, memory maps, and explicit legends over surrounding prose.
+9. Merge duplicate logical entries that refer to the same logical register if the source indicate that they are equivalent.
+10. Do not split one logical register into multiple entries unless the source clearly defines separate logical registers.
+11. When a logical register spans multiple bytes, `PhysicalAddress`, or tables, combine them only when the source explicitly indicates that they can logically belong to the same logical register.
+12. Include every provided page that directly supports each register entry in `source`.
+13. Keep all descriptions concise, technical, factual, and source-grounded.
 
 ## Additional Constraints
 
-1. In general, one physical address plus bank/page should correspond to one logical register entry.
+1. Within a `PhysicalAddress`, `hex` and `decimal` are two representations of the same numeric address. The numeric address together with `bank` and `page` identifies one physical register location. Multiple physical register entries may belong to one logical register entry only when the source explicitly supports that relationship.
 2. If the source defines aliases, mode-dependent meanings, or separate read/write views at the same address, keep the source-supported logical representation and describe the alias or access-dependent meaning in `register_description` or `field_parts.description`.
-3. Prefer logical register entries. If high-byte and low-byte registers are clearly defined as one combined value, represent them as one logical register with multiple physical addresses and multiple `field_parts`.
-4. Do not create duplicate register entries for the same address unless the source explicitly requires separate logical registers.
+3. Prefer logical register entries. If high-byte and low-byte physical register entries are clearly defined as one combined value, represent them as one logical register with multiple `PhysicalAddress` objects and multiple `FieldPart` objects.
+4. Do not create duplicate entries for the same `PhysicalAddress` unless the source explicitly requires separate logical register entries.
 5. Do not omit required schema fields.
 6. Use only the fixed output fields defined above. Never add extra fields.
-7. `registers`, `physical_address`, `field_parts`, `bit_field`, `values`, and `source` must always be arrays.
-8. For unavailable fields, use:
-
+7. For unavailable fields, use:
    * missing string: `""`
    * missing array: `[]`
    * missing integer: `null`
    * missing boolean `is_reserved`: `false`
    * missing boolean `is_multi_address`: `false`
-9. Each `registers.physical_address(i)` object must represent exactly one physical address.
-10. Each `registers.field_parts(i).physical_address` object must represent exactly one physical address and must not be an array.
-11. For a single-address register, include exactly one `physical_address` object and exactly one `field_parts` object.
-12. For a multi-address logical register, include all explicitly supported physical addresses in order and one `field_parts` object for each supported physical address, byte segment, or sub-register.
-13. The final `physical_address` array determines `is_multi_address`.
-14. Do not infer intermediate addresses unless the source provides an explicit deterministic address range.
-15. Never store PDF page numbers, printed document page numbers, document labels, or OCR page indexes in `physical_address.page`.
-16. Expand compact register names and compact address ranges only when the expansion is explicit and deterministic.
-17. When expanding names and addresses from the same row or aligned structure, preserve order and pair them positionally when counts match.
-18. Do not expand a range if the source clearly describes one multi-byte register, one logical register block, or one register array rather than separate entries.
-19. If a compact range is ambiguous, extract only explicitly supported entries and leave uncertain fields empty.
-20. Do not output compact names or compact addresses when deterministic expansion is possible.
-21. For bit ranges shown in descending form, store the lower bit index in `bit_start` and the upper bit index in `bit_end`.
-22. For a single bit field, set both `bit_start` and `bit_end` to that bit index and set `bit_width = 1`.
-23. Do not output a top-level `bit_field` field inside a register object.
-24. Store all bit-field information inside `field_parts(i).bit_field`.
-25. Bit positions in `field_parts(i).bit_field` are local to the corresponding physical register part.
-26. Never output values outside the allowed fixed structures.
+8. Do not infer intermediate addresses unless the source provides an explicit deterministic address range like `0x30-0x33`.
+9. Expand compact register names and compact address ranges only when the expansion is explicit and deterministic.
+10. When expanding names and addresses from the same row or aligned structure, preserve order and pair them positionally when counts match.
+11. Do not expand a range if the source clearly describes one multi-byte register, one logical register block, or one register array rather than separate entries.
+12. If a compact range is ambiguous, extract only explicitly supported entries and leave uncertain fields empty.
 
 ## Examples
 
@@ -371,7 +332,7 @@ If the source explicitly gives:
 
 * names: `FLAG_REG0-FLAG_REG3`
 * addresses: `0x30-0x33`
-  Output four separate register entries:
+  Output four separate logical register entries:
 * `FLAG_REG0` at `0x30`
 * `FLAG_REG1` at `0x31`
 * `FLAG_REG2` at `0x32`
@@ -380,17 +341,17 @@ If the source explicitly gives:
 
 ### Example 2: Do not expand a single multi-byte register
 
-If the source clearly states that `RESULT_WORD` is one 16-bit logical register spanning `0x40` and `0x41`, output one register entry:
+If the source clearly states that `RESULT` is one 16-bit logical register spanning `0x40` and `0x41`, where `0x40` represents the upper 8 bits and `0x41` represents the lower 8 bits, output one register entry:
 
-* `name`: `RESULT_WORD`
+* `name`: `RESULT`
 * `is_multi_address`: `true`
 * `physical_address`: two objects, one for `0x40` and one for `0x41`
-* `field_parts`: one part for each physical address
-  Do not split it into two registers unless the source explicitly defines two separate registers.
+* `field_parts`: two `FieldPart` objects, one physical register entry for each `PhysicalAddress`, representing the upper 8 bits and lower 8 bits of `RESULT`, respectively
+  Do not split it into two registers.
 
 ### Example 3: Preliminary register seed list
 
-If input `registers` contains `CAL_WORD` with addresses `0x50` and `0x51`, and the provided `pages` confirm that it is one calibration word across those addresses, output one logical register entry with two physical address objects and two corresponding `field_parts`.
+If input `registers` contains `CAL_WORD` with hexadecimal addresses `0x50` and `0x51`, and the provided `pages` confirm that it is one calibration word across those addresses, output one logical register entry with two `PhysicalAddress` objects and two corresponding `field_parts`.
 
 ### Example 4: Bit range normalization
 
