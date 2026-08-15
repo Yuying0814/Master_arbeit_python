@@ -29,6 +29,7 @@ class Preprocessor:
     ocr_result:dict[str,Any]
     ocr_path: Path
     pages:list[dict[str,Any]]
+    time_consumption:dict[str,Any]
 
     toc_page_idx: list[int]
     toc_entries: list[dict[str,Any]]
@@ -67,6 +68,15 @@ class Preprocessor:
         self.ocr_result = {}
         self.ocr_path = Path()
         self.pages = []
+        self.time_consumption = {
+            "total":0.0,
+            "ocr":0.0,
+            "page_classification":0.0,
+            "register_summary_page_verification":0.0,
+            "register_page_verification":0.0,
+            "register_summary_extraction":0.0,
+            "register_map_extraction":0.0,
+        }
 
         self.toc_page_idx = []
         self.toc_entries = []
@@ -94,18 +104,24 @@ class Preprocessor:
 
 
     async def run(self,pdf_path:str|Path) -> PreprocessorOutput:
-        self.pdf_path = _validate_pdf_path(pdf_path)
-        provider = self.config.ocr.provider
-        model = self.config.ocr.model_name
-
-        self.ocr_path = self.config.project_path.output_path/"ocr"/provider/model/f"{self.pdf_path.stem}.json"
-
+        start_time = time.perf_counter()
         try:
-            await self.pipeline()
-            return self.build_outputs()
-        except Exception:
-            await self.cleanup()
-            raise
+            self.pdf_path = _validate_pdf_path(pdf_path)
+            provider = self.config.ocr.provider
+            model = self.config.ocr.model_name
+
+            self.ocr_path = self.config.project_path.output_path/"ocr"/provider/model/f"{self.pdf_path.stem}.json"
+
+            try:
+                await self.pipeline()
+                return self.build_outputs()
+            except Exception as error:
+                await self.cleanup()
+                raise RuntimeError("Preprocessing failed") from error
+        finally:
+            elapsed_time = time.perf_counter() - start_time
+            self._update_time_consumption("total",elapsed_time)
+
 
     async def pipeline(self) -> None:
         print("=======================================================================\n")
@@ -159,6 +175,7 @@ class Preprocessor:
             raise RuntimeError(f"OCR failed\n") from error
 
         self.save_ocr_result(ocr_result)
+        self._update_time_consumption("total",ocr_task.elapsed_time)
         return ocr_result
 
     def save_ocr_result(self,ocr_result:dict[str,Any]) -> Path:
@@ -239,6 +256,7 @@ class Preprocessor:
         )
 
         print("Classification completed")
+        self._update_time_consumption("total", self.classifier.elapsed_time)
         return True
 
     async def verify_reg_sum_pages(self) -> list[int]:
@@ -279,6 +297,7 @@ class Preprocessor:
         )
 
         print("Verification of register summary pages completed")
+        self._update_time_consumption("total", self.reg_sum_verifier.elapsed_time)
         return self.reg_sum_page_idx
 
     async def verify_reg_pages(self) -> list[int]:
@@ -319,6 +338,7 @@ class Preprocessor:
         )
 
         print("Verification of register pages completed")
+        self._update_time_consumption("total", self.reg_page_verifier.elapsed_time)
         return self.reg_page_idx
 
     async def extract_reg_index(self) -> RegisterIndexOutput:
@@ -355,6 +375,7 @@ class Preprocessor:
 
         self.reg_summary = result
         print("Register index information extraction completed")
+        self._update_time_consumption("total", self.reg_index_extractor.elapsed_time)
         return result
 
     async def extract_reg_map(self) -> RegisterMapOutput:
@@ -398,6 +419,7 @@ class Preprocessor:
 
         self.reg_map = result
         print("Register map extraction completed")
+        self._update_time_consumption("total", self.reg_map_extractor.elapsed_time)
         return result
 
     def refine_classification(self) -> bool:
@@ -458,7 +480,11 @@ class Preprocessor:
             snapshot=snapshot,
             task_models=task_models,
             token_consumption=token_consumption,
+            time_consumption=self.time_consumption,
         )
+
+    def _update_time_consumption(self,field:str,elapsed_time:float):
+        self.time_consumption[field] = elapsed_time
 
     def _get_pages(self) -> list[dict[str,Any]]:
         raw_pages = self.ocr_result.get("pages")

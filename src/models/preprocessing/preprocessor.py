@@ -47,3 +47,4 @@ class PreprocessorOutput(StructuredOutputModel):
     snapshot:PreprocessorSnapshot
     task_models: TaskModelsByName
     token_consumption: PreprocessingTokenConsumption
+    time_consumption: dict[str, Any]

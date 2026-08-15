@@ -208,6 +208,12 @@ def save_preprocessing_outputs(
         result.task_models.model_dump(),
     )
 
+    _write_json(
+        output_dir /device_name/version/"time_consumption.json",
+        json.dumps(result.time_consumption),
+    )
+
+
     return True
 
 

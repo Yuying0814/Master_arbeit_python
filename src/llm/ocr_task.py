@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from pathlib import Path
 from typing import Any
 
@@ -13,21 +15,28 @@ class OcrTask:
 
         self.config = config
         self.api_key = api_key
+        self.elapsed_time = 0
 
     def run(self,pdf: str | Path) -> dict[str, Any]:
+        print("Starting OCR...")
+        start_time = time.perf_counter()
+        try:
+            pdf = Path(pdf).resolve()
+            if not pdf.is_file():
+                raise FileNotFoundError(f"No such PDF file: {pdf}")
 
-        pdf = Path(pdf).resolve()
-        if not pdf.is_file():
-            raise FileNotFoundError(f"No such PDF file: {pdf}")
+            raw_result = self._run_client(pdf)
 
-        raw_result = self._run_client(pdf)
+            if not isinstance(raw_result, dict):
+                raise TypeError("OCR client must return a dictionary.")
 
-        if not isinstance(raw_result, dict):
-            raise TypeError("OCR client must return a dictionary.")
+            pages = self._normalize_pages(raw_result)
+            if not pages:
+                raise ValueError("OCR result contains no pages.")
 
-        pages = self._normalize_pages(raw_result)
-        if not pages:
-            raise ValueError("OCR result contains no pages.")
+        finally:
+            self.elapsed_time = time.perf_counter() - start_time
+            print(f"OCR ended in {self.elapsed_time} seconds.")
 
         return {
             "provider": self.config.provider,
