@@ -36,7 +36,6 @@ class PreprocessingTaskConfigs(BaseModel):
     classify_pages:TaskConfig
     verify_reg_sum_pages:TaskConfig
     verify_reg_pages:TaskConfig
-    add_page_description:TaskConfig
     extract_reg_index:TaskConfig
     extract_reg_map:TaskConfig
 
