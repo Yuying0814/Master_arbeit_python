@@ -118,8 +118,7 @@ class LLMSingleTask(HasOutputFormat):
                 _raise_if_structured_output_invalid
             )
 
-            retry_model = _with_langchain_retry(checked_model)
-            response = await retry_model.ainvoke(messages, **invoke_kwargs)
+            response = await checked_model.ainvoke(messages, **invoke_kwargs)
 
             result = response["parsed"]
             raw_message = response["raw"]
@@ -134,8 +133,7 @@ class LLMSingleTask(HasOutputFormat):
 
             return result
 
-        retry_model = _with_langchain_retry(self.model)
-        response = await retry_model.ainvoke(messages, **invoke_kwargs)
+        response = await self.model.ainvoke(messages, **invoke_kwargs)
 
         self.total_usage = normalize_usage_map(callback.usage_metadata or {})
 
@@ -167,6 +165,12 @@ def _raise_if_structured_output_invalid(response: dict[str, Any]) -> dict[str, A
     parsing_error = response.get("parsing_error")
 
     if parsing_error is not None:
+        raw_message = response.get("raw")
+
+        if raw_message is not None:
+            print(f"Response metadata: {raw_message.response_metadata}")
+            print(f"Usage metadata: {raw_message.usage_metadata}")
+
         raise ValueError(f"Structured output parsing failed: {parsing_error}")
 
     if response.get("parsed") is None:

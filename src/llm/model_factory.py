@@ -65,11 +65,15 @@ def build_chat_model(
         case "kimi":
             if not api_key:
                 raise ValueError("Kimi API key is required for provider='kimi'")
-            return ChatMoonshot(
+
+            return ChatOpenAI(
                 model=model_name,
                 api_key=api_key,
-                max_completion_tokens=max_output_tokens,
-                reasoning_effort=thinking_effort if model_name=="kimi-k3" else None,
+                base_url="https://api.moonshot.cn/v1",
+                model_kwargs={
+                    "max_completion_tokens": max_output_tokens,
+                },
+                reasoning_effort=thinking_effort,
             )
 
         case "zai":

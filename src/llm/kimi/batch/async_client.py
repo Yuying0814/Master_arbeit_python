@@ -20,7 +20,7 @@ class AsyncKimiBatchClient:
     def __init__(self, api_key: str) -> None:
         self.kimi_client = AsyncOpenAI(
             api_key=api_key,
-            base_url="https://api.moonshot.ai/v1",
+            base_url="https://api.moonshot.cn/v1",
         )
 
     async def submit(self, batch_input_file: KimiBatchInputFile) -> Batch:

@@ -20,14 +20,14 @@ MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # General configuration
 # ============================================================
-DEVICE_NAME = "BME280" # For preprocessing and coding
+DEVICE_NAME = "ADXL345" # For preprocessing and coding
 MAJOR_VERSION = 1 # For coding
 USER_REQUEST = "" # For coding
 
 # ============================================================
 # Path configuration
 # ============================================================
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\bst-bme280-ds002.pdf")
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\adxl345.pdf")
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
@@ -66,46 +66,46 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
 
     "classify_pages": {
-        "provider": "google",
+        "provider": "zai",
         "is_batch": True,
-        "model_name": "gemini-3.5-flash-lite",
-        "thinking_effort": "medium",
+        "model_name": "glm-4-plus",
+        "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 10000,
+        "max_tokens": 4095,
         "timeout": 3600
     },
     "verify_reg_sum_pages": {
-        "provider": "google",
+        "provider": "zai",
         "is_batch": True,
-        "model_name": "gemini-3.5-flash-lite",
-        "thinking_effort": "medium",
+        "model_name": "glm-4-plus",
+        "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 10000,
+        "max_tokens": 4095,
         "timeout": 3600
     },
     "verify_reg_pages": {
-        "provider": "google",
+        "provider": "zai",
         "is_batch": True,
-        "model_name": "gemini-3.5-flash-lite",
-        "thinking_effort": "medium",
+        "model_name": "glm-4-plus",
+        "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 10000,
+        "max_tokens": 4095,
         "timeout": 3600
     },
     "extract_reg_index": {
-        "provider": "google",
-        "model_name": "gemini-3.1-pro-preview",
-        "thinking_effort": "medium",
+        "provider": "zai",
+        "model_name": "glm-4.7",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 20000,
         "timeout": 1800
     },
     "extract_reg_map": {
-        "provider": "google",
-        "model_name": "gemini-3.1-pro-preview",
-        "thinking_effort": "medium",
+        "provider": "zai",
+        "model_name": "glm-4.7",
+        "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 50000,
+        "max_tokens": 90000,
         "timeout": 3600
     },
 }

@@ -26,7 +26,7 @@ class GlmBatchInputFile:
         thinking_effort: ThinkingEffort = None,
         temperature: float | None = None,
         output_format: ValidOutputFormat,
-        max_output_tokens: int = 5000,
+        max_output_tokens: int| None = None,
     ) -> None:
 
         model = model or "glm-4-flash"
@@ -43,10 +43,11 @@ class GlmBatchInputFile:
         if not isinstance(instructions, str):
             raise TypeError("instructions must be a string.")
 
-        if  max_output_tokens <= 0:
-            raise TypeError(
-                "max_output_tokens must be a positive integer."
-            )
+        if isinstance(max_output_tokens, int):
+            if  max_output_tokens <= 0:
+                raise TypeError(
+                    "max_output_tokens must be a positive integer."
+                )
 
         if temperature is not None:
 
@@ -74,9 +75,11 @@ class GlmBatchInputFile:
                     "content": user,
                 },
             ],
-            "max_tokens": max_output_tokens,
             "stream": False,
         }
+
+        if max_output_tokens is not None:
+            body["max_tokens"] = int(max_output_tokens)
 
         if temperature is not None:
             body["temperature"] = temperature
