@@ -134,7 +134,7 @@ Fill only when explicitly supported by `pages.markdown` or corresponding `tables
 
 #### 1.6 `width_bits`: Integer or null
 
-Total logical register width in bits.
+Total physical width in bits. You are allowed to infer this field from all `field_parts[i].width_bits`
 Use explicit width, or derive exactly from a complete bit table, bit diagram, or explicit multi-byte mapping.
 Otherwise use `null`.
 
