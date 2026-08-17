@@ -140,7 +140,7 @@ Otherwise use `null`.
 
 #### 1.7 `type_write_read`: String
 
-Register access type.
+Access type of current logical register.
 Allowed values:
 
 * `R`
@@ -183,7 +183,8 @@ Use explicit width, or derive exactly from a complete bit table, bit diagram, or
 Otherwise use `null`.
 
 ##### 1.8.5 `type_write_read`: String
-Structure same as 1.7
+Access type of the current `FieldPart`
+Structure same as 1.7. You can
 
 ##### 1.8.6 `bit_field`: Array<BitField>
 
@@ -245,10 +246,9 @@ Use `true` only if the field is explicitly labeled `Reserved`, `RFU`, `unused`, 
 Use `false` otherwise.
 
 ###### 1.8.6.8 `type_write_read`: String
-
+Access type of the current bit field.
 Same structure as 1.7
 Fill only when explicitly stated for the bit field.
-Do not infer from register-level or part-level access unless the source explicitly applies it to the field.
 
 #### 1.9 `category`: String
 
