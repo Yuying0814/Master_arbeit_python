@@ -129,7 +129,7 @@ Do not use it for the general logical register function.
 
 #### 1.5 `register_description`: String
 
-Concise factual description of the logical register purpose or function.
+Concise factual description of the logical register purpose or function. Briefly summarize the relevant function, workflow and register dependencies, if such information is available.
 Fill only when explicitly supported by `pages.markdown` or corresponding `tables.content`.
 
 #### 1.6 `width_bits`: Integer or null
@@ -147,10 +147,8 @@ Allowed values:
 * `W`
 * `RW`
 * empty string
-  Use `R` for read-only, `W` for write-only, and `RW` for read/write.
-  Normalize `R/W` to `RW`.
-  Fill only when the access type is explicitly stated for the whole register.
-  Do not infer from bit-field access type unless the source explicitly applies it to the whole register.
+Use `R` for read-only, `W` for write-only, and `RW` for read/write. Normalize `R/W` to `RW`.
+You are allowed to infer this field from 1.8 `field_parts`.
 
 #### 1.8 `field_parts`: Array<FieldPart>
 
@@ -185,7 +183,7 @@ Use explicit width, or derive exactly from a complete bit table, bit diagram, or
 Otherwise use `null`.
 
 ##### 1.8.5 `type_write_read`: String
-Same as 1.7
+Structure same as 1.7
 
 ##### 1.8.6 `bit_field`: Array<BitField>
 
@@ -277,7 +275,7 @@ Do not use printed PDF page numbers, document labels, or OCR page indexes unless
 Whole-register default, reset, initial, power-on, or POR value.
 Fill only when explicitly stated for the whole logical register.
 Copy the value as written, preserving useful notation.
-Do not infer whole-register defaults by combining bit-field defaults unless the source explicitly defines it that way.
+You are allowed to infer this field from 1.8 `field_parts`.
 
 #### 1.12 `default_value_description`: String
 
@@ -288,7 +286,7 @@ Use an empty string if unavailable.
 0. A logical register entry is one top-level `RegisterMapItem` and represents exactly one logical register. Each `FieldPart` represents exactly one physical register entry. Each physical register entry has exactly one `PhysicalAddress`.
 1. Use only the provided `pages`, `tables.content`,input `registers`.
 2. Do not use prior knowledge about the device, manufacturer, protocol, register conventions, or typical sensor behavior.
-3. Do not guess, invent, or infer unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device pages, widths, or categories.
+3. Do not guess, invent, unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device pages, widths, or categories.
 4. Treat input `registers` as a preliminary seed list, not as final authority.
 5. If input `registers` is not empty, apply the following rules:
    * Preserve the original order of real register candidates from `registers`.
