@@ -20,7 +20,7 @@ class AsyncKimiBatchClient:
     def __init__(self, api_key: str) -> None:
         self.kimi_client = AsyncOpenAI(
             api_key=api_key,
-            base_url="https://api.moonshot.cn/v1",
+            base_url="https://api.moonshot.ai/v1",
         )
 
     async def submit(self, batch_input_file: KimiBatchInputFile) -> Batch:
@@ -102,6 +102,16 @@ class AsyncKimiBatchClient:
         return batch
 
     async def collect_results(self, batch:Batch) -> list[dict[str,Any]]:
+        if batch.status != "completed":
+            raise RuntimeError(
+                f"Cannot collect results from batch with status={batch.status}"
+            )
+
+        if not batch.output_file_id and not batch.error_file_id:
+            raise RuntimeError(
+                f"Completed batch {batch.id} has no result file."
+            )
+
         output_records = await self._parse_file(batch.output_file_id)
         error_records = await self._parse_file(batch.error_file_id)
 
@@ -129,16 +139,11 @@ class AsyncKimiBatchClient:
             records.append(record)
         return records
 
-    async def cancel(self, batch: Batch) -> bool:
+    async def cancel(self, batch: Batch) -> Batch:
         if batch.status in TERMINAL_STATES:
-            return True
+            return batch
 
-        if batch.status == "cancelling":
-            return True
-
-        try:
+        if batch.status != "cancelling":
             await self.kimi_client.batches.cancel(batch_id=batch.id)
-            return True
-        except Exception as error:
-            warnings.warn(f"Failed to cancel Kimi batch {batch.id}: {error}")
-            return False
+
+        return await self.wait_for_completion(batch.id)

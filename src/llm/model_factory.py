@@ -69,7 +69,7 @@ def build_chat_model(
             return ChatOpenAI(
                 model=model_name,
                 api_key=api_key,
-                base_url="https://api.moonshot.cn/v1",
+                base_url="https://api.moonshot.ai/v1",
                 model_kwargs={
                     "max_completion_tokens": max_output_tokens,
                 },

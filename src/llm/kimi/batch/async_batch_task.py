@@ -15,7 +15,7 @@ from src.llm.common.common import HasRunWithRetry,HasOutputFormat
 from src.llm.common.types import ValidOutputFormat,ThinkingEffort
 from src.llm.common.batch_utils import parse_output_text,merge,sum_normalized_usage
 
-from src.llm.kimi.batch.async_client import AsyncKimiBatchClient
+from src.llm.kimi.batch.async_client import AsyncKimiBatchClient,TERMINAL_STATES
 from src.llm.kimi.batch.input_file import KimiBatchInputFile
 
 
@@ -28,7 +28,6 @@ NOT_RETRIABLE_REASONS = {
     "resource_not_found_error",
     "exceeded_current_quota_error",
 }
-
 
 class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
@@ -129,6 +128,12 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
         self.batch_input_files.append(batch_input_file)
         completed_batch = await self.run_with_retry_async(self.batch_client.wait_for_completion, batch.id)
         self.batches[-1] = completed_batch
+
+        if completed_batch.status != "completed":
+            raise RuntimeError(
+                f"Kimi batch {completed_batch.id} ended with "
+                f"status={completed_batch.status}"
+            )
 
         records = await self.run_with_retry_async(self.batch_client.collect_results, completed_batch)
         contents = self._collect_results(requests, records)
@@ -346,9 +351,17 @@ class AsyncKimiBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
 
         for batch, batch_input_file in reversed(resources):
             try:
-                is_canceled = await self.batch_client.cancel(batch)
-                is_deleted = await self.batch_client.delete_file(batch_input_file.input_file_id)
-                cleanup_results.append(is_canceled and is_deleted)
+                final_batch = await self.batch_client.cancel(batch)
+
+                if final_batch.status not in TERMINAL_STATES:
+                    cleanup_results.append(False)
+                    continue
+
+                is_deleted = await self.batch_client.delete_file(
+                    batch_input_file.input_file_id
+                )
+
+                cleanup_results.append(is_deleted)
             except Exception as error:
                 cleanup_results.append(False)
                 warnings.warn(

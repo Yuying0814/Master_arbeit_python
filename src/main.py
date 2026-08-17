@@ -20,14 +20,14 @@ MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # General configuration
 # ============================================================
-DEVICE_NAME = "ADXL345" # For preprocessing and coding
+DEVICE_NAME = "ICM20948" # For preprocessing and coding
 MAJOR_VERSION = 1 # For coding
 USER_REQUEST = "" # For coding
 
 # ============================================================
 # Path configuration
 # ============================================================
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\adxl345.pdf")
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ds-000189-icm-20948-v1.5.pdf")
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
@@ -97,7 +97,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "model_name": "glm-4.7",
         "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 20000,
+        "max_tokens": 50000,
         "timeout": 1800
     },
     "extract_reg_map": {
@@ -106,7 +106,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 90000,
-        "timeout": 3600
+        "timeout": 18000
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
