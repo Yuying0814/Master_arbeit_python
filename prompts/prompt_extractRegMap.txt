@@ -275,7 +275,7 @@ Do not use printed PDF page numbers, document labels, or OCR page indexes unless
 Whole-register default, reset, initial, power-on, or POR value.
 Fill only when explicitly stated for the whole logical register.
 Copy the value as written, preserving useful notation.
-You are allowed to infer this field from 1.8 `field_parts`.
+Infer the whole-register default value from `field_parts` only when all required part-level default values and their ordering are explicitly and unambiguously supported by the source.
 
 #### 1.12 `default_value_description`: String
 
@@ -286,7 +286,7 @@ Use an empty string if unavailable.
 0. A logical register entry is one top-level `RegisterMapItem` and represents exactly one logical register. Each `FieldPart` represents exactly one physical register entry. Each physical register entry has exactly one `PhysicalAddress`.
 1. Use only the provided `pages`, `tables.content`,input `registers`.
 2. Do not use prior knowledge about the device, manufacturer, protocol, register conventions, or typical sensor behavior.
-3. Do not guess, invent, unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device pages, widths, or categories.
+3. Do not guess, invent unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device pages, widths, or categories.
 4. Treat input `registers` as a preliminary seed list, not as final authority.
 5. If input `registers` is not empty, apply the following rules:
    * Preserve the original order of real register candidates from `registers`.
