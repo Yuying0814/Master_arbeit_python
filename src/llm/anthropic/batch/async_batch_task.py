@@ -124,6 +124,8 @@ class AsyncClaudeBatchTask(HasRunWithRetry,HasOutputFormat,LLMBatchTask):
             )
             self._update_usage_snapshots()
             return self.contents
+        except Exception as error:
+            raise RuntimeError("claude batch failed") from error
         finally:
             await self.cleanup()
 
