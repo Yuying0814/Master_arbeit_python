@@ -129,7 +129,8 @@ Do not use it for the general logical register function.
 
 #### 1.5 `register_description`: String
 
-Concise factual description of the logical register purpose or function. Briefly summarize the relevant function, workflow and register dependencies, if such information is available.
+Concise factual description of the logical register purpose or function. Always summarize briefly the relevant function, workflow and register dependencies,data convertion formulas, if such information is available.
+If additional information about this logical register exist elsewhere in the documentation,record that reference requirement faithfully and construct a retrieval hint that identifies what additional information should be retrieved.
 Fill only when explicitly supported by `pages.markdown` or corresponding `tables.content`.
 
 #### 1.6 `width_bits`: Integer or null
@@ -228,6 +229,7 @@ Otherwise use `null`.
 Explicit value definitions for this field.
 Include only values explicitly defined in the source.
 If none are available, use an empty array.
+If an enumerated value requires referring to information elsewhere in the documentation(for example page,table,chapter...), record that reference requirement faithfully and construct a retrieval hint that identifies what additional information should be retrieved.
 Each `ValueDefinition` contains the following fields:
 
 ####### 1.8.6.6.1 `value`: String
@@ -238,6 +240,7 @@ Copy the source notation whenever possible.
 ####### 1.8.6.6.2 `value_description`: String
 
 The explicit meaning of that value.
+
 Copy or faithfully compress the source meaning.
 
 ###### 1.8.6.7 `is_reserved`: Boolean
@@ -246,7 +249,7 @@ Use `true` only if the field is explicitly labeled `Reserved`, `RFU`, `unused`, 
 Use `false` otherwise.
 
 ###### 1.8.6.8 `type_write_read`: String
-Access type of the current bit field.
+Access type of the current bit field. "" if reserved.
 Same structure as 1.7
 Fill only when explicitly stated for the bit field.
 
@@ -289,7 +292,8 @@ Use an empty string if unavailable.
 3. Do not guess, invent unsupported register names, addresses, descriptions, access permissions, reset values, bit fields, enumerations, banks, device pages, widths, or categories.
 4. Treat input `registers` as a preliminary seed list, not as final authority.
 5. If input `registers` is not empty, apply the following rules:
-   * Preserve the original order of real register candidates from `registers`.
+   * Preserve every preliminary register candidate from `registers` by default and preserve their original order.
+   * Expand compact register names and compact address ranges only when the expansion is explicit and deterministic.
    * Enrich, correct, and complete them using `pages.markdown` and matching `tables.content`.
    * Remove unreasonable duplicates or conflicting entries.
    * Must append additional real registers explicitly present in `pages` but missing from `registers` , in source order.
@@ -316,17 +320,16 @@ Use an empty string if unavailable.
    * missing integer: `null`
    * missing boolean `is_reserved`: `false`
    * missing boolean `is_multi_address`: `false`
-8. Do not infer intermediate addresses unless the source provides an explicit deterministic address range like `0x30-0x33`.
+8. Do not infer intermediate addresses unless the source provides an explicit deterministic address range like for example`0x30-0x33`,`0x30...0x33`.
 9. Expand compact register names and compact address ranges only when the expansion is explicit and deterministic.
 10. When expanding names and addresses from the same row or aligned structure, preserve order and pair them positionally when counts match.
-11. Do not expand a range if the source clearly describes one multi-byte register, one logical register block, or one register array rather than separate entries.
-12. If a compact range is ambiguous, extract only explicitly supported entries and leave uncertain fields empty.
+11. If a compact range is ambiguous, extract only explicitly supported entries and leave uncertain fields empty.
 
 ## Examples
 
 ### Example 1: Deterministic range expansion
 
-If the source explicitly gives:
+If the source explicitly gives for example:
 
 * names: `FLAG_REG0-FLAG_REG3`
 * addresses: `0x30-0x33`
@@ -335,17 +338,16 @@ If the source explicitly gives:
 * `FLAG_REG1` at `0x31`
 * `FLAG_REG2` at `0x32`
 * `FLAG_REG3` at `0x33`
-  Do not output compact names or compact address ranges.
+Do not output compact names or compact address ranges.
 
-### Example 2: Do not expand a single multi-byte register
+### Example 2: Merge multi-byte register
 
 If the source clearly states that `RESULT` is one 16-bit logical register spanning `0x40` and `0x41`, where `0x40` represents the upper 8 bits and `0x41` represents the lower 8 bits, output one register entry:
 
 * `name`: `RESULT`
 * `is_multi_address`: `true`
 * `physical_address`: two objects, one for `0x40` and one for `0x41`
-* `field_parts`: two `FieldPart` objects, one physical register entry for each `PhysicalAddress`, representing the upper 8 bits and lower 8 bits of `RESULT`, respectively
-  Do not split it into two registers.
+* `field_parts`: two `FieldPart` objects, one physical register entry for each `PhysicalAddress`, representing the upper 8 bits and lower 8 bits of `RESULT`, respectively.
 
 ### Example 3: Preliminary register seed list
 

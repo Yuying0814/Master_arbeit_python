@@ -495,6 +495,7 @@ Keep the feedback compact but specific enough for the planner to revise the next
 
 ## General Rules
 
+0. Carefully read the complete register map and systematically enumerate all device behaviors and driver APIs that are directly supported by the provided evidence.
 1. When a rule says "may include, but is not limited to", treat the listed items as non-exhaustive examples. You may identify additional semantic issues when they are supported by the input evidence and relevant to the correctness or completeness of the generated driver.
 2. Do not check syntax errors. Syntax errors are handled by a separate execution verifier.
 3. Treat `verification_plan` as the mandatory semantic verification checklist. After checking all specified items, independently inspect the candidate implementation for additional semantic issues or omissions with respect to `user_request`, `programming_plan`, `register_maps`, `retrieval_results`, `candidate_files`, and `accepted_files`.
@@ -502,6 +503,7 @@ Keep the feedback compact but specific enough for the planner to revise the next
 5. When writing `feedback`, use newline characters to separate major findings so that debug prints remain readable. Prefer short `-` bullet lists and numbered markers such as `1)`, `2)`, and `3)` to make the feedback structure clear.
 6. Verify that the complete file set formed by `candidate_files` and `accepted_files` contains exactly one `.ino` file. Reject the candidate if no `.ino` file exists or if more than one `.ino` file exists.
 7. If `user_request` conflicts with source-supported device facts in `register_maps` or `retrieval_results`, do not reject the candidate solely because the conflicting user request cannot be satisfied. Verify the implementation against the source-supported device facts instead. If all other semantic verification requirements pass, `passed` may be set to `true`. Record the conflict and the source-supported reason in `feedback`.
+8. Check whether all functionalities supported by the `register_maps` and `retrieval_results` have been safely and robustly implemented.
 
 ## Wire.h as reference
 
