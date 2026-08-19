@@ -33,11 +33,11 @@ class Coder:
 
         return cls(coder_agent)
 
-    def create_code_file(self,coder_input:CoderInput)-> CoderOutput:
+    async def create_code_file_async(self,coder_input:CoderInput)-> CoderOutput:
         user_input = coder_input.model_dump_json()
 
         print(f" -> start creating code files")
-        coder_output = self.coder_agent.run(user_input)
+        coder_output = await self.coder_agent.arun(user_input)
         print(
             f" -> code files created\n"
             f"==================\n"
@@ -50,6 +50,11 @@ class Coder:
 
         self._update_logs(coder_input,coder_output)
         return coder_output
+
+    def get_elapsed_time(self) -> float:
+        value =self.coder_agent.elapsed_time
+        self.coder_agent.elapsed_time = 0.0
+        return value
 
     def _update_logs(self, coder_input: CoderInput, coder_output: CoderOutput) -> None:
         self.logs.append(

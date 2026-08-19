@@ -26,16 +26,20 @@ class LLMAgent:
     total_tokens: dict[str, Any]
     memory_enabled: bool
     thread_id: str | None
+    elapsed_time: float
+    timeout:int|None
 
     def __init__(
         self,
         model: BaseChatModel,
+        timeout: int|None,
         *,
         tools: list[Callable | BaseTool | dict] | None = None,
         system_prompt: str | None = None,
         output_format: ValidOutputFormat = None,
         memory_enabled: bool = False,
         thread_id: str | None = None,
+
     ) -> None:
         if tools is None:
             tools = []
@@ -47,9 +51,10 @@ class LLMAgent:
         if output_format is not None:
             response_format = _build_response_format(output_format)
 
+        self.timeout = timeout
         self.memory_enabled = memory_enabled
         self.thread_id = thread_id if memory_enabled else None
-
+        self.elapsed_time = 0.0
         self.total_tokens = {}
 
         if memory_enabled:
@@ -98,19 +103,36 @@ class LLMAgent:
             output_format=task_config.output_format,
             memory_enabled=task_config.memory_enabled,
             thread_id=thread_id,
+            timeout=task_config.model.timeout,
         )
 
     def run(self, user_input: str) -> Any:
+        return asyncio.run(self.arun(user_input))
 
-        usage_callback = UsageMetadataCallbackHandler()
+    async def arun(self, user_input: str) -> Any:
 
-        response = self.agent.invoke(
-            _build_messages(user_input),
-            config=self._build_invoke_config(usage_callback),
-        )
+        start_time = time.perf_counter()
+
+        try:
+            usage_callback = UsageMetadataCallbackHandler()
+            if self.timeout is None:
+                response = await self.agent.ainvoke(
+                    _build_messages(user_input),
+                    config=self._build_invoke_config(usage_callback),
+                )
+            else:
+                 async with asyncio.timeout(self.timeout):
+                    response = await self.agent.ainvoke(
+                        _build_messages(user_input),
+                        config=self._build_invoke_config(usage_callback),
+                    )
+        finally:
+            elapsed_time = time.perf_counter() - start_time
+            self.elapsed_time = elapsed_time
+            print(f"Task ended in {elapsed_time:.2f} seconds")
+
 
         self._update_total_tokens(usage_callback)
-
         return self._parse_response(response)
 
     def run_with_retry(self, user_input: str) -> Any:

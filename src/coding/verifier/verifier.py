@@ -1,4 +1,6 @@
 import copy
+import time
+import asyncio
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
@@ -22,6 +24,7 @@ class Verifier:
         self.semantic_verifier = semantic_verifier
         self.execution_verifier = execution_verifier
         self.logs = []
+        self.elapsed_time = 0.0
         print(f"verifier created")
 
     @classmethod
@@ -34,10 +37,10 @@ class Verifier:
             enable_test_coder:bool,
             cli_path: Path,
             board_config: ArduinoBoardConfig,
-            api_key_semantic:str = None,
-            api_key_test_coder:str = None,
-            semantic_tools :list[Callable | BaseTool | dict]=None,
-            execution_tools :list[Callable | BaseTool | dict]=None,
+            api_key_semantic:str|None = None,
+            api_key_test_coder:str|None = None,
+            semantic_tools :list[Callable | BaseTool | dict] | None=None,
+            execution_tools :list[Callable | BaseTool | dict] | None=None,
     ) -> "Verifier":
 
         semantic_verifier= LLMAgent.load_from_task_config(
@@ -62,54 +65,67 @@ class Verifier:
             execution_verifier=execution_verifier,
         )
 
-    def run(self,verifier_input:VerifierInput) -> VerifierOutput:
-        print(f" -> start verifying code files")
-        semantic_input = _build_semantic_input(verifier_input)
-        print(f" ->-> start semantic verification")
-        semantic_output = self.semantic_verifier.run(semantic_input)
-        print(
-            f" ->-> semantic verification completed\n"
-            f"==================\n"
-            f"passed: \n"
-            f"{semantic_output.passed}\n\n"
-            f"feedback: \n"
-            f"{semantic_output.feedback}\n"
-            f"==================\n"
-        )
+    async def run_async(self,verifier_input:VerifierInput) -> VerifierOutput:
+        start_time = time.perf_counter()
 
-        execution_input = _build_execution_input(verifier_input)
-        execution_output = self.execution_verifier.run(execution_input)
+        try:
+            print(f" -> start verifying code files")
+            semantic_input = _build_semantic_input(verifier_input)
+            print(f" ->-> start semantic verification")
+            semantic_output = await self.semantic_verifier.arun(semantic_input)
+            print(
+                f" ->-> semantic verification completed\n"
+                f"==================\n"
+                f"passed: \n"
+                f"{semantic_output.passed}\n\n"
+                f"feedback: \n"
+                f"{semantic_output.feedback}\n"
+                f"==================\n"
+            )
 
-        execution_passed = execution_output.candidate_code_passed
+            execution_input = _build_execution_input(verifier_input)
+            execution_output = await asyncio.to_thread(
+                self.execution_verifier.run,
+                execution_input,
+            )
 
-        if execution_output.test_code_passed is not None:
-            execution_passed = execution_passed and execution_output.test_code_passed
+            execution_passed = execution_output.candidate_code_passed
 
-        if execution_output.test_passed is not None:
-            execution_passed = execution_passed and execution_output.test_passed
+            if execution_output.test_code_passed is not None:
+                execution_passed = execution_passed and execution_output.test_code_passed
 
-        passed = semantic_output.passed and execution_passed
+            if execution_output.test_passed is not None:
+                execution_passed = execution_passed and execution_output.test_passed
 
-        verifier_output = VerifierOutput(
-            passed=passed,
-            semantic_result=semantic_output,
-            execution_result=execution_output,
-        )
+            passed = semantic_output.passed and execution_passed
 
-        print(
-            f" -> verification completed\n"
-            f"==================\n"
-            f"passed: {passed}\n"
-            f"semantically passed: {semantic_output.passed}\n"
-            f"execution passed: {execution_passed}\n"
-            f"  - candidate code compiled: {execution_output.candidate_code_passed}\n"
-            f"  - test code compiled: {execution_output.test_code_passed}\n"
-            f"  - test passed: {execution_output.test_passed}\n"
-            f"==================\n"
-        )
+            verifier_output = VerifierOutput(
+                passed=passed,
+                semantic_result=semantic_output,
+                execution_result=execution_output,
+            )
 
-        self._update_logs(verifier_input,verifier_output)
+            print(
+                f" -> verification completed\n"
+                f"==================\n"
+                f"passed: {passed}\n"
+                f"semantically passed: {semantic_output.passed}\n"
+                f"execution passed: {execution_passed}\n"
+                f"  - candidate code compiled: {execution_output.candidate_code_passed}\n"
+                f"  - test code compiled: {execution_output.test_code_passed}\n"
+                f"  - test passed: {execution_output.test_passed}\n"
+                f"==================\n"
+            )
+
+            self._update_logs(verifier_input,verifier_output)
+        finally:
+            self.elapsed_time = time.perf_counter() - start_time
         return verifier_output
+
+    def get_elapsed_time(self) -> float:
+        value = self.elapsed_time
+        self.elapsed_time = 0.0
+        return value
 
     def _update_logs(self,verifier_input:VerifierInput,verifier_output:VerifierOutput) -> None:
         self.logs.append(
@@ -128,6 +144,7 @@ class Verifier:
 def _build_semantic_input(verifier_input: VerifierInput) -> str:
     return SemanticVerifierInput(
         user_request=verifier_input.user_request,
+        device_function=verifier_input.device_function,
         programming_plan=verifier_input.programming_plan,
         verification_plan=verifier_input.verification_plan.semantic_plan,
         register_maps=verifier_input.register_maps,

@@ -40,6 +40,7 @@ class PreprocessingTaskConfigs(BaseModel):
     extract_reg_map:TaskConfig
 
 class CodingTaskConfigs(BaseModel):
+    function_identification:TaskConfig
     retrieval: TaskConfig
     planning:TaskConfig
     coding:TaskConfig

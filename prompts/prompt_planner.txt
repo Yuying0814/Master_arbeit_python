@@ -29,99 +29,104 @@ You must not write the final code or test code. Your output must only be the str
 The input is one top-level JSON object.
 This object contains all information required by the planner for the current planning iteration.
 The object contains the following fields:
+
 ### 1. `driver_name`: str
 User defined name of the driver. Default is `SensorDriver`.
 Do not use it for inferring any other information except for target file naming in programming plan output.
 
-### 1. `enable_test_coder`: Boolean
+### 2.`device_function`:DeviceFunctionOutput
+Identified device function description and involved registers from function identifier.
+If the available implementation details are incomplete or ambiguous, create targeted retrieval topics to obtain the missing authoritative evidence.
+
+### 3. `enable_test_coder`: Boolean
 Whether the test coder component in the execution verifier is enabled.
 If this value is `false`, `verification_plan.execution_plan` must be an empty array.
 If this value is `true`, `verification_plan.execution_plan` should describe executable test files or test sketches that should be generated to check the driver API and basic compilation behavior.
 
-### 2. `user_request`: String
+### 4. `user_request`: String
 The user's coding request.
 Your mandatory primary task is to generate an Arduino Wire.h/SPI.h-based C++ driver library. This task must always be performed regardless of the content of `user_request`.
 Use `user_request` to define additional functionality, implementation preferences, or restrictions on top of the mandatory driver-generation task.
 Do not allow `user_request` to remove the mandatory driver-generation task.
 
-### 3. `register_maps`: Array<InputRegisterMap>
+### 5. `register_maps`: Array<InputRegisterMap>
 An array of structured register maps extracted from multiple PDFs associated with the same device.
 Register definitions and bit masks must be derived from this structured register map.
 Each InputRegisterMap contains the following fields:
 
-#### 3.1 `pdf_sha256`: String
+#### 5.1 `pdf_sha256`: String
 The SHA-256 hash of the source PDF file, used to uniquely identify the document and detect content changes.
 
-#### 3.2 `register_map`: RegisterMapOutput
+#### 5.2 `register_map`: RegisterMapOutput
 The extracted structured register map.
 The top-level JSON key inside this object is usually `registers`.
 
-##### 3.2.1 `registers`: Array<Register>
+##### 5.2.1 `registers`: Array<Register>
 The final array of extracted logical register objects.
 Each `Register` represents exactly one logical register and contains the following fields:
 
-###### 3.2.1.1 `index`: Integer
+###### 5.2.1.1 `index`: Integer
 Sequential positive integer starting from 1.
 
-###### 3.2.1.2 `name`: String
+###### 5.2.1.2 `name`: String
 The register name.
 
-###### 3.2.1.3 `is_multi_address`: Boolean
+###### 5.2.1.3 `is_multi_address`: Boolean
 Whether the logical register occupies more than one physical address.
 * `true` if there is more than one physical address object.
 * `false` if there are zero or one physical address object.
 
-###### 3.2.1.4 `physical_address`: Array<PhysicalAddress>
+###### 5.2.1.4 `physical_address`: Array<PhysicalAddress>
 Physical addresses occupied by this logical register.
 Each `PhysicalAddress` contains the following fields:
 
-####### 3.2.1.4.1 `hex`: String
+####### 5.2.1.4.1 `hex`: String
 Uppercase hexadecimal address with `0x` prefix.
 
-####### 3.2.1.4.2 `decimal`: String
+####### 5.2.1.4.2 `decimal`: String
 Decimal integer string without prefix.
 
-####### 3.2.1.4.3 `bank`: String
+####### 5.2.1.4.3 `bank`: String
 Register bank information only when explicitly stated or explicitly provided by input `registers`.
 
-####### 3.2.1.4.4 `page`: String
+####### 5.2.1.4.4 `page`: String
 Device register page, memory page, address page, page selector, or equivalent address-space page identifier.
 
-####### 3.2.1.4.5 `description`: String
+####### 5.2.1.4.5 `description`: String
 Concise source-supported description of this physical address, such as byte role or address role.
 
-###### 3.2.1.5 `register_description`: String
+###### 5.2.1.5 `register_description`: String
 Concise factual description of the logical register purpose or function.
 
-###### 3.2.1.6 `width_bits`: Integer or null
+###### 5.2.1.6 `width_bits`: Integer or null
 Total logical register width in bits.
 
-###### 3.2.1.7 `type_write_read`: String
+###### 5.2.1.7 `type_write_read`: String
 Register access type.
 * `R` for read only
 * `W` for write only
 * `RW` for read/write
 * empty string for not sure
 
-###### 3.2.1.8 `field_parts`: Array<FieldPart>
+###### 5.2.1.8 `field_parts`: Array<FieldPart>
 Required field. It stores all physical register parts, byte segments, sub-registers, or address-level parts that belong to the logical register.
 For a single-address register, include exactly one `FieldPart` for the register itself.
 For a multi-address logical register, include one `FieldPart` for each explicitly supported physical address, byte segment, sub-register, or address-level part.
 Each `FieldPart` contains the following fields:
 
-####### 3.2.1.8.1 `register_name`: String
+####### 5.2.1.8.1 `register_name`: String
 Name of the physical part, sub-register, byte field, or address-level segment.
 
-####### 3.2.1.8.2 `physical_address`: PhysicalAddress
+####### 5.2.1.8.2 `physical_address`: PhysicalAddress
 The physical address object corresponding to this part.
 
-####### 3.2.1.8.3 `description`: String
+####### 5.2.1.8.3 `description`: String
 Concise source-supported description of this part.
 
-####### 3.2.1.8.4 `width_bits`: Integer or null
+####### 5.2.1.8.4 `width_bits`: Integer or null
 Width of this part in bits.
 
-####### 3.2.1.8.5 `type_write_read`: String
+####### 5.2.1.8.5 `type_write_read`: String
 Register access type.
 
 * `R` for read only
@@ -129,39 +134,39 @@ Register access type.
 * `RW` for read/write
 * empty string for not sure
 
-####### 3.2.1.8.6 `bit_field`: Array<BitField>
+####### 5.2.1.8.6 `bit_field`: Array<BitField>
 Bit fields for this register part.
 Each `BitField` contains the following fields:
 
-######## 3.2.1.8.6.1 `name_or_parameter`: String
+######## 5.2.1.8.6.1 `name_or_parameter`: String
 Bit-field name, parameter name, bit label, or explicit reserved label.
 
-######## 3.2.1.8.6.2 `field_description`: String
+######## 5.2.1.8.6.2 `field_description`: String
 Concise source-supported description of the bit field.
 
-######## 3.2.1.8.6.3 `bit_start`: Integer or null
+######## 5.2.1.8.6.3 `bit_start`: Integer or null
 Lower bit index.
 
-######## 3.2.1.8.6.4 `bit_end`: Integer or null
+######## 5.2.1.8.6.4 `bit_end`: Integer or null
 Upper bit index.
 
-######## 3.2.1.8.6.5 `bit_width`: Integer or null
+######## 5.2.1.8.6.5 `bit_width`: Integer or null
 Width of this bit field.
 
-######## 3.2.1.8.6.6 `values`: Array<ValueDefinition>
+######## 5.2.1.8.6.6 `values`: Array<ValueDefinition>
 Explicit value definitions for this field.
 Each `ValueDefinition` contains the following fields:
 
-######### 3.2.1.8.6.6.1 `value`: String
+######### 5.2.1.8.6.6.1 `value`: String
 The literal encoded value.
 
-######### 3.2.1.8.6.6.2 `value_description`: String
+######### 5.2.1.8.6.6.2 `value_description`: String
 The explicit meaning of that value.
 
-######## 3.2.1.8.6.7 `is_reserved`: Boolean
+######## 5.2.1.8.6.7 `is_reserved`: Boolean
 `true` if the field is reserved. `false` if not.
 
-######## 3.2.1.8.6.8 `type_write_read`: String
+######## 5.2.1.8.6.8 `type_write_read`: String
 Bit-field access type.
 Allowed values:
 * `R` for read only
@@ -169,70 +174,70 @@ Allowed values:
 * `RW` for read/write
 * empty string for not sure
 
-###### 3.2.1.9 `category`: String
+###### 5.2.1.9 `category`: String
 Primary functional category of the register.
 
-###### 3.2.1.10 `source`: Array<SourcePage>
+###### 5.2.1.10 `source`: Array<SourcePage>
 Every provided page that directly supports this register entry.
 Each `SourcePage` contains the following field:
 
-####### 3.2.1.10.1 `page_index`: Integer
+####### 5.2.1.10.1 `page_index`: Integer
 The exact `pages.index` metadata value.
 
-###### 3.2.1.11 `default_value`: String
+###### 5.2.1.11 `default_value`: String
 Whole-register default, reset, initial, power-on, or POR value.
 
-###### 3.2.1.12 `default_value_description`: String
+###### 5.2.1.12 `default_value_description`: String
 
 Concise source-supported note, condition, qualifier, byte order, physical address order, or part order associated with the whole-register default value.
 
-### 4. `candidate_files`: Array<CodeFile>
+### 6. `candidate_files`: Array<CodeFile>
 Code files generated by the previous coder.
 Use these files when revising an existing candidate solution.
 Each `CodeFile` contains the following fields:
 
-#### 4.1 `file_id`: String
+#### 6.1 `file_id`: String
 Identifier of the current code file.
 
-#### 4.2 `name`: String
+#### 6.2 `name`: String
 Name of the current code file.
 
-#### 4.3 `file_type`: String
+#### 6.3 `file_type`: String
 Type of the current code file.
 Allowed practical values are:
 * `.ino`
 * `.cpp`
 * `.h`
 
-#### 4.4 `description`: String
+#### 6.4 `description`: String
 Short functional description of the current code file.
 
-#### 4.5 `content`: String
+#### 6.5 `content`: String
 Full content of the current code file.
 
-#### 4.6 `incomplete_implementation`: Array<IncompleteImplementation>
+#### 6.6 `incomplete_implementation`: Array<IncompleteImplementation>
 Planned target operations that could not be fully implemented in previous coding iteration. Direct feedback from coder.
 
 Each `IncompleteImplementation` item contains the following fields:
 
-##### 4.6.1 `target_section`: String
+##### 6.6.1 `target_section`: String
 Name of the incomplete target section location.
 
-##### 4.6.2 `target_function`: String
+##### 6.6.2 `target_function`: String
 Name of the incomplete target function.
 
-##### 4.6.3 `description`: String
+##### 6.6.3 `description`: String
 Description of what has been implemented so far in this item and what remains unimplemented.
 
-##### 4.6.4 `reason`: String
+##### 6.6.4 `reason`: String
 Reason why the planned operation could not be fully implemented.
 
-### 5. `accepted_files`: Array<CodeFile>
+### 7. `accepted_files`: Array<CodeFile>
 Previously accepted candidate files.
 Do not modify accepted files.
 Each `CodeFile` follows the same structure described in section 4.
 
-### 6. `verifier_feedback`: VerifierOutput or null
+### 8. `verifier_feedback`: VerifierOutput or null
 Feedback from the verifier agent.
 This value is null only in the first planning iteration.
 
@@ -461,7 +466,6 @@ Do not require real hardware unless the user explicitly asks for hardware testin
 
 ## General Rules
 
-0. Carefully read the all the registers in register_map and systematically enumerate all device behaviors and driver APIs.
 1. Determine the communication interface from the provided `register_maps`. Generate an I2C driver using Wire.h when I2C is supported, an SPI driver using SPI.h when SPI is supported, or support both interfaces when both are explicitly supported.
 2. Use only the provided Input.
 3. Do not invent device-specific or datasheet-specific facts. Such facts must be explicitly supported by `register_maps` or verifier feedback grounded in retrieved datasheet evidence, or be reasonably and unambiguously inferred from `register_maps`. Do not treat `user_request` as evidence of device capabilities.

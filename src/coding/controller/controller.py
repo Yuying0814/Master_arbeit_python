@@ -2,6 +2,7 @@ import shutil
 import subprocess
 import copy
 import json
+import time
 from typing import Any
 from pathlib import Path
 
@@ -12,9 +13,12 @@ from src.coding.retriever.retriever import PageRetriever
 from src.coding.coder.coder import Coder
 from src.coding.filewriter.filewriter import FileWriter
 from src.coding.verifier.verifier import Verifier
+from src.coding.function_identifier.function_identifier import FunctionIdentifier
 
+from src.models.preprocessing.register_output import RegisterMapOutput
 from src.models.coding.coding_common import ProgrammingPlan, VerificationPlan, CodeFile,InputRegisterMap
 from src.models.data_manager import RegisterMapRecord,DocumentRecord
+from src.models.coding.function_identifier import FunctionIdentifierInput,DeviceFunctionOutput
 from src.models.coding.planner import PlannerInput
 from src.models.coding.retriever import RetrievalResult
 from src.models.coding.coder import CoderInput, CoderOutput
@@ -41,6 +45,8 @@ class Controller:
         self.not_accepted_files = []
         self.attempted_log = False
         self.code_dir = Path()
+        self.elapsed_time = 0
+        self.time_consumptions = []
 
         self.driver_name = driver_name
         self.documents = [DocumentRecord.model_validate(document) for document in documents]
@@ -68,8 +74,18 @@ class Controller:
             register_maps=register_maps
         )
 
-    async def run(self, version_major:int, user_request: str = "",) -> tuple[bool,str]:
-        self.code_dir = self.config.project_path.code_dir / self.driver_name / f"v{version_major}"
+    async def run(
+            self,
+            version_major: int,
+            user_request: str = "",
+    ) -> tuple[bool, str]:
+        start_time = time.perf_counter()
+        self.code_dir = (
+                self.config.project_path.code_dir
+                / self.driver_name
+                / f"v{version_major}"
+        )
+
         verifier_feedback = None
         run_status = "failed"
         attempt = 0
@@ -85,82 +101,138 @@ class Controller:
         )
 
         print(
-            f"=============== run coding ===============\n"
+            "=============== run coding ===============\n"
         )
+
+        with self.event_recorder.step(
+                "function_identifier",
+                "identify_device_functions",
+                attempt=attempt,
+        ):
+            function_identifier_input = (
+                self._build_function_identifier_input()
+            )
+            device_function = await self.function_identifier.identify_functions_async(
+                function_identifier_input
+            )
 
         try:
             for attempt in range(1, self.max_tries + 1):
-                self.attempted_log = False
-                print(
-                    f"=== attempt {attempt}/{self.max_tries} ===\n"
-                )
+                try:
+                    self.attempted_log = False
 
-                self.event_recorder.emit(
-                    agent="controller",
-                    action="attempt",
-                    status="started",
-                    attempt=attempt,
-                )
-
-                with self.event_recorder.step("planner", "create_plan", attempt=attempt):
-                    planner_input = self._build_planner_input(user_request, verifier_feedback)
-                    planner_output = self.planner.create_plan(planner_input)
-
-                programming_plan = planner_output.programming_plan
-                topics = planner_output.retrieval_topics
-                verification_plan = planner_output.verification_plan
-
-                with self.event_recorder.step("retriever", "run", attempt=attempt):
-                    retrieval_response = await self.retriever.run(topics)
-                    retrieval_results = retrieval_response.results
-
-                with self.event_recorder.step("coder", "create_code_file", attempt=attempt):
-                    coder_input = self._build_coder_input(
-                        programming_plan=programming_plan,
-                        retrieval_results=retrieval_results
+                    print(
+                        f"=== attempt {attempt}/{self.max_tries} ===\n"
                     )
 
-                    coder_output = self.coder.create_code_file(coder_input)
-
-                self._update_candidate_files(coder_output)
-                with self.event_recorder.step("verifier", "run", attempt=attempt):
-                    verifier_input = self._build_verifier_input(
-                        user_request=user_request,
-                        programming_plan=programming_plan,
-                        verification_plan=verification_plan,
-                        retrieval_results=retrieval_results
+                    self.event_recorder.emit(
+                        agent="controller",
+                        action="attempt",
+                        status="started",
+                        attempt=attempt,
                     )
 
-                    verifier_output = self.verifier.run(verifier_input)
+                    with self.event_recorder.step(
+                            "planner",
+                            "create_plan",
+                            attempt=attempt,
+                    ):
+                        planner_input = self._build_planner_input(
+                            user_request=user_request,
+                            device_function=device_function,
+                            verifier_feedback=verifier_feedback,
+                        )
+                        planner_output = (
+                            await self.planner.create_plan_async(
+                                planner_input
+                            )
+                        )
 
-                if verifier_output.passed:
-                    self.accepted_files = list(self.candidate_files)
+                    programming_plan = planner_output.programming_plan
+                    topics = planner_output.retrieval_topics
+                    verification_plan = planner_output.verification_plan
+
+                    with self.event_recorder.step(
+                            "retriever",
+                            "run",
+                            attempt=attempt,
+                    ):
+                        retrieval_response = await self.retriever.run(topics)
+                        retrieval_results = retrieval_response.results
+
+                    with self.event_recorder.step(
+                            "coder",
+                            "create_code_file",
+                            attempt=attempt,
+                    ):
+                        coder_input = self._build_coder_input(
+                            programming_plan=programming_plan,
+                            retrieval_results=retrieval_results,
+                        )
+
+                        coder_output = (
+                            await self.coder.create_code_file_async(
+                                coder_input
+                            )
+                        )
+
+                    self._update_candidate_files(coder_output)
+
+                    with self.event_recorder.step(
+                            "verifier",
+                            "run",
+                            attempt=attempt,
+                    ):
+                        verifier_input = self._build_verifier_input(
+                            user_request=user_request,
+                            device_function=device_function,
+                            programming_plan=programming_plan,
+                            verification_plan=verification_plan,
+                            retrieval_results=retrieval_results,
+                        )
+
+                        verifier_output = (
+                            await self.verifier.run_async(
+                                verifier_input
+                            )
+                        )
+
+                    if verifier_output.passed:
+                        self.accepted_files = list(self.candidate_files)
+                        self._update_logs(attempt)
+                        break
+
                     self._update_logs(attempt)
-                    break
+                    verifier_feedback = verifier_output
 
-                self._update_logs(attempt)
-                verifier_feedback = verifier_output
+                finally:
+                    self._update_logs(attempt)
+                    self._update_time(attempt)
 
             if len(self.accepted_files) > 0:
                 self.clear_dir()
 
                 print(
-                    f" -> start writing accepted files\n"
+                    " -> start writing accepted files\n"
                     f"writing accepted {len(self.accepted_files)} files to:\n"
                     f"{self.code_dir}\n"
                 )
 
-                FileWriter.write_to_files(self.accepted_files, self.code_dir)
+                FileWriter.write_to_files(
+                    self.accepted_files,
+                    self.code_dir,
+                )
+
                 run_status = "passed"
 
             print(
-                f"=============== coding ended after {attempt} attempt{"s" if attempt != 1 else ""} ==============="
+                f"=============== coding ended after {attempt} "
+                f"attempt{'s' if attempt != 1 else ''} ==============="
             )
 
-            return len(self.accepted_files) > 0, str(self.code_dir)
         except Exception as exc:
-            self._update_logs(attempt)
             run_status = "error"
+
             self.event_recorder.emit(
                 agent="controller",
                 action="run",
@@ -173,12 +245,14 @@ class Controller:
             )
 
             print(
-                f"=============== coding ended after {attempt} attempt{"s" if attempt != 1 else ""} ==============="
+                f"=============== coding ended after {attempt} "
+                f"attempt{'s' if attempt != 1 else ''} ==============="
             )
 
             raise
 
         finally:
+            self.elapsed_time = time.perf_counter() - start_time
 
             self.event_recorder.emit(
                 agent="controller",
@@ -188,11 +262,20 @@ class Controller:
                     "run_status": run_status,
                 },
             )
+
             self._save_logs()
             self.event_recorder.write(run_status)
 
+        return len(self.accepted_files) > 0, str(self.code_dir)
+
     def _load_agents(self):
         task_configs = self.config.task_configs
+
+        self.function_identifier = FunctionIdentifier.load_from_task_config(
+            task_config=task_configs.function_identification,
+            api_key=self.config.get_apikey(task_configs.function_identification.model.provider),
+        )
+
         self.planner = Planner.load_from_task_config(
             task_config=task_configs.planning,
             api_key=self.config.get_apikey(task_configs.planning.model.provider),
@@ -230,10 +313,37 @@ class Controller:
             output_dir=self.log_dir,
         )
 
-    def _build_planner_input(self,user_request:str,verifier_feedback:VerifierOutput|None) -> PlannerInput:
+    def _build_function_identifier_input(self) -> FunctionIdentifierInput:
+
+        registers = []
+        for register_map_output in self.register_maps:
+            registers.extend(
+                register_map_output.register_map.registers
+            )
+
+        register_map = RegisterMapOutput(
+            registers=registers,
+        )
+
+        pages = []
+        for document in self.documents:
+            pages.extend(document.pages)
+
+        return FunctionIdentifierInput(
+            register_map=register_map,
+            pages=pages,
+        )
+
+    def _build_planner_input(
+            self,
+            user_request:str,
+            device_function:DeviceFunctionOutput,
+            verifier_feedback:VerifierOutput|None,
+    ) -> PlannerInput:
 
         return PlannerInput(
             driver_name=self.driver_name,
+            device_function=device_function,
             enable_test_coder=self.config.enable_test_coder,
             user_request=user_request,
             register_maps=self._get_normalized_register_maps_input(),
@@ -254,13 +364,15 @@ class Controller:
     def _build_verifier_input(
             self,
             user_request:str,
+            device_function:DeviceFunctionOutput,
             programming_plan:ProgrammingPlan,
             verification_plan:VerificationPlan,
-            retrieval_results:list[RetrievalResult]
+            retrieval_results:list[RetrievalResult],
     ) -> VerifierInput:
 
         return VerifierInput(
             user_request=user_request,
+            device_function=device_function,
             programming_plan=programming_plan,
             verification_plan=verification_plan,
             register_maps=self._get_normalized_register_maps_input(),
@@ -354,21 +466,46 @@ class Controller:
                 error=exc,
             )
 
+    def _update_time(self,attempt:int) -> None:
+        self.time_consumptions.append(
+            {
+                "attempt": attempt,
+                "planner": self.planner.get_elapsed_time(),
+                "retriever": self.retriever.get_elapsed_time(),
+                "coder": self.coder.get_elapsed_time(),
+                "verifier": self.verifier.get_elapsed_time(),
+            }
+        )
+
     def _save_logs(self) -> None:
         log_dir = self.log_dir
         log_dir.mkdir(parents=True, exist_ok=True)
 
         log_path = log_dir / "logs.json"
 
-        output = {
+
+        log = {
             "driver_name": self.driver_name,
             "logs": [self.event_recorder._to_jsonable(log) for log in self.logs],
         }
+        with log_path.open("w",encoding="utf-8") as f:
+            f.write(
+                json.dumps(log, ensure_ascii=False, indent=4),
+            )
 
-        log_path.write_text(
-            json.dumps(output, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        time_path = log_dir / "time.json"
+        time_consumption = {
+            "driver_name": self.driver_name,
+            "controller": self.elapsed_time,
+            "function_identifier": self.function_identifier.get_elapsed_time(),
+            "agent_time_consumption": self.time_consumptions
+        }
+
+        with time_path.open("w",encoding="utf-8") as f:
+            f.write(
+                json.dumps(time_consumption, ensure_ascii=False, indent=4),
+            )
+
 
         print(f"Logs saved to: {log_path}")
 

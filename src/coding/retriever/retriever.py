@@ -65,6 +65,11 @@ class PageRetriever:
 
         return result
 
+    def get_elapsed_time(self) -> float:
+        value = self.binary_classifier.elapsed_time
+        self.binary_classifier.elapsed_time = 0.0
+        return value
+
     @classmethod
     def load_from_task_config(
             cls,

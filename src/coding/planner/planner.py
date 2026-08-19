@@ -34,10 +34,10 @@ class Planner:
 
         return cls(planner)
 
-    def create_plan(self,planer_input:PlannerInput) -> PlannerOutput:
+    async def create_plan_async(self,planer_input:PlannerInput) -> PlannerOutput:
         user_input = planer_input.model_dump_json()
         print(" -> start creating new plan")
-        plan = self.planner_agent.run(user_input)
+        plan = await self.planner_agent.arun(user_input)
         self._update_logs(planer_input,plan)
 
         text = "\n".join(str(topic.topic_keywords) for topic in plan.retrieval_topics)
@@ -52,6 +52,11 @@ class Planner:
             f"==================\n"
         )
         return plan
+
+    def get_elapsed_time(self):
+        time = self.planner_agent.elapsed_time
+        self.planner_agent.elapsed_time = 0.0
+        return time
 
     def _update_logs(self, planner_input: PlannerInput, planner_output: PlannerOutput) -> None:
         self.logs.append(

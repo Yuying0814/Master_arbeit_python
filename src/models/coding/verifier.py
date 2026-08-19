@@ -7,12 +7,18 @@ from pydantic import Field
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding.coding_common import CodeFile, VerificationPlan, FilePlan, InputRegisterMap, ProgrammingPlan
 from src.models.coding.retriever import RetrievalResult
+from src.models.coding.function_identifier import DeviceFunctionOutput
 
 # Verifier input
 class VerifierInput(StructuredOutputModel):
     user_request: str = Field(
         description= "user request",
     )
+
+    device_function: DeviceFunctionOutput = Field(
+        description= "Identified device function description and involved registers from function identifier",
+    )
+
     verification_plan:VerificationPlan = Field(
         description="verification plan for the candidate files from planner",
     )
@@ -57,6 +63,10 @@ class VerifierOutput(StructuredOutputModel):
 class SemanticVerifierInput(StructuredOutputModel):
     user_request: str = Field(
         description= "user request",
+    )
+
+    device_function: DeviceFunctionOutput = Field(
+        description= "Identified device function description and involved registers from function identifier",
     )
 
     verification_plan:str = Field(

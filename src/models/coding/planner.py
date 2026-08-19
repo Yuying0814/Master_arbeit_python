@@ -8,6 +8,7 @@ from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding.coding_common import CodeFile, VerificationPlan, ProgrammingPlan, InputRegisterMap
 from src.models.coding.verifier import VerifierOutput
 from src.models.coding.retriever import RetrievalTopic
+from src.models.coding.function_identifier import DeviceFunctionOutput
 
 # Planner:
 ## input
@@ -16,6 +17,10 @@ class PlannerInput(StructuredOutputModel):
         default = "SensorDriver",
         description="name of the driver",
     )
+    device_function:DeviceFunctionOutput = Field(
+        description="Identified device function description and involved registers from function identifier"
+    )
+
     enable_test_coder: bool = Field(
         default=False,
         description="enable test coder",
