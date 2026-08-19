@@ -45,6 +45,7 @@ class Controller:
         self.driver_name = driver_name
         self.documents = [DocumentRecord.model_validate(document) for document in documents]
         self.register_maps = [RegisterMapRecord.model_validate(item)for item in register_maps]
+        self.log_dir = self.config.project_path.root_path / "data"/ "log" / driver_name
 
         self._check_valid_client()
         self._check_valid_fqbn()
@@ -68,7 +69,7 @@ class Controller:
         )
 
     async def run(self, version_major:int, user_request: str = "",) -> tuple[bool,str]:
-        self.code_dir = self.config.project_path.code_dir / self.driver_name / str(version_major)
+        self.code_dir = self.config.project_path.code_dir / self.driver_name / f"v{version_major}"
         verifier_feedback = None
         run_status = "failed"
         attempt = 0
@@ -226,7 +227,7 @@ class Controller:
 
         self.event_recorder = EventRecorder(
             driver_name=self.driver_name,
-            output_dir=self.config.project_path.root_path / "data" / self.driver_name,
+            output_dir=self.log_dir,
         )
 
     def _build_planner_input(self,user_request:str,verifier_feedback:VerifierOutput|None) -> PlannerInput:
@@ -354,7 +355,7 @@ class Controller:
             )
 
     def _save_logs(self) -> None:
-        log_dir = self.config.project_path.root_path / "data" / self.driver_name
+        log_dir = self.log_dir
         log_dir.mkdir(parents=True, exist_ok=True)
 
         log_path = log_dir / "logs.json"

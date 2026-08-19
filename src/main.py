@@ -15,12 +15,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # ============================================================
 # MODE
 # ============================================================
-MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
+MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
 # General configuration
 # ============================================================
-DEVICE_NAME = "ICM20948" # For preprocessing and coding
+DEVICE_NAME = "TMP4719" # For preprocessing and coding
 MAJOR_VERSION = 1 # For coding
 USER_REQUEST = "" # For coding
 
@@ -66,54 +66,54 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
 
     "classify_pages": {
-        "provider": "zai",
+        "provider": "kimi",
         "is_batch": True,
-        "model_name": "glm-4-plus",
+        "model_name": "kimi-k2.5",
         "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 4095,
+        "max_tokens": 10000,
         "timeout": 3600
     },
     "verify_reg_sum_pages": {
-        "provider": "zai",
+        "provider": "kimi",
         "is_batch": True,
-        "model_name": "glm-4-plus",
+        "model_name": "kimi-k2.5",
         "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 4095,
+        "max_tokens": 10000,
         "timeout": 3600
     },
     "verify_reg_pages": {
-        "provider": "zai",
+        "provider": "kimi",
         "is_batch": True,
-        "model_name": "glm-4-plus",
+        "model_name": "kimi-k2.5",
         "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 4095,
+        "max_tokens": 10000,
         "timeout": 3600
     },
     "extract_reg_index": {
-        "provider": "zai",
-        "model_name": "glm-4.7",
+        "provider": "kimi",
+        "model_name": "kimi-k2.6",
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 50000,
-        "timeout": 1800
+        "timeout": 3600
     },
     "extract_reg_map": {
-        "provider": "zai",
-        "model_name": "glm-4.7",
+        "provider": "kimi",
+        "model_name": "kimi-k2.6",
         "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 90000,
-        "timeout": 18000
+        "max_tokens": 50000,
+        "timeout": 3600
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "planning": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
-        "thinking_effort": "high",
+        "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
         "timeout": 1800
@@ -121,33 +121,33 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "retrieval": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
-        "thinking_effort": "high",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 5000,
+        "max_tokens": 30000,
         "timeout": 1800
     },
     "coding": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
-        "thinking_effort": "high",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 20000,
+        "max_tokens": 30000,
         "timeout": 1800
     },
     "verification_semantic": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
-        "thinking_effort": "high",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 10000,
+        "max_tokens": 30000,
         "timeout": 1800
     },
     "verification_test_coder": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
-        "thinking_effort": "high",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 10000,
+        "max_tokens": 30000,
         "timeout": 1800
     },
 }
