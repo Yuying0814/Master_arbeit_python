@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 from src.models.structuredOutputModel import StructuredOutputModel
 
 
@@ -21,6 +21,13 @@ class RegisterAddress(StructuredOutputModel):
     bank: str
     page: str
     description: str
+
+    @field_validator("decimal", mode="before")
+    @classmethod
+    def normalize_decimal(cls, value):
+        if isinstance(value, int) and not isinstance(value, bool):
+            return str(value)
+        return value
 
 
 class RegisterFieldValue(StructuredOutputModel):
