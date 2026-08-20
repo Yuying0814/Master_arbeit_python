@@ -20,8 +20,8 @@ MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # General configuration
 # ============================================================
-DEVICE_NAME = "TMP4719" # For preprocessing and coding
-MAJOR_VERSION = 1 # For coding
+DEVICE_NAME = "BME280" # For preprocessing and coding
+MAJOR_VERSION = 2 # For coding
 USER_REQUEST = "" # For coding
 
 # ============================================================
@@ -110,10 +110,18 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
-    "planning": {
+    "function_identification":{
         "provider": "openai",
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
+        "temperature": None,
+        "max_tokens": 30000,
+        "timeout": 1800
+    },
+    "planning": {
+        "provider": "openai",
+        "model_name": "gpt-5.6-terra",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 60000,
         "timeout": 1800
@@ -123,7 +131,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 30000,
+        "max_tokens": 10000,
         "timeout": 1800
     },
     "coding": {
@@ -131,7 +139,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 30000,
+        "max_tokens": 50000,
         "timeout": 1800
     },
     "verification_semantic": {
@@ -139,7 +147,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 30000,
+        "max_tokens": 60000,
         "timeout": 1800
     },
     "verification_test_coder": {
@@ -173,7 +181,7 @@ CHAT_TASK_SETTINGS: dict[str, dict[str, Any]] = {
         "model_name": "qwen3:8b",
         "thinking_effort": None,
         "temperature": None,
-        "max_tokens": 2000,
+        "max_tokens": 50000,
     },
     "identify_name": {
         "provider": "ollama",

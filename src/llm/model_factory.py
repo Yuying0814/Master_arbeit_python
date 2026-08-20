@@ -34,6 +34,7 @@ def build_chat_model(
                 temperature=temperature if temperature is not None else None,
                 max_tokens= max_output_tokens,
                 reasoning_effort=thinking_effort,
+                use_responses_api=True,
             )
 
         case "anthropic":

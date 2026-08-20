@@ -480,7 +480,7 @@ class Controller:
         )
 
     def _save_logs(self) -> None:
-        log_dir = self.log_dir
+        log_dir = self.code_dir/"logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
         log_path = log_dir / "logs.json"

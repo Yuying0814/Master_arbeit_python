@@ -69,7 +69,7 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
         ),
         system=_read_instructions(prompt_path / "prompt_coder.txt"),
         output_format=CoderOutput,
-        memory_enabled=False,
+        memory_enabled=True,
     )
 
     verification_semantic = TaskConfig(
