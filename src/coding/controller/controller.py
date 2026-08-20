@@ -420,6 +420,7 @@ class Controller:
         if self.attempted_log:
             return
         try:
+            function_identifier_log = _get_log(self.function_identifier, attempt)
             planner_log = _get_log(self.planner, attempt)
             coder_log = _get_log(self.coder, attempt)
             retriever_log = _get_log(self.retriever, attempt)
@@ -430,6 +431,7 @@ class Controller:
                     driver_name=self.driver_name,
                     attempt=attempt,
                     snapshot=Snapshot(
+                        device_functions=copy.deepcopy(function_identifier_log.identifier_output) if function_identifier_log is not None else None,
                         programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan) if planner_log is not None else None,
                         verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan) if planner_log is not None else None,
                         retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics) if planner_log is not None else None,
