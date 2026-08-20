@@ -3,6 +3,7 @@ import json
 import warnings
 
 from pathlib import Path
+from pickle import TRUE
 from typing import Any
 from datetime import datetime, timezone
 
@@ -95,14 +96,18 @@ def get_major_version_result(
         device_name: str,
         version_major:int,
 ) -> MajorVersionResult:
-
+    print(f"\nGetting preprocessing data from database: {database_path}")
     database_path = Path(database_path).expanduser().resolve()
     with DataManager(database_path) as manager:
         result = manager.get_major_version_result(
             device_name=device_name,
             version_major=version_major,
         )
-
+        print(
+            f"\nsuccess: True"
+            f"\nDevice name: {result.device_name}"
+            f"\nMajor version: {result.version_major}"
+              )
         return result
 
 async def run_coding_controller(
