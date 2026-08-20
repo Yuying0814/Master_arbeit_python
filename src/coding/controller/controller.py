@@ -112,7 +112,7 @@ class Controller:
             function_identifier_input = (
                 self._build_function_identifier_input()
             )
-            device_function = await self.function_identifier.identify_functions_async(
+            device_functions = await self.function_identifier.identify_functions_async(
                 function_identifier_input
             )
 
@@ -137,11 +137,9 @@ class Controller:
                             "create_plan",
                             attempt=attempt,
                     ):
-                        planner_input = self._build_planner_input(
-                            user_request=user_request,
-                            device_function=device_function,
-                            verifier_feedback=verifier_feedback,
-                        )
+                        planner_input = self._build_planner_input(user_request=user_request,
+                                                                  device_functions=device_functions,
+                                                                  verifier_feedback=verifier_feedback)
                         planner_output = (
                             await self.planner.create_plan_async(
                                 planner_input
@@ -168,6 +166,7 @@ class Controller:
                         coder_input = self._build_coder_input(
                             programming_plan=programming_plan,
                             retrieval_results=retrieval_results,
+                            device_functions=device_functions
                         )
 
                         coder_output = (
@@ -183,13 +182,11 @@ class Controller:
                             "run",
                             attempt=attempt,
                     ):
-                        verifier_input = self._build_verifier_input(
-                            user_request=user_request,
-                            device_function=device_function,
-                            programming_plan=programming_plan,
-                            verification_plan=verification_plan,
-                            retrieval_results=retrieval_results,
-                        )
+                        verifier_input = self._build_verifier_input(user_request=user_request,
+                                                                    device_functions=device_functions,
+                                                                    programming_plan=programming_plan,
+                                                                    verification_plan=verification_plan,
+                                                                    retrieval_results=retrieval_results)
 
                         verifier_output = (
                             await self.verifier.run_async(
@@ -337,13 +334,13 @@ class Controller:
     def _build_planner_input(
             self,
             user_request:str,
-            device_function:DeviceFunctionOutput,
+            device_functions:DeviceFunctionOutput,
             verifier_feedback:VerifierOutput|None,
     ) -> PlannerInput:
 
         return PlannerInput(
             driver_name=self.driver_name,
-            device_function=device_function,
+            device_functions=device_functions,
             enable_test_coder=self.config.enable_test_coder,
             user_request=user_request,
             register_maps=self._get_normalized_register_maps_input(),
@@ -352,9 +349,15 @@ class Controller:
             verifier_feedback=verifier_feedback,
         )
 
-    def _build_coder_input(self,programming_plan:ProgrammingPlan,retrieval_results:list[RetrievalResult]) -> CoderInput:
+    def _build_coder_input(
+            self,
+            programming_plan:ProgrammingPlan,
+            retrieval_results:list[RetrievalResult],
+            device_functions:DeviceFunctionOutput
+    ) -> CoderInput:
         return CoderInput(
             programming_plan=programming_plan,
+            device_functions=device_functions,
             register_maps=self._get_normalized_register_maps_input(),
             retrieval_results=retrieval_results,
             candidate_files=self.candidate_files,
@@ -364,7 +367,7 @@ class Controller:
     def _build_verifier_input(
             self,
             user_request:str,
-            device_function:DeviceFunctionOutput,
+            device_functions:DeviceFunctionOutput,
             programming_plan:ProgrammingPlan,
             verification_plan:VerificationPlan,
             retrieval_results:list[RetrievalResult],
@@ -372,7 +375,7 @@ class Controller:
 
         return VerifierInput(
             user_request=user_request,
-            device_function=device_function,
+            device_functions=device_functions,
             programming_plan=programming_plan,
             verification_plan=verification_plan,
             register_maps=self._get_normalized_register_maps_input(),

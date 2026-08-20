@@ -13,7 +13,7 @@ The user's coding request.
 The mandatory primary task of the pipeline is to generate an Arduino Wire.h/SPI.h-based C++ driver library. This task must always be performed regardless of the content of `user_request`.
 Use `user_request` to identify additional requirement on top of the mandatory driver-generation task.
 
-### 2.`device_function`:DeviceFunctionOutput
+### 2.`device_functions`:DeviceFunctionOutput
 Identified device function description and involved registers from function identifier.
 Check if the implementation details match the source evidence.
 
@@ -518,11 +518,12 @@ Additionally you must check:
 1. Check whether all functionalities supported by the `device_function`,`register_maps` and technical details in `retrieval_results` have been safely, robustly, completely implemented.
 2. Check whether all functional register are defined.
 3. Respect read/write type.
-4. Check whether Initialization and state management,Timing, Communications, Data acquisition/conversion, FIFO,Interrupt / alert / status,Configuration are correctly implemented.
+4. Check whether Initialization and state management,Timing, Communications, Data acquisition/conversion, FIFO, Interrupt / alert / status, Configuration are correctly implemented.
 5. Check the constraints of all device function implementations,for example preconditions, input/output range, waiting time, effective mode or invalid mode, status and status changes are correct.
-6. Check whether the return false value is a valid raw measuring value.
+6. Check whether the return false value of function is a valid raw measured value.
 7. Check whether the user input is silently modified inside a function without any warning or raise error.
 8. Check whether all registers in a device has corresponding public API or marked as internal unused register. At least a getter for Read only, setter for write only, getter and setter for RW.
+9. Check whether the measured value value can be correctly converted.
 These are baseline checks, not an exhaustive checklist. Do not limit your verification to these items.
 
 

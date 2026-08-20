@@ -34,6 +34,8 @@ class PageRetriever:
             )
             self._update_logs(topics,[])
             self.request_id += 1
+            print(f"-> No retrieval topics\n"
+                  f"==================")
             return response
 
         retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, documents=self.documents)

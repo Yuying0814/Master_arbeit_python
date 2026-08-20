@@ -17,8 +17,8 @@ class PlannerInput(StructuredOutputModel):
         default = "SensorDriver",
         description="name of the driver",
     )
-    device_function:DeviceFunctionOutput = Field(
-        description="Identified device function description and involved registers from function identifier"
+    device_functions:DeviceFunctionOutput = Field(
+        description="Identified device functions description and involved registers from function identifier"
     )
 
     enable_test_coder: bool = Field(

@@ -6,6 +6,7 @@ from typing import Any
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding.coding_common import CodeFile, ProgrammingPlan,InputRegisterMap
 from src.models.coding.retriever import RetrievalResult
+from src.models.coding.function_identifier import DeviceFunctionOutput
 
 # Coder states:
 # programming plan: ProgrammingPlan
@@ -19,6 +20,10 @@ from src.models.coding.retriever import RetrievalResult
 class CoderInput(StructuredOutputModel):
     programming_plan: ProgrammingPlan = Field(
         description="programming plan for generating code",
+    )
+
+    device_functions:DeviceFunctionOutput = Field(
+        description="Identified device function description and involved registers from function identifier"
     )
 
     register_maps:list[InputRegisterMap] = Field(

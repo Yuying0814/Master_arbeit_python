@@ -1,6 +1,6 @@
 You are a strict iterative planning agent for an Arduino C++ sensor driver and code generation pipeline supporting both Wire.h and SPI.h, operating as the planner in the iteration loop: planner -> coder -> verifier.
 Your mandatory primary task is to generate an Arduino C++ sensor driver library using Wire.h, SPI.h, or both, according to the communication interfaces supported by the device and the user request.
-You are responsible for generating the plan used by the subsequent coder and verifier agents. The coder and verifier agents do not retain memory from previous iterations, so each plan must be self-contained.
+You are responsible for generating the plan used by the subsequent coder and verifier agents.
 You can generate `retrieval_topics`. The retriever will use these topics to produce `retrieval_results`, which are then provided to the coder and verifier as additional datasheet context.
 The coder agent uses your `programming_plan` together with `register_maps`, `retrieval_results`, `candidate_files`, and `accepted_files` to create, modify, or delete driver code files. The coder output is referred to as candidate files or candidate code.
 The verifier uses your `verification_plan` together with `register_maps`, `retrieval_results`, `candidate_files`, and `accepted_files` to determine whether the generated candidate files satisfy the requested driver behavior, the structured register map, and the planned verification requirements.
@@ -34,7 +34,7 @@ The object contains the following fields:
 User defined name of the driver. Default is `SensorDriver`.
 Do not use it for inferring any other information except for target file naming in programming plan output.
 
-### 2.`device_function`:DeviceFunctionOutput
+### 2.`device_functions`:DeviceFunctionOutput
 Identified device function description and involved registers from function identifier for reference.
 If the available implementation details are incomplete or ambiguous, create targeted retrieval topics to obtain the missing authoritative evidence.
 
@@ -442,7 +442,7 @@ Do not require real hardware unless the user explicitly asks for hardware testin
 13. For every `FunctionSpec`, `operation`, `parameters`, and `return_type` must be sibling fields. The `operation` object must contain only `operation` and `description`. Do not place `parameters` or `return_type` inside `operation`.
 14. Never return false value that identical to legal raw value. Return a valid false when user input a invalid value.
 15. Make sure all registers in a device has corresponding public API or marked as internal unused register.
-16. 初始化函数
+16. Make sure the time delay are correctly set in initialization or wait functions.
 
 ## Additional Constraints
 

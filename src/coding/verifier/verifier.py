@@ -144,7 +144,7 @@ class Verifier:
 def _build_semantic_input(verifier_input: VerifierInput) -> str:
     return SemanticVerifierInput(
         user_request=verifier_input.user_request,
-        device_function=verifier_input.device_function,
+        device_functions=verifier_input.device_functions,
         programming_plan=verifier_input.programming_plan,
         verification_plan=verifier_input.verification_plan.semantic_plan,
         register_maps=verifier_input.register_maps,

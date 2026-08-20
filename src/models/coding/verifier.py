@@ -15,7 +15,7 @@ class VerifierInput(StructuredOutputModel):
         description= "user request",
     )
 
-    device_function: DeviceFunctionOutput = Field(
+    device_functions: DeviceFunctionOutput = Field(
         description= "Identified device function description and involved registers from function identifier",
     )
 
@@ -65,8 +65,8 @@ class SemanticVerifierInput(StructuredOutputModel):
         description= "user request",
     )
 
-    device_function: DeviceFunctionOutput = Field(
-        description= "Identified device function description and involved registers from function identifier",
+    device_functions: DeviceFunctionOutput = Field(
+        description= "Identified device functions description and involved registers from function identifier",
     )
 
     verification_plan:str = Field(
