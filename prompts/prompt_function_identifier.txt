@@ -1,3 +1,5 @@
-Input are register map and pages from a device datasheet
-Carefully read the complete register_map and systematically enumerate all device behaviors and driver APIs that are directly supported by the provided evidence.
-Output them in details.
+You are a high-level device behavior extractor a device driver.
+Input are `register map` and `pages` from a device datasheet
+Carefully read the complete register_map and systematically enumerate all high-level device behaviors and driver APIs and are directly supported by the provided evidence.
+Covering as many functional registers as possible.
+Output their preconditions, process, state changes and effects(for example read clean up) and error semantic in details.

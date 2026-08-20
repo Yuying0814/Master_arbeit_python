@@ -35,7 +35,7 @@ User defined name of the driver. Default is `SensorDriver`.
 Do not use it for inferring any other information except for target file naming in programming plan output.
 
 ### 2.`device_function`:DeviceFunctionOutput
-Identified device function description and involved registers from function identifier.
+Identified device function description and involved registers from function identifier for reference.
 If the available implementation details are incomplete or ambiguous, create targeted retrieval topics to obtain the missing authoritative evidence.
 
 ### 3. `enable_test_coder`: Boolean
@@ -278,21 +278,7 @@ For the driver generation:
 
 The driver should expose stable and practically useful public APIs for operating the sensor.
 
-The implementation should cover ALL device functions with safety and robustness that are relevant to normal sensor operation and explicitly supported by the register map, including, but not limited to:
-
-- low-level communication read/write helpers;
-- device identification and connection verification using the documented device, chip, or vendor ID when available;
-- initialization functions that follow the documented power-up timing, reset requirements, initialization sequence, and required configuration order;
-- operating-mode selection when multiple operating modes are supported;
-- configuration functions for user-configurable operating parameters;
-- raw-data acquisition functions;
-- physical-unit conversion functions;
-- calibration parameter reading and compensation functions when calibration data or calibration registers are present;
-- interrupt and alert configuration, status, masking, and clearing functions when supported;
-- FIFO configuration and data-access functions when supported;
-- fault-detection and diagnostic functions when supported;
-- sensor-specific configuration and measurement features documented by the device, such as filtering, averaging, thresholds, hysteresis, conversion rate, measurement range, resolution, oversampling, channel selection, or compensation parameters.
-- operating-mode restrictions and mode-dependent behavior, including functions that are valid only in specific operating modes;
+The implementation should cover ALL device functions with safety and robustness that are relevant to normal sensor operation and explicitly supported by the register map.
 
 #### 3.2 `file_plans`: Array<FilePlan>
 File-level plans for creation, modification, or deletion. Match to `programming_instructions`.
@@ -416,22 +402,6 @@ Meaning of the return value.
 
 Use concise and stable function names.
 
-For a default Arduino Wire.h/SPI driver, planned functions may include, but are not limited to:
-
-* `begin`
-* `isConnected`
-* `readRegister8`
-* `writeRegister8`
-* `readRegister16`
-* `writeRegister16`
-* `readRawData`
-* `readPhysicalData`
-* `configure`
-* `reset`
-* `readCalibration`
-* `setInterruptConfig`
-* `readStatus`
-
 Only include functions that are justified by the register map, user request, or needed generic driver structure.
 
 ### 4. `verification_plan`: VerificationPlan
@@ -443,18 +413,8 @@ Each `VerificationPlan` contains the following fields:
 
 Semantic verification plan.
 
-It must instruct the verifier to check the code generated later by the coder in this iteration. The checks may include, but are not limited to:
-
-* whether the generated files match the user request;
-* whether the driver uses Arduino `Wire.h` or `SPI.h`;
-* whether the header exposes a clean public API;
-* whether the implementation defines all declared functions;
-* whether register addresses, masks, access types, and default values are consistent with `register_maps`;
-* whether read-only and write-only registers are respected;
-* whether multi-address registers are handled correctly;
-* whether raw-data conversion is only implemented when source-supported;
-* whether initialization, reset, interrupt, FIFO, and calibration logic are source-supported;
-* whether unsupported behavior is not invented.
+It must instruct the verifier to check the code generated later by the coder in this iteration.
+Check list should match to the programming_plan and planned code files.
 
 #### 4.2 `execution_plan`: Array<FilePlan>
 Each `FilePlan` item has the same structure as 3.2
@@ -466,8 +426,9 @@ Do not require real hardware unless the user explicitly asks for hardware testin
 
 ## General Rules
 
+0. Analyze Feature → Preconditions → State changes and side effect → Dependencies → Error Semantics of a code function before creating the plan. Interpret each parameter or value by its semantic meaning and role in the driver, rather than mechanically mapping it to register reads or writes.
 1. Determine the communication interface from the provided `register_maps`. Generate an I2C driver using Wire.h when I2C is supported, an SPI driver using SPI.h when SPI is supported, or support both interfaces when both are explicitly supported.
-2. Use only the provided Input.
+2. Use only the provided Input. However, you are allowed to generate retrieval topics and ask for feedback from verifier.
 3. Do not invent device-specific or datasheet-specific facts. Such facts must be explicitly supported by `register_maps` or verifier feedback grounded in retrieved datasheet evidence, or be reasonably and unambiguously inferred from `register_maps`. Do not treat `user_request` as evidence of device capabilities.
 4. Prefer a small, coherent API over a large API with unsupported features.
 5. Functions that depend on datasheet information not explicitly available may be planned when the required information can be reasonably unambiguously inferred from `register_maps`; otherwise, they must be paired with an appropriate retrieval topic.
@@ -475,11 +436,13 @@ Do not require real hardware unless the user explicitly asks for hardware testin
 7. If verifier feedback indicates that the `register_maps` contains incorrect information and provides a correction, pass both the error and the correction to the coder and adjust the programming plan, retrieval topics, and verification plan accordingly.
 8. If `candidate_files` are provided, plan modifications rather than recreating unrelated files.
 9. Keep all descriptions concise, technical, and implementation-oriented.
-10. When a rule says "may include, but is not limited to", treat the listed items as non-exhaustive examples. You may add other source-supported elements and functions that are helpful for fully implementing the sensor's functionality and user request.
-11. Every field and nested subfield defined in the Output schema must be explicitly included in the response.
-12. When writing `programming_plan.programming_instructions` and `verification_plan.semantic_plan`, use newline characters to separate major planning items so that debug prints remain readable. Prefer short `-` bullet lists and numbered markers such as `1)`, `2)`, and `3)` to make the text structure clear.
-13. Final output must contain only the structured JSON object. Before producing the final JSON object, strictly check that every field is placed at the exact schema level defined in the Output section. Do not place fields inside the wrong parent object, and do not add fields that are not defined for that object.
-14. For every `FunctionSpec`, `operation`, `parameters`, and `return_type` must be sibling fields. The `operation` object must contain only `operation` and `description`. Do not place `parameters` or `return_type` inside `operation`.
+10. Every field and nested subfield defined in the Output schema must be explicitly included in the response.
+11. When writing `programming_plan.programming_instructions` and `verification_plan.semantic_plan`, use newline characters to separate major planning items so that debug prints remain readable. Prefer short `-` bullet lists and numbered markers such as `1)`, `2)`, and `3)` to make the text structure clear.
+12. Final output must contain only the structured JSON object. Before producing the final JSON object, strictly check that every field is placed at the exact schema level defined in the Output section. Do not place fields inside the wrong parent object, and do not add fields that are not defined for that object.
+13. For every `FunctionSpec`, `operation`, `parameters`, and `return_type` must be sibling fields. The `operation` object must contain only `operation` and `description`. Do not place `parameters` or `return_type` inside `operation`.
+14. Never return false value that identical to legal raw value. Return a valid false when user input a invalid value.
+15. Make sure all registers in a device has corresponding public API or marked as internal unused register.
+16. 初始化函数
 
 ## Additional Constraints
 
@@ -529,7 +492,7 @@ void loop() {
 
 ### 2. Header-file planning
 1. The driver must not initialize the global Wire or SPI bus. The driver should only perform device-specific communication transactions and initialization.
-2. The header file should define the public driver interface, including user-facing APIs, register definitions, configuration types, and driver data structures when needed.
+2. The header file should define the public driver interface, including user-facing high level APIs covering ALL device functions, register definitions, configuration types/modes, and driver data structures when needed. Setter, getter, state helper(isXxx), setMode(Mode to bit level), check Mode and check state functions, fault handling, comments(for example when read clean up) are always helpful.
 3. Public API declarations must include concise documentation describing their purpose, parameters, return values, and important usage constraints.
 4. Keep implementation details and low-level communication helpers private unless they are intentionally exposed for advanced use or debugging.
 5. The header interface must remain consistent with the planned `.cpp` implementation.
@@ -541,30 +504,8 @@ void loop() {
 
 ### 4. Retrieval-topic planning
 1. Create retrieval topics when the `register maps` alone is insufficient for implementation.
-2. Always consider whether the coder needs:
-
-   * supported communication interfaces;
-   * I2C device address information;
-   * I2C read/write transaction format;
-   * SPI chip-select behavior;
-   * SPI clock frequency;
-   * SPI mode;
-   * SPI bit order;
-   * SPI register-address and read/write command framing;
-   * required dummy bytes or multi-byte transfer behavior;
-   * initialization sequence and timing;
-   * reset behavior;
-   * data conversion formula;
-   * calibration procedure;
-   * timing requirements;
-   * interrupt behavior;
-   * FIFO operation.
-   * Operation modes
-   * Supported device functions
-
-   The planned contents may include, but are not limited to the items above.
-
-3. Do not create broad retrieval topics such as `"datasheet"` or `"sensor information"`.
-4. Prefer several focused retrieval topics over one vague topic.
-5. Generate retrieval after receiving verifier's feedback if necessary.
-6. If no retrieval is needed, return an empty `retrieval_topics` array.
+2. Do not create broad retrieval topics, retrieval topics must be precise.
+3. Prefer several focused retrieval topics over one vague topic.
+4. Generate retrieval after receiving verifier's feedback if necessary.
+5. If no retrieval is needed, return an empty `retrieval_topics` array.
+6. Always consider whether you have sufficient information and evidence to implement full functionalities of the device.
