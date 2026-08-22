@@ -25,12 +25,20 @@ class RetrieverTool:
         self._elapsed_time = 0.0
 
     async def retrieve_pages(self, topics: list[RetrievalTopic]) -> dict[str, Any]:
-        print(f" -> start retrieve_datasheet_pages ({len(topics)} topics)")
+        print(f"\n==================")
+        print(f" -> Start Retrieval for ({len(topics)} topics)")
+
+        topic_keywords = [
+            f"{index}. {', '.join(topic.topic_keywords)}" for index,topic in enumerate(topics,start=1)
+        ]
+        text = "\n".join(topic_keywords)
+        print(text)
+
         start_time = time.perf_counter()
         try:
             response = await self.retriever.run(topics)
         finally:
-            print(" -> retrieve_datasheet_pages completed")
+            print(" -> Retrieval completed")
         self._elapsed_time += time.perf_counter() - start_time
 
         self._attempt_logs.append(self.retriever.logs[-1].model_copy(deep=True))
