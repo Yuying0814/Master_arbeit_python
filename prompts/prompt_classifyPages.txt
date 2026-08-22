@@ -73,16 +73,15 @@ The output format must be exactly a JSON object like this:
 2. Use only the provided current page content and 'previous_content'.
 3. Do not use external knowledge about the device, manufacturer, protocol, or sensor family.
 4. Do not infer content from following pages.
-5. When 'markdown' contains a table reference such as `[tbl-9.html](tbl-9.html)`, interpret the referenced table content at that exact location.
-6. OCR or extraction errors may cause broken words, line breaks, fragmented headings, or split table rows. Mentally reconstruct only clear OCR/layout errors when the evidence is strong.
-7. If the current page contains incomplete content that clearly continues from 'previous_content', use 'previous_content' to identify the likely continuing topic.
-8. Do not propagate a topic from 'previous_content' unless the current page shows clear continuation evidence, such as:
+5. OCR or extraction errors may cause broken words, line breaks, fragmented headings, or split table rows. Mentally reconstruct only clear OCR/layout errors when the evidence is strong.
+6. If the current page contains incomplete content that clearly continues from 'previous_content', use 'previous_content' to identify the likely continuing topic.
+7. Do not propagate a topic from 'previous_content' unless the current page shows clear continuation evidence, such as:
 - the current page starts mid-sentence, mid-paragraph, or mid-table;
 - the current page contains repeated or continued table rows from the previous page;
 - the current page has a heading, caption, table header, or phrase such as "continued";
 - the current page contains topic-specific terms that align with the topic in 'previous_content';
 - the current page lacks a new unrelated section heading and appears to continue the same discussion.
-9. If 'previous_content' is topic-relevant but the current page starts a new unrelated section, do not classify the current page using the previous page's topic.
+9. If `previous_content` is topic-relevant but the current page starts a new unrelated section, do not classify the current page using the previous page's topic.
 10. Do not mark a topic true only because the page mentions the topic name in a navigation reference, cross-reference, footnote, page header, footer, or table of contents entry.
 11. Prefer headings, section titles, table headers, repeated terminology, structured tables, and dense topic-specific content over isolated mentions.
 12. If evidence is weak or ambiguous, keep the corresponding field false.
@@ -102,7 +101,7 @@ The output format must be exactly a JSON object like this:
 - register group.
 3. Headings may include terms such as "Register Summary", "Register Overview", "Register Map Summary", "Register Address Map", or similar.
 4. Do not set this field true for a detailed single-register bit-field page unless the page also contains a summary table of multiple registers.
-5. If 'previous_content' contains register summary content and the current page clearly continues the same register summary table or register overview list, set this field true.
+5. If 'previous_content' contains register summary content and the current page clearly continues the same register summary table or register overview list, set this field true even if the current page contains thin content.
 6. Do not set this field true based only on a general mention of registers.
 
 ### 2. Register map classification
