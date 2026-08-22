@@ -13,27 +13,28 @@ from src.workflow import run_preprocessor,run_coding_controller,get_major_versio
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # ============================================================
-# MODE
+# MODE SELECTION
 # ============================================================
-MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
+MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
-# General configuration
+# GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "BME280" # For preprocessing and coding
-MAJOR_VERSION = 2 # For coding
+DEVICE_NAME = "ICM20948" # For preprocessing and coding
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ds-000189-icm-20948-v1.5.pdf")
+
+MAJOR_VERSION = 0 # For coding
 USER_REQUEST = "" # For coding
 
 # ============================================================
-# Path configuration
+# PATH CONFIG
 # ============================================================
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ds-000189-icm-20948-v1.5.pdf")
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
 DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
 
 # ============================================================
-# Arduino-cli configuration
+# Arduino-CLI CONFIG
 # ============================================================
 ENABLE_TEST_CODER = False
 PORT = "COM6"
@@ -47,9 +48,8 @@ BOARD_OPTIONS = {
     "usbstack":"picosdk",
 }
 
-
 # ============================================================
-# Model configuration
+# TASK MODEL CONFIG
 # ============================================================
 PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "ocr":{
@@ -72,7 +72,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 3600
+        "timeout": 1800
     },
     "verify_reg_sum_pages": {
         "provider": "kimi",
@@ -81,7 +81,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 3600
+        "timeout": 1800
     },
     "verify_reg_pages": {
         "provider": "kimi",
@@ -90,7 +90,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 3600
+        "timeout": 1800
     },
     "extract_reg_index": {
         "provider": "kimi",
@@ -98,15 +98,15 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 50000,
-        "timeout": 3600
+        "timeout": 1800
     },
     "extract_reg_map": {
         "provider": "kimi",
-        "model_name": "kimi-k2.6",
-        "thinking_effort": None,
+        "model_name": "kimi-k3",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 50000,
-        "timeout": 3600
+        "max_tokens": 70000,
+        "timeout": 36000
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
@@ -140,7 +140,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 50000,
-        "timeout": 1800
+        "timeout": 3600
     },
     "verification_semantic": {
         "provider": "openai",
@@ -148,7 +148,7 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
-        "timeout": 1800
+        "timeout": 36000
     },
     "verification_test_coder": {
         "provider": "openai",

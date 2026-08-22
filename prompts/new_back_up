@@ -5,7 +5,7 @@ Your task is to extract register information only from the user-provided content
 
 ### 1. `pages`: Array<Page>
 
-Part of the register-detail page contexts in this round.
+The provided register-detail page contexts.
 Each `Page` contains the following fields:
 
 #### 1.1 `index`: Integer
@@ -66,7 +66,7 @@ Preliminary device register page information, such as register page, memory page
 This is not the PDF page number or document page index.
 
 #### 2.6 `source_index`: String
-Register-summary pages from which the preliminary register information was extracted.
+Index of Register-summary pages, from which the preliminary register information was extracted.
 
 ## Output
 
@@ -157,6 +157,7 @@ Allowed values:
 Required field.
 It stores all physical register entries that belong to the logical register.
 Each `FieldPart` represents exactly one physical register entry and contains exactly one `PhysicalAddress` for that entry.
+Each object in 1.4 `physical_address` must correspond one-to-one with exactly one object in `field_parts`.
 Therefore, a single-address logical register has exactly one `FieldPart`, while a multi-address logical register has one `FieldPart` for each physical register entry.
 All bit-field information must be stored inside `field_parts(i).bit_field`.
 Each `FieldPart` contains the following fields:
@@ -171,7 +172,7 @@ If unavailable, use an empty string.
 ##### 1.8.2 `physical_address`: PhysicalAddress
 
 The single `PhysicalAddress` object representing this physical register entry's own address.
-Same structure as 1.4
+Same structure as the item of 1.4
 
 ##### 1.8.3 `description`: String
 
@@ -254,8 +255,9 @@ Do not infer from register-level or part-level access unless the source explicit
 #### 1.9 `category`: String
 
 Primary functional category of the register.
-Recommended concise categories include but not limit to:
+Recommended concise categories include:
 `fifo`, `interrupt`, `initialization`, `power_management`, `configuration`, `status`, `data`, `control`, `mode_control`, `threshold`, `alert`, `calibration`, `identification`, `interface`.
+Other than the words above, you are allowed to summarize it in other words.
 Select the category only from source-supported register function.
 If unclear, use an empty string.
 
@@ -298,7 +300,7 @@ Use an empty string if unavailable.
 8. Prefer register tables, bit tables, register maps, memory maps, and explicit legends over surrounding prose.
 9. Merge duplicate logical entries that refer to the same logical register if the source indicate that they are equivalent.
 10. Do not split one logical register into multiple entries unless the source clearly defines separate logical registers.
-11. When a logical register spans multiple bytes, `PhysicalAddress`, or tables, combine them only when the source explicitly indicates that they can logically or functionally belong to the same logical register.
+11. When a logical register spans multiple bytes, `PhysicalAddress`, or tables, combine them only when the source explicitly indicates that they can logically belong to the same logical register.
 12. Include every provided page that directly supports each register entry in `source`.
 13. Keep all descriptions concise, technical, factual, and source-grounded.
 
@@ -330,7 +332,7 @@ If the source explicitly gives:
 
 * names: `FLAG_REG0-FLAG_REG3`
 * addresses: `0x30-0x33`
-  Output four seperate logical register entries:
+  Output four separate logical register entries:
 * `FLAG_REG0` at `0x30`
 * `FLAG_REG1` at `0x31`
 * `FLAG_REG2` at `0x32`
