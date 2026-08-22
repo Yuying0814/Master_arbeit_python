@@ -1,100 +1,72 @@
 import sys
 import os
 import json
+import asyncio
+
 from pathlib import Path
 from dotenv import load_dotenv
-from typing import Any
-from src.llm.ocr_task import OcrTask
-from src.models.register_output import RegisterMapOutput
-from src.models.task_config import OcrConfig
-from src.openai.openai_task import OpenAITask
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.models.preprocessing.register_output import RegisterMapOutput
+from src.models.task_config import TaskConfig,ModelConfig
+from src.llm.llm_task_runner import LLMTaskRunner
 
-def test_without_preprocessing(pdf_name:str):
-    pdf_path = PROJECT_ROOT / "data" / "input_pdf" / pdf_name
-    name = pdf_path.stem
-    output_path = PROJECT_ROOT / "data" /"output" / "test_without_preprocessing" / f"{name}.json"
 
-    load_dotenv(dotenv_path=PROJECT_ROOT/".env")
-    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    mistralai_api_key = os.getenv("MISTRALAI_API_KEY", "").strip()
 
-    ocr_result = OcrTask(
-        OcrConfig(
-            provider="mistral",
-            model_name="mistral-ocr-latest",
-        ),
-        mistralai_api_key,
-    ).run(pdf_path)
+load_dotenv(dotenv_path=PROJECT_ROOT/".env")
 
-    pages = [
-        {
-            "index": page["index"],
-            "markdown": page["markdown"],
-            "tables": page["tables"],
-        } for page in ocr_result.get("pages")]
+###################################################
+PDF_NAME = "adxl345.pdf"
+###################################################
 
-    user = json.dumps(
-        {
-            "pages": pages,
-            "registers":[]
-        }
-    )
+PDF_DIR = PROJECT_ROOT / "data" / "input_pdf"
+PDF_PATH = PDF_DIR / PDF_NAME
+OCR_PATH= PROJECT_ROOT / "data" / "output" / "ocr" / "mistral" / "mistral-ocr-latest"/f"{PDF_PATH.stem}.json"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+PROMPT_PATH = PROJECT_ROOT/"prompts"/"prompt_extractRegMap.txt"
+OUTPUT_PATH = PROJECT_ROOT / "data" /"output"/"test_without_preprocessing"/f"{PDF_PATH.stem}.json"
 
-    task = {}
-    task["extract_reg_map"] = {
-        "model": "gpt-5-mini",
-        "prompt_path": PROJECT_ROOT/"prompts"/"prompt_extractRegMap.txt",
-        "text_format": RegisterMapOutput,
+def _read_instructions(prompt_path: str | Path | None) -> str:
+    if not prompt_path:
+        return "You are a helpful assistant."
+
+    return Path(prompt_path).read_text(encoding="utf-8")
+
+TASK_CONFIG = TaskConfig(
+    model=ModelConfig(
+        provider="openai",
+        model_name="gpt-5-mini",
+        thinking_effort="medium",
+        max_tokens=70000,
+        timeout=1800,
+    ),
+    system= _read_instructions(PROMPT_PATH),
+    output_format=RegisterMapOutput,
+    memory_enabled=False,
+)
+
+EXTRACTOR = LLMTaskRunner.load_from_task_config(
+    task_config=TASK_CONFIG,
+    api_key=OPENAI_API_KEY,
+)
+with OCR_PATH.open("r",encoding="utf-8") as f:
+    OCR_RESULT = json.load(f)
+PAGES = OCR_RESULT["pages"]
+
+async def test():
+    user = {
+        "pages": PAGES,
+        "registers": [],
     }
 
-    task_reg_map_extraction = OpenAITask(
-        api_key=openai_api_key,
-        user=user,
-        task_config=task["extract_reg_map"],
-    )
+    register_map = await EXTRACTOR.run(json.dumps(user))
 
-    result = task_reg_map_extraction.run()
-    write_json(output_path, result)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.open("w",encoding="utf-8") as file:
+        file.write(register_map.model_dump_json(indent=4))
 
-def write_json(output_path: Path, data: Any) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    output_path.write_text(
-        json.dumps(
-            make_json_safe(data),
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-def make_json_safe(value: Any) -> Any:
-    if isinstance(value, Path):
-        return str(value)
-
-    if isinstance(value, dict):
-        return {
-            str(key): make_json_safe(item)
-            for key, item in value.items()
-        }
-
-    if isinstance(value, list):
-        return [
-            make_json_safe(item)
-            for item in value
-        ]
-
-    if isinstance(value, tuple):
-        return [
-            make_json_safe(item)
-            for item in value
-        ]
-
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-
-    return str(value)
+if __name__ == "__main__":
+    asyncio.run(test())

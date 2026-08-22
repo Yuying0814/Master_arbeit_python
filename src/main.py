@@ -20,8 +20,8 @@ MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "ICM20948" # For preprocessing and coding
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ds-000189-icm-20948-v1.5.pdf")
+DEVICE_NAME = "FXOS8700CQ" # For preprocessing and coding
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\FXOS8700CQ.pdf")
 
 MAJOR_VERSION = 0 # For coding
 USER_REQUEST = "" # For coding
