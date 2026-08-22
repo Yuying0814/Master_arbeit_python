@@ -110,5 +110,3 @@ Do not output explanations, comments, reasoning, markdown, punctuation, or any e
 13. The final output must be exactly one word:
    - `yes`
    - `no`
-
-## Example
