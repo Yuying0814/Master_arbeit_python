@@ -10,6 +10,7 @@ from src.coding.controller.event_recorder import EventRecorder
 from src.coding.config import CodingConfig
 from src.coding.planner.planner import Planner
 from src.coding.retriever.retriever import PageRetriever
+from src.coding.retriever.retriever_tool import RetrieverTool
 from src.coding.coder.coder import Coder
 from src.coding.filewriter.filewriter import FileWriter
 from src.coding.verifier.verifier import Verifier
@@ -120,6 +121,7 @@ class Controller:
             for attempt in range(1, self.max_tries + 1):
                 try:
                     self.attempted_log = False
+                    self.retriever_tool.begin_attempt()
 
                     print(
                         f"=== attempt {attempt}/{self.max_tries} ===\n"
@@ -147,16 +149,8 @@ class Controller:
                         )
 
                     programming_plan = planner_output.programming_plan
-                    topics = planner_output.retrieval_topics
                     verification_plan = planner_output.verification_plan
-
-                    with self.event_recorder.step(
-                            "retriever",
-                            "run",
-                            attempt=attempt,
-                    ):
-                        retrieval_response = await self.retriever.run(topics)
-                        retrieval_results = retrieval_response.results
+                    retrieval_results = self.retriever_tool.get_results()
 
                     with self.event_recorder.step(
                             "coder",
@@ -273,17 +267,18 @@ class Controller:
             api_key=self.config.get_apikey(task_configs.function_identification.model.provider),
         )
 
-        self.planner = Planner.load_from_task_config(
-            task_config=task_configs.planning,
-            api_key=self.config.get_apikey(task_configs.planning.model.provider),
-            tools=None,
-        )
-
         self.retriever = PageRetriever.load_from_task_config(
             documents=self.documents,
             task_config=task_configs.retrieval,
             api_key=self.config.get_apikey(task_configs.retrieval.model.provider),
             input_path=self.config.project_path.input_path / "retrieval.jsonl"
+        )
+        self.retriever_tool = RetrieverTool(self.retriever)
+
+        self.planner = Planner.load_from_task_config(
+            task_config=task_configs.planning,
+            api_key=self.config.get_apikey(task_configs.planning.model.provider),
+            tools=[self.retriever_tool.as_tool()],
         )
 
         self.coder = Coder.load_from_task_config(
@@ -426,7 +421,7 @@ class Controller:
             function_identifier_log = _get_log(self.function_identifier, attempt)
             planner_log = _get_log(self.planner, attempt)
             coder_log = _get_log(self.coder, attempt)
-            retriever_log = _get_log(self.retriever, attempt)
+            retriever_log = self.retriever_tool.get_log()
             verifier_log = _get_log(self.verifier, attempt)
 
             self.logs.append(
@@ -437,7 +432,7 @@ class Controller:
                         device_functions=copy.deepcopy(function_identifier_log.identifier_output) if function_identifier_log is not None else None,
                         programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan) if planner_log is not None else None,
                         verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan) if planner_log is not None else None,
-                        retrieval_topics=copy.deepcopy(planner_log.planner_output.retrieval_topics) if planner_log is not None else None,
+                        retrieval_topics=copy.deepcopy(retriever_log.topics) if retriever_log is not None else None,
                         candidate_files=[
                             file.model_copy(deep=True) for file in self.candidate_files
                         ],
@@ -476,7 +471,7 @@ class Controller:
             {
                 "attempt": attempt,
                 "planner": self.planner.get_elapsed_time(),
-                "retriever": self.retriever.get_elapsed_time(),
+                "retriever": self.retriever_tool.get_elapsed_time(),
                 "coder": self.coder.get_elapsed_time(),
                 "verifier": self.verifier.get_elapsed_time(),
             }

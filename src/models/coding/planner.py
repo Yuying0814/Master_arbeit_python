@@ -7,7 +7,6 @@ from pydantic import Field
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding.coding_common import CodeFile, VerificationPlan, ProgrammingPlan, InputRegisterMap
 from src.models.coding.verifier import VerifierOutput
-from src.models.coding.retriever import RetrievalTopic
 from src.models.coding.function_identifier import DeviceFunctionOutput
 
 # Planner:
@@ -50,13 +49,6 @@ class PlannerInput(StructuredOutputModel):
 class PlannerOutput(StructuredOutputModel):
     plan_id: int = Field(
         description="identifier of the current plan,start from 1",
-    )
-
-    retrieval_topics: list[RetrievalTopic] = Field(
-        default_factory=list,
-        description="used to retrieve pages from the source files in order to supplement information "
-                    "that is missing or unclear in the register map, or topics related to parts of the register map "
-                    "that may be incorrect after verification.",
     )
 
     programming_plan: ProgrammingPlan = Field(

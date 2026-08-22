@@ -91,6 +91,7 @@ If the input contains N topics, the output must contain exactly N boolean values
 7. Do not mark a topic true only because one keyword appears in an isolated, generic, or unrelated context.
 8. If evidence is weak, generic, or ambiguous, keep the corresponding result value false.
 9. Never edit input topics and provided page contents.
+10. Each tool call is independent. Classify only the topics in the current input and return exactly one boolean per topic.
 
 ## Additional Constraints
 
