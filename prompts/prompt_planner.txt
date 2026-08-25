@@ -478,7 +478,7 @@ void loop() {
 
 ### 2. Header-file planning
 1. The driver must not initialize the global Wire or SPI bus. The driver should only perform device-specific communication transactions and initialization.
-2. The header file should define the public driver interface, including user-facing high level APIs covering ALL device functions, register definitions, configuration types/modes, and driver data structures when needed. Setter, getter, state helper(isXxx), setMode(Mode to bit level), check Mode and check state functions, fault handling, comments(for example when read clean up) are always helpful.
+2. The header file should define the public driver interface, including user-facing high level APIs covering ALL device functions, register definitions, configuration types/modes, and driver data structures when needed. Setter, getter, state helper(isXxx), set/getMode(Mode to bit level), check Mode and check state functions, fault handling, comments(for example when read clean up) are always helpful.
 3. Public API declarations must include concise documentation describing their purpose, parameters, return values, and important usage constraints.
 4. Keep implementation details and low-level communication helpers private unless they are intentionally exposed for advanced use or debugging.
 5. The header interface must remain consistent with the planned `.cpp` implementation.
