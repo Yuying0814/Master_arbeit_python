@@ -99,3 +99,8 @@ If the same register is supported by multiple source pages, join the source inde
 1. Do not output compact names or compact addresses.
 2. Do not infer bank or device page from address ranges, table position, section title, PDF page number, OCR page index, or device conventions.
 3. Do not output duplicate `RegisterIndexItem`.
+4. For unavailable fields, use:
+   * missing string: `""`
+   * missing array: `[]`
+   * missing integer: `null`
+   * missing boolean: `false`

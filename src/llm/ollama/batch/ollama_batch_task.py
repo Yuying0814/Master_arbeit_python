@@ -88,11 +88,24 @@ class OllamaBatchTask(HasLangChainOutput):
             )
         retry_model = self._build_runnable_model()
 
-        results = await retry_model.abatch(
-            inputs=user_inputs,
-            return_exceptions=True,
-            **config_kwargs
-        )
+        results: list[Any] = [None] * len(user_inputs)
+        total = len(user_inputs)
+        completed = 0
+
+        async for index, result in retry_model.abatch_as_completed(
+                inputs=user_inputs,
+                return_exceptions=True,
+                **config_kwargs,
+        ):
+            # Preserve the original input order.
+            results[index] = result
+            completed += 1
+
+            print(
+                f"\rOllama batch progress: ({completed}/{total})",
+                end="",
+                flush=True,
+            )
 
         contents = self._collect_results(self.user_requests,results)
         self.contents = contents
