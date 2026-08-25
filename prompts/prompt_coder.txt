@@ -452,6 +452,7 @@ Use an empty array if no candidate files should be deleted.
 18. Header files must define the planned public interface without unnecessary implementation logic.
 19. `.cpp` files must include the generated driver header and implement all planned non-inline declarations.
 20. Ensure that all generated files are syntactically valid Arduino C++.
+21. You must output a valid JSON object strictly in accordance with the Output format.
 
 ## Additional Constraints
 

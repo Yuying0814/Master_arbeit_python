@@ -503,6 +503,7 @@ Keep the feedback compact but specific enough for the planner to revise the next
 6. Verify that the complete file set formed by `candidate_files` and `accepted_files` contains exactly one `.ino` file. Reject the candidate if no `.ino` file exists or if more than one `.ino` file exists.
 7. If `user_request` conflicts with source-supported device facts in `register_maps` or `retrieval_results`, do not reject the candidate solely because the conflicting user request cannot be satisfied. Verify the implementation against the source-supported device facts instead. If all other semantic verification requirements pass, `passed` may be set to `true`. Record the conflict and the source-supported reason in `feedback`.
 8. If the existing source information does not support you to complete checks, suggest retrieval topics in feedback.
+9. You must output a valid JSON object strictly in accordance with the Output format.
 
 ## Basic Checklist
 The candidate code Must semantically satisfy:

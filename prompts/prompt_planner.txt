@@ -429,6 +429,7 @@ Do not require real hardware unless the user explicitly asks for hardware testin
 14. Never return false value that identical to legal raw value. Return a valid false when user input a invalid value.
 15. Make sure all registers in a device has corresponding public API or marked as internal unused register.
 16. Make sure the time delay are correctly set in initialization or wait functions.
+17. You must output a valid JSON object strictly in accordance with the Output format.
 
 ## Additional Constraints
 
