@@ -40,11 +40,6 @@ class PageRetriever:
 
         retrieval_requests = build_user_requests(request_id=self.request_id, topics=topics, documents=self.documents)
 
-        text = "\n".join(str(topic.topic_keywords) for topic in topics)
-        print(
-            f" -> start retrieving pages related to:\n"
-            f"{text}\n"
-        )
         page_indices_by_pdf= await self._run_classification_llm_task(retrieval_requests, len(topics))
 
         lines = [
