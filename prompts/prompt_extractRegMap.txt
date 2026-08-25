@@ -212,7 +212,7 @@ Use `false` otherwise.
 ###### 1.8.6.8 `type_write_read`: String
 Access type of the current bit field. "" if reserved.
 Same structure as 1.7
-Fill only when explicitly stated for the bit field.
+You are allowed to infer this field from the functionality of this `bit_field`.
 
 #### 1.9 `category`: String
 Primary functional category of the register.
