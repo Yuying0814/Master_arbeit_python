@@ -1,1 +1,1 @@
-Identify the exact sensor model from the OCR pages. Set existing_device_name to the matching value from device_names, or null if none matches. If an existing device and expected_device_name are provided, judge whether they represent the same model; otherwise set is_consistent to true.
+Identify the exact sensor model from the pages. Set existing_device_name to the matching value from device_names, or null if none matches. If an existing device and expected_device_name are provided, judge whether they represent the same model; otherwise set is_consistent to true.

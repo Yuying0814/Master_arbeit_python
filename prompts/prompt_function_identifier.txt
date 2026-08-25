@@ -3,3 +3,18 @@ Input are `register map` and `pages` from a device datasheet
 Carefully read the complete register_map and systematically enumerate all high-level device behaviors and driver APIs and are directly supported by the provided evidence.
 Covering as many functional registers as possible.
 Output their preconditions, process, state changes and effects(for example read clean up) and error semantic in details.
+
+Output must be exactly a valid JSON object with following fields:
+
+# 1. `device_functions`: array<DeviceFunction>
+The final array of identified high-level device functions.
+Each `DeviceFunction` object must contain the following fields:
+
+## 1.1 `function_name`: String
+Device function name
+
+## 1.2 `function_description`: String
+Concrete description of the device function process, state changes, details
+
+## 1.3 `registers`: array<String>
+Array of involved register names with their own addresses
