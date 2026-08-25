@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Literal
 
 from src.llm.common.types import ValidOutputFormat,LLMProvider,ThinkingEffort
 
 class ModelConfig(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+
     provider:LLMProvider = "openai"
     is_batch: bool = False
     model_name:str = "gpt-5-mini"
@@ -14,6 +16,17 @@ class ModelConfig(BaseModel):
     temperature:float|None = None
     max_tokens:int = 4000
     timeout: int | None = 1800
+    base_url: str | None = None
+    ollama_batch_concurrency: int = Field(default=1, ge=1)
+
+    @field_validator("base_url", "thinking_effort", mode="before")
+    @classmethod
+    def normalize_optional_strings(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
+        return value
 
 class TaskConfig(BaseModel):
     model: ModelConfig = Field(default_factory=ModelConfig)

@@ -15,16 +15,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # ============================================================
 # MODE SELECTION
 # ============================================================
-MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
+MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "FXOS8700CQ" # For preprocessing and coding
+DEVICE_NAME = "IAM20680HV" # For preprocessing and coding
 PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\FXOS8700CQ.pdf")
 
-MAJOR_VERSION = 0 # For coding
+MAJOR_VERSION = 1 # For coding
 USER_REQUEST = "" # For coding
+
+BASE_URL = ""
+MAX_CONCURRENCY = 4
 
 # ============================================================
 # PATH CONFIG
@@ -72,7 +75,10 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
+        "ollama_batch_concurrency": MAX_CONCURRENCY,
+
     },
     "verify_reg_sum_pages": {
         "provider": "kimi",
@@ -81,7 +87,9 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
+        "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "verify_reg_pages": {
         "provider": "kimi",
@@ -90,7 +98,9 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
+        "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "extract_reg_index": {
         "provider": "kimi",
@@ -98,15 +108,17 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 50000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
     },
     "extract_reg_map": {
         "provider": "kimi",
-        "model_name": "kimi-k3",
-        "thinking_effort": "medium",
+        "model_name": "kimi-k2.6",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 70000,
-        "timeout": 36000
+        "timeout": 36000,
+        "base_url":BASE_URL,
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
@@ -116,31 +128,37 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 30000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
     },
     "planning": {
         "provider": "openai",
         "model_name": "gpt-5.6-terra",
-        "thinking_effort": None,
+        "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
     },
     "retrieval": {
         "provider": "openai",
+        "is_batch": True,
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
+        "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "coding": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 50000,
-        "timeout": 3600
+        "max_tokens": 100000,
+        "timeout": 3600,
+        "base_url":BASE_URL,
     },
     "verification_semantic": {
         "provider": "openai",
@@ -148,7 +166,8 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
-        "timeout": 36000
+        "timeout": 36000,
+        "base_url":BASE_URL,
     },
     "verification_test_coder": {
         "provider": "openai",
@@ -156,7 +175,8 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 30000,
-        "timeout": 1800
+        "timeout": 1800,
+        "base_url":BASE_URL,
     },
 }
 # ============================================================
@@ -182,6 +202,7 @@ CHAT_TASK_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 50000,
+        "base_url":BASE_URL,
     },
     "identify_name": {
         "provider": "ollama",
@@ -190,6 +211,7 @@ CHAT_TASK_SETTINGS: dict[str, dict[str, Any]] = {
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 2000,
+        "base_url":BASE_URL,
     },
 }
 # ============================================================

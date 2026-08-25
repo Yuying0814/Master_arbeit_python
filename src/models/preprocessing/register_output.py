@@ -1,13 +1,13 @@
-from pydantic import Field, field_validator
+from __future__ import annotations
+
+from pydantic import field_validator
 from src.models.structuredOutputModel import StructuredOutputModel
 
 
 class RegisterIndexItem(StructuredOutputModel):
     name: str
     is_multi_address: bool
-    physical_address: list[str]
-    bank: str
-    page: str
+    physical_address: list[PhysicalAddress]
     source_index: str
 
 
@@ -15,7 +15,7 @@ class RegisterIndexOutput(StructuredOutputModel):
     registers: list[RegisterIndexItem]
 
 
-class RegisterAddress(StructuredOutputModel):
+class PhysicalAddress(StructuredOutputModel):
     hex: str
     decimal: str
     bank: str
@@ -48,7 +48,7 @@ class RegisterBitField(StructuredOutputModel):
 
 class RegisterFieldPart(StructuredOutputModel):
     register_name: str
-    physical_address: RegisterAddress
+    physical_address: PhysicalAddress
     description: str
     width_bits: int | None
     type_write_read: str
@@ -63,7 +63,7 @@ class RegisterMapItem(StructuredOutputModel):
     index: int
     name: str
     is_multi_address: bool
-    physical_address: list[RegisterAddress]
+    physical_address: list[PhysicalAddress]
     register_description: str
     width_bits: int | None
     type_write_read: str

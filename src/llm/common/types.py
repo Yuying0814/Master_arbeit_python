@@ -5,4 +5,4 @@ ValidOutputFormat: TypeAlias = type[StructuredOutputModel] | None | Literal["tex
 
 LLMProvider = Literal["openai", "ollama", "anthropic", "google","kimi","zai"]
 
-ThinkingEffort = Literal["low","medium","high","xhigh","max"] | None
+ThinkingEffort = Literal["low","medium","high","xhigh","max",""] | None

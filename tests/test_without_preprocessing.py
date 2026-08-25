@@ -19,6 +19,7 @@ load_dotenv(dotenv_path=PROJECT_ROOT/".env")
 
 ###################################################
 PDF_NAME = "adxl345.pdf"
+MODEL_NAME = "gpt-5-mini"
 ###################################################
 
 PDF_DIR = PROJECT_ROOT / "data" / "input_pdf"
@@ -26,7 +27,7 @@ PDF_PATH = PDF_DIR / PDF_NAME
 OCR_PATH= PROJECT_ROOT / "data" / "output" / "ocr" / "mistral" / "mistral-ocr-latest"/f"{PDF_PATH.stem}.json"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 PROMPT_PATH = PROJECT_ROOT/"prompts"/"prompt_extractRegMap.txt"
-OUTPUT_PATH = PROJECT_ROOT / "data" /"output"/"test_without_preprocessing"/f"{PDF_PATH.stem}.json"
+OUTPUT_PATH = PROJECT_ROOT / "data" /"output"/"test_without_preprocessing"/MODEL_NAME/f"{PDF_PATH.stem}.json"
 
 def _read_instructions(prompt_path: str | Path | None) -> str:
     if not prompt_path:
@@ -37,7 +38,7 @@ def _read_instructions(prompt_path: str | Path | None) -> str:
 TASK_CONFIG = TaskConfig(
     model=ModelConfig(
         provider="openai",
-        model_name="gpt-5-mini",
+        model_name=MODEL_NAME,
         thinking_effort="medium",
         max_tokens=70000,
         timeout=1800,

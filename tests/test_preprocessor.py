@@ -44,13 +44,6 @@ def configure_coding_models(config: PreprocessingConfig) -> None:
             "temperature": 0.0,
             "max_tokens": 1000,
         },
-        # "add_page_description": {
-        #     "provider": "openai",
-        #     "is_batch": True,
-        #     "model_name": "gpt-5-mini",
-        #     "temperature": 0.0,
-        #     "max_tokens": 2000,
-        # },
         "extract_reg_index": {
             "provider": "openai",
             "is_batch": False,

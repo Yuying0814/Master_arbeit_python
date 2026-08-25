@@ -18,10 +18,17 @@ def build_chat_model(
     thinking_effort:ThinkingEffort = None,
     temperature: float|None = None,
     max_output_tokens: int|None = None,
+    base_url: str | None = None,
 ) -> BaseChatModel:
 
     if max_output_tokens is None:
         max_output_tokens = 4000
+
+    if isinstance(thinking_effort,str) and not thinking_effort.strip():
+        thinking_effort = None
+
+    if isinstance(base_url,str) and not base_url.strip():
+        base_url = None
 
     match provider:
         case "openai":
@@ -105,6 +112,7 @@ def build_chat_model(
                 model=model_name,
                 temperature=temperature if temperature is not None else None,
                 num_predict=max_output_tokens,
+                base_url=base_url,
             )
         case _:
             raise ValueError(f"Unsupported LLM provider: {provider}")

@@ -24,7 +24,14 @@ class OllamaBatchTask(HasLangChainOutput):
     final_usage: dict[str, NormalizedUsage]
     _final_usage_by_id: dict[str, NormalizedUsage]
 
-    def __init__(self, *, model: ChatOllama, model_name:str, system:str, output_format:ValidOutputFormat) -> None:
+    def __init__(self,
+                 *,
+                 model: ChatOllama,
+                 model_name:str,
+                 system:str,
+                 output_format:ValidOutputFormat,
+                 max_concurrency: int = 1
+                 ) -> None:
         self.contents = []
         self.user_requests = []
         self.model = model
@@ -32,7 +39,7 @@ class OllamaBatchTask(HasLangChainOutput):
         self.system = system
         self.output_format = self.validate_output_format(output_format)
         self.retries = []
-        self.max_concurrency = 1
+        self.max_concurrency = max_concurrency
         self.has_valid_output = False
         self.total_usage = {}
         self.final_usage = {}
@@ -44,12 +51,14 @@ class OllamaBatchTask(HasLangChainOutput):
             model=task_config.model.model_name,
             temperature=task_config.model.temperature,
             num_predict=task_config.model.max_tokens,
+            base_url=task_config.model.base_url,
         )
         return cls(
             model = model,
             model_name=task_config.model.model_name,
             system = task_config.system,
             output_format = task_config.output_format,
+            max_concurrency=task_config.model.ollama_batch_concurrency,
         )
 
     def set_concurrency(self,max_concurrency:int = 1) -> None:

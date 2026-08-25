@@ -12,9 +12,9 @@ from langchain_openai import ChatOpenAI
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 
-DEVICE_NAME = "FXOS8700CQ"
+DEVICE_NAME = "BME280"
 VERSION = "v2_0"
-PDF = DATA_DIR/ "input_pdf" / "FXOS8700CQ.pdf"
+PDF = DATA_DIR/ "input_pdf" / "bst-bme280-ds002.pdf"
 
 ###############################################
 PROMPT = PROJECT_ROOT / "Prompts"

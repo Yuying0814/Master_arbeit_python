@@ -94,6 +94,7 @@ class LLMAgent:
             thinking_effort=task_config.model.thinking_effort,
             temperature=task_config.model.temperature,
             max_output_tokens=task_config.model.max_tokens,
+            base_url=task_config.model.base_url,
         )
 
         return cls(
