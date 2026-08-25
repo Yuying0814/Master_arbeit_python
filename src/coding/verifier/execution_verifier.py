@@ -20,7 +20,7 @@ from src.models.coding.verifier import (TestCoderInput,TestCoderOutput,
                                  ExecutionVerifierInput,ExecutionVerifierOutput,
                                  CompilerMsg,ExecutionVerifierLog,TestCoderLog,TestCoderConfig)
 from src.llm.llm_agent import LLMAgent
-from src.coding.filewriter.filewriter import FileWriter
+from src.coding.filewriter.filewriter import FileWriter,NoInoFileError
 
 
 class ExecutionVerifier:
@@ -110,10 +110,21 @@ class ExecutionVerifier:
 
             files = execution_verifier_input.candidate_files
 
-            project_dir = FileWriter.write_to_files(
-                code_files=files,
-                output_dir=self.test_dir
-            )
+            try:
+                project_dir = FileWriter.write_to_files(
+                    code_files=files,
+                    output_dir=self.test_dir
+                )
+            except NoInoFileError:
+                result = ExecutionVerifierOutput(
+                    candidate_code_passed=False,
+                    compiler_message=CompilerMsg(
+                        passed=False,
+                        compiler_message="Compilation skipped: no .ino file was provided.",
+                    ),
+                )
+                self._update_log(execution_output=result)
+                return result
 
             compiler_message = self._compiler_run(project_dir)
 

@@ -2,6 +2,9 @@ from __future__ import annotations
 from pathlib import Path
 from src.models.coding.coding_common import CodeFile
 
+class NoInoFileError(ValueError):
+    """Raised when no Arduino sketch file is provided."""
+
 class FileWriter:
 
     @staticmethod
@@ -41,7 +44,7 @@ class FileWriter:
         )
 
         if ino_file is None:
-            raise ValueError(
+            raise NoInoFileError(
                 "Code files must contain at least one .ino file"
             )
 
