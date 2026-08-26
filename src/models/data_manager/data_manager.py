@@ -43,7 +43,7 @@ class VersionResult(StructuredOutputModel):
     register_map_created_at: str
     register_map_modified_at: str
     device_functions: DeviceFunctionOutput
-    snapshot_json: PreprocessorSnapshot
+    snapshot_json: dict[str, Any]
     snapshot_created_at: str
     token_consumption: PreprocessingTokenConsumption
 
@@ -92,7 +92,7 @@ class SnapshotRecord(StructuredOutputModel):
     version_pk: int
     version_major: int
     version_minor: int
-    snapshot: PreprocessorSnapshot
+    snapshot: dict[str, Any]
 
 class PreprocessingTokenConsumptionRecord(StructuredOutputModel):
     device_name: str

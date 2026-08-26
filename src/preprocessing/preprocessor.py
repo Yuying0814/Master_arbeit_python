@@ -435,6 +435,7 @@ class Preprocessor:
         task_config = self.config.task_configs.identify_function
 
         function_identifier = LLMTaskRunner.load_from_task_config(
+            task_name="device_function_identification",
             task_config=task_config,
             api_key=self.config.get_apikey(
                 task_config.model.provider

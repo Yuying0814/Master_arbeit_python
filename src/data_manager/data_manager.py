@@ -1111,9 +1111,7 @@ class DataManager:
                     f"Snapshot not found: version_pk={version_pk}"
                 )
 
-            snapshot = PreprocessorSnapshot.model_validate_json(
-                row["snapshot_json"]
-            )
+            snapshot = json.loads(row["snapshot_json"])
 
         return SnapshotRecord(
             device_name = version_info.device_name,
@@ -1298,7 +1296,7 @@ class DataManager:
             pages: list[dict[str,Any]],
             register_map: RegisterMapOutput,
             device_functions: DeviceFunctionOutput,
-            snapshot: PreprocessorSnapshot,
+            snapshot: dict[str, Any] | PreprocessorSnapshot,
             pages_created_at: str,
             register_map_created_at: str,
             snapshot_created_at: str,
@@ -1310,7 +1308,6 @@ class DataManager:
 
         register_map = RegisterMapOutput.model_validate(register_map)
         device_functions = DeviceFunctionOutput.model_validate(device_functions)
-        snapshot = PreprocessorSnapshot.model_validate(snapshot)
         token_consumption = PreprocessingTokenConsumption.model_validate(
             token_consumption
         )
@@ -1334,8 +1331,13 @@ class DataManager:
             separators=(",", ":"),
             allow_nan=False,
         )
+        snapshot_data = (
+            snapshot.model_dump(mode="json")
+            if isinstance(snapshot, PreprocessorSnapshot)
+            else snapshot
+        )
         snapshot_json = json.dumps(
-            snapshot.model_dump(mode="json"),
+            snapshot_data,
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
