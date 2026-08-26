@@ -17,4 +17,4 @@ Device function name
 Concrete description of the device function process, state changes, details
 
 ## 1.3 `registers`: array<String>
-Array of involved register names with their own addresses
+Array of involved register names together with their own addresses
