@@ -240,6 +240,7 @@ class ChatTools:
                     input_pdf_sha256=pdf_sha256,
                     pages=preprocessing_result.pages,
                     register_map=preprocessing_result.register_map,
+                    device_functions=preprocessing_result.device_functions,
                     snapshot=preprocessing_result.snapshot,
                     pages_created_at=completed_at,
                     register_map_created_at=completed_at,
@@ -357,6 +358,7 @@ class ChatTools:
 
             documents = major_result["documents"]
             register_maps = major_result["register_maps"]
+            device_functions = major_result["device_functions"]
 
             if not documents:
                 raise ValueError(
@@ -371,6 +373,7 @@ class ChatTools:
                 config=coding_config,
                 documents=documents,
                 register_maps=register_maps,
+                device_functions=device_functions,
             )
             completed,code_path = asyncio.run(
                 controller.run(

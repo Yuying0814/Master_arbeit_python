@@ -11,6 +11,7 @@ from typing import Any
 from src.models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
 from src.models.preprocessing.preprocessor import PreprocessorSnapshot,TaskModelsByName,PreprocessorOutput,PreprocessingTokenConsumption,TimeConsumption
 from src.models.preprocessing.page_output import PageClassification
+from src.models.preprocessing.function_identifier import FunctionIdentifierInput,DeviceFunctionOutput
 from src.models.llm.common import NormalizedTokenConsumption
 
 from src.llm.ocr_task import OcrTask
@@ -28,7 +29,8 @@ class Preprocessor:
     pdf_path: Path
     ocr_result:dict[str,Any]
     ocr_path: Path
-    pages:list[dict[str,Any]]
+    original_pages: list[dict[str,Any]]
+    pages: list[dict[str,Any]]
     time_consumption:TimeConsumption
 
     toc_page_idx: list[int]
@@ -49,11 +51,14 @@ class Preprocessor:
     reg_summary: RegisterIndexOutput
     reg_map: RegisterMapOutput
 
+    device_functions:DeviceFunctionOutput
+
     classifier: LLMTaskRunner | None
     reg_sum_verifier:LLMTaskRunner | None
     reg_page_verifier:LLMTaskRunner | None
     reg_index_extractor:LLMTaskRunner | None
     reg_map_extractor:LLMTaskRunner | None
+    function_identifier:LLMTaskRunner|None
 
     config:PreprocessingConfig
 
@@ -67,6 +72,7 @@ class Preprocessor:
         self.pdf_path = Path()
         self.ocr_result = {}
         self.ocr_path = Path()
+        self.original_pages = []
         self.pages = []
         self.time_consumption = TimeConsumption()
 
@@ -88,11 +94,14 @@ class Preprocessor:
         self.reg_summary = RegisterIndexOutput(registers=[])
         self.reg_map = RegisterMapOutput(registers=[])
 
+        self.device_functions = DeviceFunctionOutput(device_functions=[])
+
         self.classifier = None
         self.reg_sum_verifier = None
         self.reg_page_verifier = None
         self.reg_index_extractor = None
         self.reg_map_extractor = None
+        self.function_identifier = None
 
 
     async def run(self,pdf_path:str|Path) -> PreprocessorOutput:
@@ -123,6 +132,7 @@ class Preprocessor:
 
         self.ocr_result = self._load_ocr_if_exists() or self.run_ocr()
         self.pages = self._get_pages()
+        self.original_pages = self._get_pages()
 
         await self.classify_pages()
         self.update_page_candidates()
@@ -138,6 +148,7 @@ class Preprocessor:
 
             self.refine_classification()
             await self.extract_reg_map()
+            await self.identify_function()
 
         except Exception as error:
             for task in (reg_sum_verify_task, reg_page_verify_task):
@@ -381,7 +392,7 @@ class Preprocessor:
             self.reg_map= RegisterMapOutput(registers=[])
             return RegisterMapOutput(registers=[])
 
-        task_config = self.config.task_configs  .extract_reg_map
+        task_config = self.config.task_configs.extract_reg_map
 
         selected_pages = _select_extraction_pages(
             pages=self.pages,
@@ -419,6 +430,37 @@ class Preprocessor:
         print("Register map extraction completed")
         self.time_consumption.register_map_extraction = self.reg_map_extractor.elapsed_time
         return result
+
+    async def identify_function(self) -> DeviceFunctionOutput:
+        task_config = self.config.task_configs.identify_function
+
+        function_identifier = LLMTaskRunner.load_from_task_config(
+            task_config=task_config,
+            api_key=self.config.get_apikey(
+                task_config.model.provider
+            ),
+        )
+
+        function_identifier_input = (
+            self._build_function_identifier_input()
+        )
+
+        if not function_identifier_input.pages:
+            print("\nNo pages for function information extraction\n")
+            device_functions = DeviceFunctionOutput(device_functions=[])
+            self.device_functions = device_functions
+            return device_functions
+
+        user_input = function_identifier_input.model_dump_json()
+        print("\nStart device function identification and extraction")
+        device_functions = await function_identifier.run(user_input)
+
+        self.function_identifier=function_identifier
+        self.device_functions = device_functions
+        self.time_consumption.device_function_identification = self.function_identifier.elapsed_time
+        print("\nDevice function extraction completed")
+
+        return device_functions
 
     def refine_classification(self) -> bool:
         sum_page_diff_idx = set(self.reg_sum_page_idx) ^ set(self.reg_sum_idx_from_llm)
@@ -468,9 +510,9 @@ class Preprocessor:
 
     def build_outputs(self)-> PreprocessorOutput:
 
-        snapshot = _build_preprocessor_snapshot(self)
-        token_consumption = _build_token_consumption_snapshot(self)
-        task_models = _build_task_models(self)
+        snapshot = self._build_preprocessor_snapshot()
+        token_consumption = self._build_token_consumption_snapshot()
+        task_models = self._build_task_models()
 
         return PreprocessorOutput(
             pages=self.pages,
@@ -479,6 +521,7 @@ class Preprocessor:
             task_models=task_models,
             token_consumption=token_consumption,
             time_consumption=self.time_consumption,
+            device_functions=self.device_functions,
         )
 
     def _get_pages(self) -> list[dict[str,Any]]:
@@ -531,6 +574,57 @@ class Preprocessor:
         )
         return ocr_result
 
+    def _build_function_identifier_input(self) -> FunctionIdentifierInput:
+        return FunctionIdentifierInput(
+            register_map=self.reg_map,
+            pages=self.original_pages,
+        )
+
+    def _build_preprocessor_snapshot(self) -> PreprocessorSnapshot:
+        return PreprocessorSnapshot(
+            pdf_path = self.pdf_path,
+            toc_page_idx = self.toc_page_idx,
+            toc_entries = self.toc_entries,
+            reg_page_idx_from_toc = self.reg_page_idx_from_toc,
+            reg_page_idx_from_retrieval = self.reg_page_idx_from_retrieval,
+            reg_page_idx_from_llm = self.reg_page_idx_from_llm,
+            reg_page_candidate_idx = self.reg_page_candidate_idx,
+            reg_page_idx = self.reg_page_idx,
+            reg_sum_idx_from_toc = self.reg_sum_idx_from_toc,
+            reg_sum_idx_from_retrieval = self.reg_sum_idx_from_retrieval,
+            reg_sum_idx_from_llm = self.reg_sum_idx_from_llm,
+            reg_sum_candidate_idx = self.reg_sum_candidate_idx,
+            reg_sum_page_idx = self.reg_sum_page_idx,
+            reg_summary = self.reg_summary,
+            reg_map = self.reg_map,
+            device_functions=self.device_functions,
+        )
+
+    def _build_token_consumption_snapshot(self) -> PreprocessingTokenConsumption:
+        token_consumption= PreprocessingTokenConsumption(
+            classification =_get_usage_from_task_runner(self.classifier),
+            reg_sum_verification =_get_usage_from_task_runner(self.reg_sum_verifier),
+            reg_page_verification =_get_usage_from_task_runner(self.reg_page_verifier),
+            reg_index_extraction =_get_usage_from_task_runner(self.reg_index_extractor),
+            reg_map_extraction =_get_usage_from_task_runner(self.reg_map_extractor),
+            function_identification=_get_usage_from_task_runner(self.function_identifier),
+        )
+        return token_consumption
+
+    def _build_task_models(self) -> TaskModelsByName:
+        task_configs = self.config.task_configs
+
+        task_models_by_name = {
+            "ocr": self.config.ocr.model_name
+        }
+
+        for task_name in type(task_configs).model_fields:
+            task_config = getattr(task_configs, task_name)
+            model_name = task_config.model.model_name
+            task_models_by_name[task_name] = model_name
+
+        return TaskModelsByName.model_validate(task_models_by_name)
+
 def _get_pages_by_ocr_index(pages:list[dict[str,Any]],page_indices) -> list[dict[str,Any]]:
     page_index_map = {page["index"]: page for page in pages}
     return [page_index_map[page_index] for page_index in page_indices]
@@ -549,49 +643,6 @@ def _select_extraction_pages(pages:list[dict[str,Any]],page_index:list[int]) -> 
         }
         for page in selected_pages
     ]
-
-def _build_preprocessor_snapshot(preprocessor: Preprocessor) -> PreprocessorSnapshot:
-    return PreprocessorSnapshot(
-        pdf_path = preprocessor.pdf_path,
-        toc_page_idx = preprocessor.toc_page_idx,
-        toc_entries = preprocessor.toc_entries,
-        reg_page_idx_from_toc = preprocessor.reg_page_idx_from_toc,
-        reg_page_idx_from_retrieval = preprocessor.reg_page_idx_from_retrieval,
-        reg_page_idx_from_llm = preprocessor.reg_page_idx_from_llm,
-        reg_page_candidate_idx = preprocessor.reg_page_candidate_idx,
-        reg_page_idx = preprocessor.reg_page_idx,
-        reg_sum_idx_from_toc = preprocessor.reg_sum_idx_from_toc,
-        reg_sum_idx_from_retrieval = preprocessor.reg_sum_idx_from_retrieval,
-        reg_sum_idx_from_llm = preprocessor.reg_sum_idx_from_llm,
-        reg_sum_candidate_idx = preprocessor.reg_sum_candidate_idx,
-        reg_sum_page_idx = preprocessor.reg_sum_page_idx,
-        reg_summary = preprocessor.reg_summary,
-        reg_map = preprocessor.reg_map,
-    )
-
-def _build_token_consumption_snapshot(preprocessor: Preprocessor) -> PreprocessingTokenConsumption:
-    token_consumption= PreprocessingTokenConsumption(
-        classification =_get_usage_from_task_runner(preprocessor.classifier),
-        reg_sum_verification =_get_usage_from_task_runner(preprocessor.reg_sum_verifier),
-        reg_page_verification =_get_usage_from_task_runner(preprocessor.reg_page_verifier),
-        reg_index_extraction =_get_usage_from_task_runner(preprocessor.reg_index_extractor),
-        reg_map_extraction =_get_usage_from_task_runner(preprocessor.reg_map_extractor)
-    )
-    return token_consumption
-
-def _build_task_models(preprocessor: Preprocessor) -> TaskModelsByName:
-    task_configs = preprocessor.config.task_configs
-
-    task_models_by_name = {
-        "ocr":preprocessor.config.ocr.model_name
-    }
-
-    for task_name in type(task_configs).model_fields:
-        task_config = getattr(task_configs, task_name)
-        model_name = task_config.model.model_name
-        task_models_by_name[task_name] = model_name
-
-    return TaskModelsByName.model_validate(task_models_by_name)
 
 def _get_usage_from_task_runner(task: LLMTaskRunner | None) -> NormalizedTokenConsumption:
     if task is None:

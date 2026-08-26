@@ -7,7 +7,7 @@ from pydantic import Field
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding.coding_common import CodeFile, VerificationPlan, ProgrammingPlan, InputRegisterMap
 from src.models.coding.verifier import VerifierOutput
-from src.models.coding.function_identifier import DeviceFunctionOutput
+from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 
 # Planner:
 ## input

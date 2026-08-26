@@ -1,6 +1,7 @@
 from typing import Any
 
 from src.models.structuredOutputModel import StructuredOutputModel
+from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 from src.models.preprocessing.register_output import RegisterMapOutput
 from src.models.preprocessing.preprocessor import PreprocessorSnapshot,TaskModelsByName,PreprocessingTokenConsumption
 
@@ -21,6 +22,15 @@ class RegisterMapRecord(StructuredOutputModel):
     pdf_sha256: str
     register_map: RegisterMapOutput
 
+
+class DeviceFunctionsRecord(StructuredOutputModel):
+    device_name: str
+    version_pk: int
+    version_major: int
+    version_minor: int
+    pdf_sha256: str
+    device_functions: DeviceFunctionOutput
+
 class VersionResult(StructuredOutputModel):
     device_name:str
     version_pk: int
@@ -32,6 +42,7 @@ class VersionResult(StructuredOutputModel):
     register_map_json: RegisterMapOutput
     register_map_created_at: str
     register_map_modified_at: str
+    device_functions: DeviceFunctionOutput
     snapshot_json: PreprocessorSnapshot
     snapshot_created_at: str
     token_consumption: PreprocessingTokenConsumption
@@ -41,6 +52,7 @@ class MajorVersionResult(StructuredOutputModel):
     version_major: int
     documents: list[DocumentRecord]
     register_maps: list[RegisterMapRecord]
+    device_functions: list[DeviceFunctionsRecord]
 
 class VersionInfo(StructuredOutputModel):
     device_name:str

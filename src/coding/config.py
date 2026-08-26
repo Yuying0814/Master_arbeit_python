@@ -3,7 +3,6 @@ from dataclasses import dataclass,field
 from pathlib import Path
 
 from src.config import BaseConfig,BaseProjectPath
-from src.models.coding.function_identifier import DeviceFunctionOutput
 from src.models.coding.retriever import BinaryClassifierOutput
 from src.models.coding.coder import CoderOutput
 from src.models.coding.planner import PlannerOutput
@@ -20,19 +19,6 @@ class ArduinoBoardConfig:
 
 
 def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
-    function_identification = TaskConfig(
-        model=ModelConfig(
-            provider="openai",
-            is_batch=False,
-            model_name="gpt-5-mini",
-            thinking_effort="medium",
-            temperature=None,
-            max_tokens=2000,
-        ),
-        system=_read_instructions(prompt_path / "prompt_function_identifier.txt"),
-        output_format=DeviceFunctionOutput,
-    )
-
     retrieval = TaskConfig(
         model = ModelConfig(
             provider = "openai",
@@ -99,7 +85,6 @@ def _build_task_config(prompt_path:Path)->CodingTaskConfigs:
     )
 
     return CodingTaskConfigs(
-        function_identification = function_identification,
         retrieval=retrieval,
         planning = planning,
         coding = coding,

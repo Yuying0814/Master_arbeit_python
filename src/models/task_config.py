@@ -51,9 +51,9 @@ class PreprocessingTaskConfigs(BaseModel):
     verify_reg_pages:TaskConfig
     extract_reg_index:TaskConfig
     extract_reg_map:TaskConfig
+    identify_function: TaskConfig
 
 class CodingTaskConfigs(BaseModel):
-    function_identification:TaskConfig
     retrieval: TaskConfig
     planning:TaskConfig
     coding:TaskConfig

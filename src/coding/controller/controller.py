@@ -14,12 +14,10 @@ from src.coding.retriever.retriever_tool import RetrieverTool
 from src.coding.coder.coder import Coder
 from src.coding.filewriter.filewriter import FileWriter
 from src.coding.verifier.verifier import Verifier
-from src.coding.function_identifier.function_identifier import FunctionIdentifier
 
-from src.models.preprocessing.register_output import RegisterMapOutput
+from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 from src.models.coding.coding_common import ProgrammingPlan, VerificationPlan, CodeFile,InputRegisterMap
-from src.models.data_manager import RegisterMapRecord,DocumentRecord
-from src.models.coding.function_identifier import FunctionIdentifierInput,DeviceFunctionOutput
+from src.models.data_manager import RegisterMapRecord,DocumentRecord,DeviceFunctionsRecord
 from src.models.coding.planner import PlannerInput
 from src.models.coding.retriever import RetrievalResult
 from src.models.coding.coder import CoderInput, CoderOutput
@@ -34,7 +32,14 @@ class Controller:
     logs: list[ControllerLog]
     config:CodingConfig
 
-    def __init__(self,driver_name:str,config:CodingConfig,documents:list[DocumentRecord],register_maps:list[RegisterMapRecord]) -> None:
+    def __init__(
+            self,
+            driver_name: str,
+            config: CodingConfig,
+            documents: list[DocumentRecord],
+            register_maps: list[RegisterMapRecord],
+            device_functions: list[DeviceFunctionsRecord],
+    ) -> None:
         print(
             f"\n =============== initializing coding controller ===============\n"
             f"=================="
@@ -52,6 +57,8 @@ class Controller:
         self.driver_name = driver_name
         self.documents = [DocumentRecord.model_validate(document) for document in documents]
         self.register_maps = [RegisterMapRecord.model_validate(item)for item in register_maps]
+        self.device_functions = [DeviceFunctionsRecord.model_validate(item)for item in device_functions]
+
         self.log_dir = self.config.project_path.root_path / "data"/ "log" / driver_name
 
         self._check_valid_client()
@@ -66,13 +73,15 @@ class Controller:
             driver_name:str,
             config:CodingConfig,
             documents:list[DocumentRecord],
-            register_maps:list[RegisterMapRecord]
+            register_maps:list[RegisterMapRecord],
+            device_functions:list[DeviceFunctionsRecord],
     ) -> "Controller":
         return cls(
             driver_name=driver_name,
             config=config,
             documents=documents,
-            register_maps=register_maps
+            register_maps=register_maps,
+            device_functions=device_functions,
         )
 
     async def run(
@@ -105,17 +114,7 @@ class Controller:
             "=============== run coding ===============\n"
         )
 
-        with self.event_recorder.step(
-                "function_identifier",
-                "identify_device_functions",
-                attempt=attempt,
-        ):
-            function_identifier_input = (
-                self._build_function_identifier_input()
-            )
-            device_functions = await self.function_identifier.identify_functions_async(
-                function_identifier_input
-            )
+        device_functions = _merge_device_functions(self.device_functions)
 
         try:
             for attempt in range(1, self.max_tries + 1):
@@ -139,9 +138,12 @@ class Controller:
                             "create_plan",
                             attempt=attempt,
                     ):
-                        planner_input = self._build_planner_input(user_request=user_request,
-                                                                  device_functions=device_functions,
-                                                                  verifier_feedback=verifier_feedback)
+                        planner_input = self._build_planner_input(
+                            user_request=user_request,
+                            device_functions=device_functions,
+                            verifier_feedback=verifier_feedback
+                        )
+
                         planner_output = (
                             await self.planner.create_plan_async(
                                 planner_input
@@ -176,11 +178,13 @@ class Controller:
                             "run",
                             attempt=attempt,
                     ):
-                        verifier_input = self._build_verifier_input(user_request=user_request,
-                                                                    device_functions=device_functions,
-                                                                    programming_plan=programming_plan,
-                                                                    verification_plan=verification_plan,
-                                                                    retrieval_results=retrieval_results)
+                        verifier_input = self._build_verifier_input(
+                            user_request=user_request,
+                            device_functions=device_functions,
+                            programming_plan=programming_plan,
+                            verification_plan=verification_plan,
+                            retrieval_results=retrieval_results
+                        )
 
                         verifier_output = (
                             await self.verifier.run_async(
@@ -262,11 +266,6 @@ class Controller:
     def _load_agents(self):
         task_configs = self.config.task_configs
 
-        self.function_identifier = FunctionIdentifier.load_from_task_config(
-            task_config=task_configs.function_identification,
-            api_key=self.config.get_apikey(task_configs.function_identification.model.provider),
-        )
-
         self.retriever = PageRetriever.load_from_task_config(
             documents=self.documents,
             task_config=task_configs.retrieval,
@@ -303,27 +302,6 @@ class Controller:
         self.event_recorder = EventRecorder(
             driver_name=self.driver_name,
             output_dir=self.log_dir,
-        )
-
-    def _build_function_identifier_input(self) -> FunctionIdentifierInput:
-
-        registers = []
-        for register_map_output in self.register_maps:
-            registers.extend(
-                register_map_output.register_map.registers
-            )
-
-        register_map = RegisterMapOutput(
-            registers=registers,
-        )
-
-        pages = []
-        for document in self.documents:
-            pages.extend(document.pages)
-
-        return FunctionIdentifierInput(
-            register_map=register_map,
-            pages=pages,
         )
 
     def _build_planner_input(
@@ -418,7 +396,6 @@ class Controller:
         if self.attempted_log:
             return
         try:
-            function_identifier_log = _get_log(self.function_identifier, attempt)
             planner_log = _get_log(self.planner, attempt)
             coder_log = _get_log(self.coder, attempt)
             retriever_log = self.retriever_tool.get_log()
@@ -429,7 +406,6 @@ class Controller:
                     driver_name=self.driver_name,
                     attempt=attempt,
                     snapshot=Snapshot(
-                        device_functions=copy.deepcopy(function_identifier_log.identifier_output) if function_identifier_log is not None else None,
                         programming_plan=copy.deepcopy(planner_log.planner_output.programming_plan) if planner_log is not None else None,
                         verification_plan=copy.deepcopy(planner_log.planner_output.verification_plan) if planner_log is not None else None,
                         retrieval_topics=copy.deepcopy(retriever_log.topics) if retriever_log is not None else None,
@@ -497,7 +473,6 @@ class Controller:
         time_consumption = {
             "driver_name": self.driver_name,
             "controller": self.elapsed_time,
-            "function_identifier": self.function_identifier.get_elapsed_time(),
             "agent_time_consumption": self.time_consumptions
         }
 
@@ -585,3 +560,14 @@ def _get_log(agent,attempt: int) -> Any:
         return agent.logs[index].model_copy(deep=True)
     except IndexError:
         return None
+
+
+def _merge_device_functions(records: list[DeviceFunctionsRecord],) -> DeviceFunctionOutput:
+
+    return DeviceFunctionOutput(
+        device_functions=[
+            function.model_copy(deep=True)
+            for record in records
+            for function in record.device_functions.device_functions
+        ]
+    )

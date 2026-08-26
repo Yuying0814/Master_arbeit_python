@@ -1,13 +1,17 @@
 import hashlib
 import json
-import warnings
 
 from pathlib import Path
-from pickle import TRUE
 from typing import Any
 from datetime import datetime, timezone
 
-from src.models.data_manager import MajorVersionResult,VersionResult,DocumentRecord, RegisterMapRecord
+from src.models.data_manager import (
+    MajorVersionResult,
+    VersionResult,
+    DocumentRecord,
+    RegisterMapRecord,
+    DeviceFunctionsRecord,
+)
 from src.models.preprocessing.preprocessor import PreprocessorOutput
 
 from src.data_manager.data_manager import DataManager
@@ -47,6 +51,7 @@ async def run_preprocessor(
                 input_pdf_sha256=_calculate_sha256(pdf_path),
                 pages=preprocessing_result.pages,
                 register_map=preprocessing_result.register_map,
+                device_functions=preprocessing_result.device_functions,
                 snapshot=preprocessing_result.snapshot,
                 pages_created_at=completed_at,
                 register_map_created_at=completed_at,
@@ -96,6 +101,7 @@ def get_major_version_result(
         device_name: str,
         version_major:int,
 ) -> MajorVersionResult:
+
     print(f"\nGetting preprocessing data from database: {database_path}")
     database_path = Path(database_path).expanduser().resolve()
     with DataManager(database_path) as manager:
@@ -116,6 +122,7 @@ async def run_coding_controller(
         version_major:int,
         documents:list[DocumentRecord],
         register_maps:list[RegisterMapRecord],
+        device_functions:list[DeviceFunctionsRecord],
         user_request:str = "",
 ) -> bool:
     controller = Controller.load_controller(
@@ -123,6 +130,7 @@ async def run_coding_controller(
         config=config,
         documents=documents,
         register_maps=register_maps,
+        device_functions=device_functions,
     )
 
     try:
@@ -176,6 +184,7 @@ async def run_preprocessing_and_coding(
         version_major=version_result.version_major,
         documents=data.documents,
         register_maps=data.register_maps,
+        device_functions=data.device_functions,
         user_request=user_request,
     )
 
@@ -196,6 +205,11 @@ def save_preprocessing_outputs(
     _write_json(
         output_dir /device_name/version/"register_map.json",
         result.register_map.model_dump(),
+    )
+
+    _write_json(
+        output_dir /device_name/version/"device_functions.json",
+        result.device_functions.model_dump(),
     )
 
     _write_json(

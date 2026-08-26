@@ -1,5 +1,6 @@
 from src.models.data_manager.data_manager import (
     DocumentRecord,
+    DeviceFunctionsRecord,
     LatestVersion,
     MajorPdfInfo,
     MajorTaskModelInfo,
@@ -20,6 +21,7 @@ from src.models.data_manager.data_manager import (
 
 __all__ = [
     "DocumentRecord",
+    "DeviceFunctionsRecord",
     "LatestVersion",
     "MajorPdfInfo",
     "MajorTaskModelInfo",

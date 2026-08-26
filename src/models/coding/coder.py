@@ -6,7 +6,7 @@ from typing import Any
 from src.models.structuredOutputModel import StructuredOutputModel
 from src.models.coding.coding_common import CodeFile, ProgrammingPlan,InputRegisterMap
 from src.models.coding.retriever import RetrievalResult
-from src.models.coding.function_identifier import DeviceFunctionOutput
+from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 
 # Coder states:
 # programming plan: ProgrammingPlan

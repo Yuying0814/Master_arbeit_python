@@ -12,6 +12,7 @@ from uuid import uuid4
 from src.models.data_manager.data_manager import (
     VersionInfo, MajorVersionNumber, MajorTaskModelInfo, TaskModelInfo,
     MajorPdfInfo,VersionResult, MajorVersionResult, DocumentRecord, RegisterMapRecord,
+    DeviceFunctionsRecord,
     SnapshotRecord, PreprocessingTokenConsumptionRecord, OperationFeedback, LatestVersion,
     MajorVersionDeletionRecord, RenumberedMajorVersion,
     PreprocessorSnapshot, TaskModelsByName,
@@ -19,6 +20,7 @@ from src.models.data_manager.data_manager import (
 
 from src.models.preprocessing.preprocessor import PreprocessingTokenConsumption
 from src.models.preprocessing.register_output import RegisterMapOutput
+from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 
 
 class SchemaMismatchError(RuntimeError):
@@ -91,6 +93,7 @@ CREATE TABLE IF NOT EXISTS preprocessing_versions (
         length(trim(snapshot_created_at)) > 0
     ),
     token_consumption TEXT NOT NULL CHECK (json_valid(token_consumption)),
+    device_functions TEXT NOT NULL CHECK (json_valid(device_functions)),
 
     FOREIGN KEY (device_name) REFERENCES devices (device_name)
         ON UPDATE CASCADE ON DELETE CASCADE,
@@ -140,6 +143,7 @@ EXPECTED_COLUMNS = {
         "snapshot_json",
         "snapshot_created_at",
         "token_consumption",
+        "device_functions",
     ),
 
     "task_models": (
@@ -313,6 +317,7 @@ BEGIN
             OR OLD.snapshot_json IS NOT NEW.snapshot_json
             OR OLD.snapshot_created_at IS NOT NEW.snapshot_created_at
             OR OLD.token_consumption IS NOT NEW.token_consumption
+            OR OLD.device_functions IS NOT NEW.device_functions
         THEN RAISE(
         ABORT,'immutable preprocessing version fields cannot be updated'
         )
@@ -952,7 +957,8 @@ class DataManager:
                     version_minor,
                     input_pdf_sha256,
                     pages_json,
-                    register_map_json
+                    register_map_json,
+                    device_functions
                 FROM preprocessing_versions
                 WHERE device_name = ?
                   AND version_major = ?
@@ -989,7 +995,17 @@ class DataManager:
                         pdf_sha256=row["input_pdf_sha256"],
                         register_map=json.loads(row["register_map_json"]),
                     ) for row in rows
-                ]
+                ],
+                device_functions=[
+                    DeviceFunctionsRecord(
+                        device_name=device_name,
+                        version_pk=row["version_pk"],
+                        version_major=version_major,
+                        version_minor=row["version_minor"],
+                        pdf_sha256=row["input_pdf_sha256"],
+                        device_functions=json.loads(row["device_functions"]),
+                    ) for row in rows
+                ],
             )
 
     def get_version_result(self, device_name: str, version_pk:int) -> VersionResult:
@@ -1020,6 +1036,7 @@ class DataManager:
             register_map_json=json.loads(row["register_map_json"]),
             register_map_created_at=row["register_map_created_at"],
             register_map_modified_at=row["register_map_modified_at"],
+            device_functions=json.loads(row["device_functions"]),
             snapshot_json=json.loads(row["snapshot_json"]),
             snapshot_created_at=row["snapshot_created_at"],
             token_consumption=json.loads(row["token_consumption"]),
@@ -1280,6 +1297,7 @@ class DataManager:
             input_pdf_sha256: str,
             pages: list[dict[str,Any]],
             register_map: RegisterMapOutput,
+            device_functions: DeviceFunctionOutput,
             snapshot: PreprocessorSnapshot,
             pages_created_at: str,
             register_map_created_at: str,
@@ -1291,6 +1309,7 @@ class DataManager:
         device_name = device_name.strip()
 
         register_map = RegisterMapOutput.model_validate(register_map)
+        device_functions = DeviceFunctionOutput.model_validate(device_functions)
         snapshot = PreprocessorSnapshot.model_validate(snapshot)
         token_consumption = PreprocessingTokenConsumption.model_validate(
             token_consumption
@@ -1305,6 +1324,12 @@ class DataManager:
         )
         register_map_json = json.dumps(
             register_map.model_dump(mode="json"),
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        device_functions_json = json.dumps(
+            device_functions.model_dump(mode="json"),
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
@@ -1378,8 +1403,9 @@ class DataManager:
                     register_map_modified_at,
                     snapshot_json,
                     snapshot_created_at,
-                    token_consumption
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    token_consumption,
+                    device_functions
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     device_name,
@@ -1393,7 +1419,8 @@ class DataManager:
                     register_map_created_at,
                     snapshot_json,
                     snapshot_created_at,
-                    token_consumption_json
+                    token_consumption_json,
+                    device_functions_json,
                 ),
             )
             version_pk = cursor.lastrowid

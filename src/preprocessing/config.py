@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.config import BaseConfig, BaseProjectPath
-from src.models.preprocessing.page_output import PageClassification, PageDescription
+from src.models.preprocessing.page_output import PageClassification
 from src.models.preprocessing.register_output import RegisterIndexOutput, RegisterMapOutput
 from src.models.task_config import ModelConfig,OcrConfig,PreprocessingTaskConfigs,TaskConfig
+from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 
 
 class PreprocessingConfig(BaseConfig):
@@ -85,7 +86,7 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
             model_name="gpt-5-mini",
             thinking_effort="medium",
             temperature=None,
-            max_tokens=1000,
+            max_tokens=10000,
         ),
         system=_read_instructions(prompt_path / "prompt_verifyRegSumPages.txt"),
         output_format="text",
@@ -98,7 +99,7 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
             model_name="gpt-5-mini",
             thinking_effort="medium",
             temperature=None,
-            max_tokens=2000,
+            max_tokens=20000,
         ),
         system=_read_instructions(prompt_path / "prompt_verifyRegPages.txt"),
         output_format="text",
@@ -111,7 +112,7 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
             is_batch=False,
             thinking_effort="medium",
             temperature=None,
-            max_tokens=2000,
+            max_tokens=20000,
         ),
         system=_read_instructions(prompt_path / "prompt_extractRegIndex.txt"),
         output_format=RegisterIndexOutput,
@@ -124,10 +125,23 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
             is_batch=False,
             thinking_effort="medium",
             temperature=None,
-            max_tokens=2000,
+            max_tokens=20000,
         ),
         system=_read_instructions(prompt_path / "prompt_extractRegMap.txt"),
         output_format=RegisterMapOutput,
+    )
+
+    identify_function = TaskConfig(
+        model=ModelConfig(
+            provider="openai",
+            model_name="gpt-5-mini",
+            is_batch=False,
+            thinking_effort="medium",
+            temperature=None,
+            max_tokens=20000,
+        ),
+        system = _read_instructions(prompt_path / "prompt_function_identifier.txt"),
+        output_format= DeviceFunctionOutput,
     )
 
     return PreprocessingTaskConfigs(
@@ -136,6 +150,7 @@ def _build_preprocessing_task_configs(prompt_path: Path,) -> PreprocessingTaskCo
         verify_reg_pages=verify_reg_pages,
         extract_reg_index=extract_reg_index,
         extract_reg_map=extract_reg_map,
+        identify_function=identify_function,
     )
 
 

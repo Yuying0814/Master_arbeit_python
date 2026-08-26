@@ -15,8 +15,3 @@ class DeviceFunction(StructuredOutputModel):
 
 class DeviceFunctionOutput(StructuredOutputModel):
     device_functions: list[DeviceFunction] = Field(description="List of device functions")
-
-class FunctionIdentifierLog(BaseModel):
-    identifier_input:FunctionIdentifierInput
-    identifier_output:DeviceFunctionOutput
-    token_consumption: dict[str, Any]

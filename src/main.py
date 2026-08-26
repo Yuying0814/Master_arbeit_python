@@ -20,14 +20,26 @@ MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "IAM20680HV" # For preprocessing and coding
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\FXOS8700CQ.pdf")
+DEVICE_NAME = "LIS3DH" # For preprocessing and coding
 
-MAJOR_VERSION = 1 # For coding
-USER_REQUEST = "" # For coding
+# preprocessing input
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\lis3dh.pdf")
 
-BASE_URL = ""
+# coding input
+MAJOR_VERSION = 2
+USER_REQUEST = ""
+
+# local config
+BASE_URL = "http://129.187.200.113:11434"
+
+# llm local batch config
 MAX_CONCURRENCY = 4
+
+# ocr local config
+LAYOUT_DEVICE = "cpu"
+CONNECTION_POOL_SIZE = 1
+MAX_WORKERS = 1
+BATCH_SIZE = 1
 
 # ============================================================
 # PATH CONFIG
@@ -61,29 +73,28 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "include_image": False,
         "table_format": "html",
         # Following settings are applied only for local glm-ocr
-        "url": "http://localhost:11434",
-        "layout_device": "cpu",
-        "connection_pool_size": 1,
-        "max_workers": 1,
-        "batch_size": 1,
+        "url": BASE_URL,
+        "layout_device": LAYOUT_DEVICE,
+        "connection_pool_size": CONNECTION_POOL_SIZE,
+        "max_workers": MAX_WORKERS,
+        "batch_size": BATCH_SIZE,
     },
 
     "classify_pages": {
-        "provider": "kimi",
+        "provider": "ollama",
         "is_batch": True,
-        "model_name": "kimi-k2.5",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
         "timeout": 1800,
         "base_url":BASE_URL,
         "ollama_batch_concurrency": MAX_CONCURRENCY,
-
     },
     "verify_reg_sum_pages": {
-        "provider": "kimi",
+        "provider": "ollama",
         "is_batch": True,
-        "model_name": "kimi-k2.5",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
@@ -92,9 +103,9 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "verify_reg_pages": {
-        "provider": "kimi",
+        "provider": "ollama",
         "is_batch": True,
-        "model_name": "kimi-k2.5",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
@@ -103,8 +114,8 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "extract_reg_index": {
-        "provider": "kimi",
-        "model_name": "kimi-k2.6",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 50000,
@@ -112,28 +123,28 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "base_url":BASE_URL,
     },
     "extract_reg_map": {
-        "provider": "kimi",
-        "model_name": "kimi-k2.6",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
         "thinking_effort": None,
         "temperature": None,
         "max_tokens": 70000,
         "timeout": 36000,
         "base_url":BASE_URL,
     },
-}
-CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
-    "function_identification":{
+    "identify_function": {
         "provider": "openai",
         "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 30000,
         "timeout": 1800,
-        "base_url":BASE_URL,
+        "base_url": BASE_URL,
     },
+}
+CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "planning": {
         "provider": "openai",
-        "model_name": "gpt-5.6-terra",
+        "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
@@ -279,6 +290,7 @@ def main():
                     version_major=version_major,
                     documents=result.documents,
                     register_maps=result.register_maps,
+                    device_functions=result.device_functions,
                     user_request=USER_REQUEST,
                 )
             )
