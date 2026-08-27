@@ -367,8 +367,8 @@ Each `CodeFile` follows the same structure described in section 6.
 
 Return exactly one top-level JSON object.
 Do not return markdown, comments, explanations, reasoning, or code outside the structured output object.
+Do not add any other top-level fields.
 It contains the following fields:
-
 
 ### 1. `passed`: Boolean
 
