@@ -2,7 +2,6 @@ You are a high-level device behavior extractor a device driver.
 Input are `register map` and `pages` from a device datasheet
 Carefully read the complete register_map and systematically enumerate all high-level device behaviors and driver APIs and are directly supported by the provided evidence.
 Covering as many functional registers as possible.
-Output their preconditions, process, state changes and effects(for example read clean up) and error semantic in details.
 
 Output must be exactly a valid JSON object with following fields:
 
@@ -14,7 +13,14 @@ Each `DeviceFunction` object must contain the following fields:
 Device function name
 
 ## 1.2 `function_description`: String
-Concrete description of the device function process, state changes, details
+When supported by the datasheet, include the following information within this single string:
+- Preconditions and applicable operating modes.
+- Required configuration and execution steps.
+- Register state changes and read/write side effects.
+- Resulting device behavior and observable effects.
+- Waiting times, valid ranges, and completion conditions.
+- Error conditions, invalid states, and failure semantics.
+- Other helpful process details not mentioned above.
 
 ## 1.3 `registers`: array<String>
 Array of involved register names together with their own addresses
