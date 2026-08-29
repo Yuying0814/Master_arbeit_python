@@ -20,17 +20,16 @@ MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "LIS3DH" # For preprocessing and coding
+DEVICE_NAME = "MLX90382" # For preprocessing and coding
 
 # preprocessing input
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\lis3dh.pdf")
-
-# coding input
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\.pdf")
 MAJOR_VERSION = 2
 USER_REQUEST = ""
 
 # local config
-BASE_URL = "http://129.187.200.113:11434"
+# BASE_URL = "http://129.187.200.113:11434"
+BASE_URL = "http://100.118.198.6:11434"
 
 # llm local batch config
 MAX_CONCURRENCY = 4
@@ -132,8 +131,8 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "base_url":BASE_URL,
     },
     "identify_function": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 30000,
@@ -143,47 +142,47 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "planning": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 60000,
         "timeout": 1800,
         "base_url":BASE_URL,
     },
     "retrieval": {
-        "provider": "openai",
+        "provider": "ollama",
         "is_batch": True,
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
-        "timeout": 1800,
+        "timeout": 36000,
         "base_url":BASE_URL,
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "coding": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 100000,
-        "timeout": 3600,
+        "timeout": 36000,
         "base_url":BASE_URL,
     },
     "verification_semantic": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 60000,
         "timeout": 36000,
         "base_url":BASE_URL,
     },
     "verification_test_coder": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 30000,
         "timeout": 1800,

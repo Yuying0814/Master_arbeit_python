@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from langchain_core.tools import BaseTool
 from langchain.agents import create_agent
+from langchain.agents.structured_output import ProviderStrategy
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -34,6 +35,7 @@ class LLMAgent:
         model: BaseChatModel,
         timeout: int|None,
         *,
+        provider:str,
         tools: list[Callable | BaseTool | dict] | None = None,
         system_prompt: str | None = None,
         output_format: ValidOutputFormat = None,
@@ -49,7 +51,7 @@ class LLMAgent:
 
         response_format = None
         if output_format is not None:
-            response_format = _build_response_format(output_format)
+            response_format = _build_response_format(provider,output_format)
 
         self.timeout = timeout
         self.memory_enabled = memory_enabled
@@ -99,6 +101,7 @@ class LLMAgent:
 
         return cls(
             model=model,
+            provider=task_config.model.provider,
             tools=tools,
             system_prompt=task_config.system,
             output_format=task_config.output_format,
@@ -184,7 +187,7 @@ class LLMAgent:
         self.total_tokens = dict(usage_callback.usage_metadata)
 
 # Helper
-def _build_response_format(output_format: ValidOutputFormat) -> Any | None:
+def _build_response_format(provider:str,output_format: ValidOutputFormat) -> Any | None:
     if output_format is None:
         return None
 
@@ -192,6 +195,11 @@ def _build_response_format(output_format: ValidOutputFormat) -> Any | None:
         return None
 
     if isinstance(output_format, type) and issubclass(output_format, StructuredOutputModel):
+        if provider == "ollama":
+            return ProviderStrategy(
+                schema=output_format,
+                strict=True,
+            )
         return output_format
 
     raise TypeError("Invalid output format")
@@ -210,10 +218,9 @@ def _build_messages(user_request: str) -> dict[str, Any]:
 
 def _is_structured_output(response_format: Any) -> bool:
     return (
-        isinstance(response_format, dict)
+        isinstance(response_format, ProviderStrategy)
         or (
-            isinstance(response_format, type)
-            and issubclass(response_format, StructuredOutputModel)
+                isinstance(response_format, type) and issubclass(response_format,StructuredOutputModel,)
         )
     )
 

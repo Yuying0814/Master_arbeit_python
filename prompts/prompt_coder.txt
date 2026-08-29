@@ -370,9 +370,12 @@ Identified device function description and involved registers from function iden
 
 ## Output
 
-Return exactly one top-level JSON object.
 Do not return markdown, comments, explanations, reasoning, or code outside the structured output object.
-The top-level output JSON object contains the following fields:
+Return exactly one top-level JSON object `CoderOutput` containing exactly the following two fields:
+- `candidate_files`
+- `deleted_file_ids`
+
+Following are the field descriptions:
 
 ### 1. `candidate_files`: Array<CodeFile>
 The changed candidate files after this coding iteration.
@@ -452,7 +455,6 @@ Use an empty array if no candidate files should be deleted.
 18. Header files must define the planned public interface without unnecessary implementation logic.
 19. `.cpp` files must include the generated driver header and implement all planned non-inline declarations.
 20. Ensure that all generated files are syntactically valid Arduino C++.
-21. You must output a valid JSON object strictly in accordance with the Output format.
 
 ## Additional Constraints
 

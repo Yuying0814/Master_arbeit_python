@@ -163,9 +163,16 @@ class PageRetriever:
         }
 
         return [
-            pages_by_index[index]
+            self._refine_page(pages_by_index[index])
             for index in page_indices
         ]
+
+    def _refine_page(self, page: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "index": page["index"],
+            "markdown": page.get("markdown", ""),
+            "tables": page.get("tables", []),
+        }
 
     def _update_logs(
             self,

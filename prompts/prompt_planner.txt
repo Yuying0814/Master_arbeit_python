@@ -243,8 +243,12 @@ This value is null only in the first planning iteration.
 
 ## Output
 
-Return exactly one top-level JSON object.
 Do not return markdown, comments, explanations, reasoning, or code outside the structured output object.
+Return exactly one top-level JSON object `PlannerOutput` containing exactly the following three fields:
+- `plan_id`
+- `programming_plan`
+- `verification_plan`
+Following are the field descriptions:
 
 ### 1. `plan_id`: Integer
 Unique identifier of the current plan.
@@ -381,7 +385,7 @@ Return type of the target function.
 Each `ReturnType` contains the following fields:
 
 ######### 2.2.2.6.3.5.1 `data_type`: String
-C return type of the function.
+C++ return type of the function. Use "void" if no return type.
 
 ######### 2.2.2.6.3.5.2 `description`: String
 Meaning of the return value.
