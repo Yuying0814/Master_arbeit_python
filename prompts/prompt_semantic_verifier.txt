@@ -365,13 +365,12 @@ Each `CodeFile` follows the same structure described in section 6.
 
 ## Output
 
-Return exactly one top-level JSON object.
-Do not return markdown, comments, explanations, reasoning, or code outside the structured output object.
+Do not return markdown, comments, explanations, reasoning, or code outside the structured output object. Do not add any other top-level fields.
 Return exactly one top-level JSON object containing exactly the following three fields:
 - passed
 - rejection_reasons
 - feedback
-Do not add any other top-level fields:
+Following are the field descriptions:
 
 ### 1. `passed`: Boolean
 
@@ -506,7 +505,7 @@ Keep the feedback compact but specific enough for the planner to revise the next
 6. Verify that the complete file set formed by `candidate_files` and `accepted_files` contains exactly one `.ino` file. Reject the candidate if no `.ino` file exists or if more than one `.ino` file exists.
 7. If `user_request` conflicts with source-supported device facts in `register_maps` or `retrieval_results`, do not reject the candidate solely because the conflicting user request cannot be satisfied. Verify the implementation against the source-supported device facts instead. If all other semantic verification requirements pass, `passed` may be set to `true`. Record the conflict and the source-supported reason in `feedback`.
 8. If the existing source information does not support you to complete checks, suggest retrieval topics in feedback.
-9. You must output a valid JSON object strictly in accordance with the Output format.
+
 
 ## Basic Checklist
 The candidate code Must semantically satisfy:
@@ -530,6 +529,29 @@ Additionally you must check:
 9. Check whether the measured value value can be correctly converted.
 These are baseline checks, not an exhaustive checklist. Do not limit your verification to these items.
 
+Output schema example:
+{
+  "passed": false,
+  "rejection_reasons": [
+    {
+      "targets": [
+        {
+          "file_id": "<sensor>.cpp",
+          "rejection_summary": "SPI read behavior is incorrect.",
+          "rejected_sections": [],
+          "rejected_functions": [
+            {
+              "function_name": "readRegister",
+              "rejection_reason": "The SPI read bit is set incorrectly."
+            }
+          ]
+        }
+      ],
+      "description": "The SPI implementation does not follow the datasheet."
+    }
+  ],
+  "feedback": "Correct the SPI read bit in readRegister()."
+}
 
 ## Wire.h as reference
 

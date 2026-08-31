@@ -15,16 +15,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # ============================================================
 # MODE SELECTION
 # ============================================================
-MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
+MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "FXOS8700CQ" # For preprocessing and coding
+DEVICE_NAME = "" # For preprocessing and coding
 
 # preprocessing input
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\FXOS8700CQ.pdf")
-
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ITG-3050-Register-Map.pdf")
 # coding input
 MAJOR_VERSION = 2
 USER_REQUEST = ""
@@ -46,7 +45,7 @@ BATCH_SIZE = 1
 # PATH CONFIG
 # ============================================================
 ENV_FILE: Path | str = "D:/python/master_arbeit/.env"
-DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database_v2.db"
+DATABASE_PATH: Path | str = "D:/python/master_arbeit/data/database.db"
 CODE_DIR: Path | str = "D:/python/master_arbeit/code"
 
 # ============================================================
@@ -82,9 +81,9 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
 
     "classify_pages": {
-        "provider": "ollama",
+        "provider": "zai",
         "is_batch": True,
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "model_name": "glm-4-plus",
         "thinking_effort": "",
         "temperature": None,
         "max_tokens": 4095,
@@ -93,9 +92,9 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "verify_reg_sum_pages": {
-        "provider": "ollama",
+        "provider": "zai",
         "is_batch": True,
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "model_name": "glm-4-plus",
         "thinking_effort": "",
         "temperature": None,
         "max_tokens": 4095,
@@ -104,9 +103,9 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "verify_reg_pages": {
-        "provider": "ollama",
+        "provider": "zai",
         "is_batch": True,
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "model_name": "glm-4-plus",
         "thinking_effort": "",
         "temperature": None,
         "max_tokens": 4095,
@@ -115,48 +114,48 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "extract_reg_index": {
-        "provider": "ollama",
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "provider": "zai",
+        "model_name": "glm-4.7",
         "thinking_effort": "",
         "temperature": None,
-        "max_tokens": 80000,
-            "timeout": 3600,
+        "max_tokens": 50000,
+        "timeout": 1800,
         "base_url":BASE_URL,
     },
     "extract_reg_map": {
-        "provider": "ollama",
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "provider": "zai",
+        "model_name": "glm-4.7",
         "thinking_effort": "",
         "temperature": None,
-        "max_tokens": 100000,
-        "timeout": 36000,
+        "max_tokens": 70000,
+        "timeout": 3600,
         "base_url":BASE_URL,
     },
     "identify_function": {
-        "provider": "ollama",
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "provider": "zai",
+        "model_name": "glm-4.7",
         "thinking_effort": "",
         "temperature": None,
-        "max_tokens": 80000,
-        "timeout": 3600,
+        "max_tokens": 30000,
+        "timeout": 1800,
         "base_url": BASE_URL,
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "planning": {
-        "provider": "openai",
-        "model_name": "gpt-5.6-terra",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 60000,
         "timeout": 7200,
         "base_url":BASE_URL,
     },
     "retrieval": {
-        "provider": "openai",
+        "provider": "ollama",
         "is_batch": True,
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 10000,
         "timeout": 7200,
@@ -164,28 +163,27 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "coding": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 100000,
         "timeout": 7200,
         "base_url":BASE_URL,
-
     },
     "verification_semantic": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 60000,
         "timeout": 7200,
         "base_url":BASE_URL,
     },
     "verification_test_coder": {
-        "provider": "openai",
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "provider": "ollama",
+        "model_name": "mistral-medium-3.5:128b-ctx256k",
+        "thinking_effort": None,
         "temperature": None,
         "max_tokens": 30000,
         "timeout": 7200,

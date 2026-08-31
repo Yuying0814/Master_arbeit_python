@@ -141,5 +141,5 @@ Input:
 Output:
 {
   "is_register_summary_relevant": false,
-  "is_register_map_relevant": true,
+  "is_register_map_relevant": true
 }

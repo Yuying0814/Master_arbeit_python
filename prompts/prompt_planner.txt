@@ -382,10 +382,16 @@ Default value of the current parameter or output, null if no default value.
 
 ######## 2.2.2.6.3.5 `return_type`: ReturnType
 Return type of the target function.
+Use
+    {
+      "data_type": "void",
+      "description": ""
+    }
+if no return type of the function.
 Each `ReturnType` contains the following fields:
 
 ######### 2.2.2.6.3.5.1 `data_type`: String
-C++ return type of the function. Use "void" if no return type.
+C++ return type of the function.
 
 ######### 2.2.2.6.3.5.2 `description`: String
 Meaning of the return value.
