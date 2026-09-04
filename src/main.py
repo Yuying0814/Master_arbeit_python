@@ -15,19 +15,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # ============================================================
 # MODE SELECTION
 # ============================================================
-MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
+MODE = "coding" # chat/ preprocessing /coding/ preprocessing and coding
 
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "ATMEGA8" # For preprocessing and coding
+DEVICE_NAME = "BMM350" # For preprocessing and coding
 
 # preprocessing input
 PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ATmega8.pdf")
 
 # coding input
-MAJOR_VERSION = 2
-USER_REQUEST = ""
+MAJOR_VERSION = 1
+with Path(r"D:/python\master_arbeit\data\input\BMM350.txt").open(encoding="utf-8") as f:
+    USER_REQUEST = f.read()
 
 # local config
 # BASE_URL = "http://129.187.200.113:11434"
@@ -145,7 +146,7 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "planning": {
         "provider": "openai",
-        "model_name": "gpt-5-mini",
+        "model_name": "gpt-5.6-terra",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
@@ -153,10 +154,10 @@ CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
         "base_url":BASE_URL,
     },
     "retrieval": {
-        "provider": "openai",
+        "provider": "anthropic",
         "is_batch": True,
-        "model_name": "gpt-5-mini",
-        "thinking_effort": "medium",
+        "model_name": "claude-haiku-4-5",
+        "thinking_effort": "",
         "temperature": None,
         "max_tokens": 10000,
         "timeout": 7200,

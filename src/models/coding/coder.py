@@ -18,6 +18,11 @@ from src.models.preprocessing.function_identifier import DeviceFunctionOutput
 
 # communicate with controller
 class CoderInput(StructuredOutputModel):
+    user_input: str = Field(
+        default="",
+        description="User request for coding",
+    )
+
     programming_plan: ProgrammingPlan = Field(
         description="programming plan for generating code",
     )

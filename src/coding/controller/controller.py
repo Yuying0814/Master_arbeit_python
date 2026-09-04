@@ -160,6 +160,7 @@ class Controller:
                             attempt=attempt,
                     ):
                         coder_input = self._build_coder_input(
+                            user_input=user_request,
                             programming_plan=programming_plan,
                             retrieval_results=retrieval_results,
                             device_functions=device_functions
@@ -324,11 +325,13 @@ class Controller:
 
     def _build_coder_input(
             self,
+            user_input:str,
             programming_plan:ProgrammingPlan,
             retrieval_results:list[RetrievalResult],
             device_functions:DeviceFunctionOutput
     ) -> CoderInput:
         return CoderInput(
+            user_input=user_input,
             programming_plan=programming_plan,
             device_functions=device_functions,
             register_maps=self._get_normalized_register_maps_input(),
