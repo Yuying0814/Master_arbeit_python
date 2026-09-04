@@ -19,7 +19,8 @@ load_dotenv(dotenv_path=PROJECT_ROOT/".env")
 
 ###################################################
 PDF_NAME = "ATmega8.pdf"
-MODEL_NAME = "mistral-medium-3.5:128b-ctx256k"
+MODEL_NAME = "gpt-5-mini"
+PROVIDER = "openai"
 ###################################################
 
 PDF_DIR = PROJECT_ROOT / "data" / "input_pdf"
@@ -27,7 +28,7 @@ PDF_PATH = PDF_DIR / PDF_NAME
 OCR_PATH= PROJECT_ROOT / "data" / "output" / "ocr" / "mistral" / "mistral-ocr-latest"/f"{PDF_PATH.stem}.json"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 PROMPT_PATH = PROJECT_ROOT/"prompts"/"prompt_extractRegMap.txt"
-OUTPUT_PATH = PROJECT_ROOT / "data" /"output"/"test_without_preprocessing"/"mistral-medium-3.5_128b-ctx256k"/f"{PDF_PATH.stem}.json"
+OUTPUT_PATH = PROJECT_ROOT / "data" /"output"/"test_without_preprocessing"/MODEL_NAME/f"{PDF_PATH.stem}.json"
 BASE_URL = "100.118.198.6:11434"
 
 def _read_instructions(prompt_path: str | Path | None) -> str:
@@ -38,7 +39,7 @@ def _read_instructions(prompt_path: str | Path | None) -> str:
 
 TASK_CONFIG = TaskConfig(
     model=ModelConfig(
-        provider="ollama",
+        provider=PROVIDER,
         model_name=MODEL_NAME,
         thinking_effort="",
         max_tokens=70000,

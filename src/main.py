@@ -20,10 +20,10 @@ MODE = "preprocessing" # chat/ preprocessing /coding/ preprocessing and coding
 # ============================================================
 # GENERAL CONFIG.
 # ============================================================
-DEVICE_NAME = "FXOS8700CQ" # For preprocessing and coding
+DEVICE_NAME = "ATMEGA8" # For preprocessing and coding
 
 # preprocessing input
-PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\FXOS8700CQ.pdf")
+PDF_FILE: Path | str = Path(r"D:\python\master_arbeit\data\input_pdf\ATmega8.pdf")
 
 # coding input
 MAJOR_VERSION = 2
@@ -82,70 +82,70 @@ PREPROCESSOR_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     },
 
     "classify_pages": {
-        "provider": "ollama",
+        "provider": "openai",
         "is_batch": True,
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
-        "thinking_effort": "",
+        "model_name": "gpt-5-mini",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 4095,
-        "timeout": 1800,
+        "max_tokens": 10000,
+        "timeout": 36000,
         "base_url":BASE_URL,
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "verify_reg_sum_pages": {
-        "provider": "ollama",
+        "provider": "openai",
         "is_batch": True,
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
-        "thinking_effort": "",
+        "model_name": "gpt-5-mini",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 4095,
-        "timeout": 1800,
+        "max_tokens": 10000,
+        "timeout": 36000,
         "base_url":BASE_URL,
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "verify_reg_pages": {
-        "provider": "ollama",
+        "provider": "openai",
         "is_batch": True,
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
-        "thinking_effort": "",
+        "model_name": "gpt-5-mini",
+        "thinking_effort": "medium",
         "temperature": None,
-        "max_tokens": 4095,
-        "timeout": 1800,
+        "max_tokens": 10000,
+        "timeout": 36000,
         "base_url":BASE_URL,
         "ollama_batch_concurrency": MAX_CONCURRENCY,
     },
     "extract_reg_index": {
-        "provider": "ollama",
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
-        "thinking_effort": "",
+        "provider": "openai",
+        "model_name": "gpt-5-mini",
+        "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 80000,
-            "timeout": 3600,
+        "timeout": 36000,
         "base_url":BASE_URL,
     },
     "extract_reg_map": {
-        "provider": "ollama",
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
-        "thinking_effort": "",
+        "provider": "openai",
+        "model_name": "gpt-5-mini",
+        "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 100000,
         "timeout": 36000,
         "base_url":BASE_URL,
     },
     "identify_function": {
-        "provider": "ollama",
-        "model_name": "mistral-medium-3.5:128b-ctx256k",
-        "thinking_effort": "",
+        "provider": "openai",
+        "model_name": "gpt-5-mini",
+        "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 80000,
-        "timeout": 3600,
+        "timeout": 36000,
         "base_url": BASE_URL,
     },
 }
 CODING_TASK_MODEL_SETTINGS: dict[str, dict[str, Any]] = {
     "planning": {
         "provider": "openai",
-        "model_name": "gpt-5.6-terra",
+        "model_name": "gpt-5-mini",
         "thinking_effort": "medium",
         "temperature": None,
         "max_tokens": 60000,
