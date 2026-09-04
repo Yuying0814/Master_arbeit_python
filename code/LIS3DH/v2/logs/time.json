@@ -1,0 +1,13 @@
+{
+    "driver_name": "LIS3DH",
+    "controller": 7201.527426500001,
+    "agent_time_consumption": [
+        {
+            "attempt": 1,
+            "planner": 7201.498934800002,
+            "retriever": 0.0,
+            "coder": 0.0,
+            "verifier": 0.0
+        }
+    ]
+}

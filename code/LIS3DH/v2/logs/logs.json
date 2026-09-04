@@ -1,0 +1,30 @@
+{
+    "driver_name": "LIS3DH",
+    "logs": [
+        {
+            "driver_name": "LIS3DH",
+            "attempt": 1,
+            "snapshot": {
+                "programming_plan": null,
+                "verification_plan": null,
+                "retrieval_topics": null,
+                "candidate_files": [],
+                "accepted_files": [],
+                "verifier_feedback": null,
+                "passed": false
+            },
+            "details": {
+                "planner_log": null,
+                "retriever_log": null,
+                "coder_log": null,
+                "verifier_log": null
+            },
+            "token_consumption": {
+                "planner": {},
+                "retriever": {},
+                "coder": {},
+                "verifier": {}
+            }
+        }
+    ]
+}

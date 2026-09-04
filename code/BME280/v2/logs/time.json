@@ -1,0 +1,20 @@
+{
+    "driver_name": "BME280",
+    "controller": 3271.539005999999,
+    "agent_time_consumption": [
+        {
+            "attempt": 1,
+            "planner": 2938.5116682000007,
+            "retriever": 2893.6623182999992,
+            "coder": 110.06761450000158,
+            "verifier": 71.46523820000039
+        },
+        {
+            "attempt": 2,
+            "planner": 14.111521400000129,
+            "retriever": 0.0,
+            "coder": 88.79672779999964,
+            "verifier": 48.554860300000655
+        }
+    ]
+}
